@@ -172,7 +172,7 @@ func (t *Task) Start(ctx context.Context) {
 	}
 	var initialDelay time.Duration
 	if !state.LastRunAt.IsZero() {
-		initialDelay = state.LastRunAt.Add(t.period).Sub(time.Now())
+		initialDelay = time.Until(state.LastRunAt.Add(t.period))
 	} else {
 		initialDelay = 0
 	}
