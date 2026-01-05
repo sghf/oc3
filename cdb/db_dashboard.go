@@ -225,3 +225,35 @@ func (oDb *DB) PurgeAlertsOnServicesWithoutAsset(ctx context.Context) error {
 	}
 	return nil
 }
+
+func (oDb *DB) DashboardUpdateNodesNotUpdated(ctx context.Context) error {
+	request := `INSERT INTO dashboard
+               SELECT
+                 NULL,
+                 "node information not updated",
+                 "",
+                 0,
+                 "",
+                 "",
+                 updated,
+                 "",
+                 node_env,
+                 NOW(),
+                 node_id,
+                 NULL,
+                 NULL
+               FROM nodes
+               WHERE updated < date_sub(now(), interval 25 hour)
+               ON DUPLICATE KEY UPDATE
+                 dash_updated=NOW()`
+	result, err := oDb.DB.ExecContext(ctx, request)
+	if err != nil {
+		return err
+	}
+	if rowAffected, err := result.RowsAffected(); err != nil {
+		return err
+	} else if rowAffected > 0 {
+		oDb.SetChange("dashboard")
+	}
+	return nil
+}

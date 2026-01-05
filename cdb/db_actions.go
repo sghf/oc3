@@ -4,9 +4,17 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+
+	"github.com/google/uuid"
 )
 
 type (
+	SvcAction struct {
+		ID     int64
+		SvcID  uuid.UUID
+		NodeID uuid.UUID
+	}
+
 	BActionErrorCount struct {
 		SvcID    string
 		NodeID   string
@@ -194,4 +202,51 @@ func (oDb *DB) AlertActionErrors(ctx context.Context, line BActionErrorCount) er
 		oDb.SetChange("dashboard")
 	}
 	return nil
+}
+
+func (oDb *DB) UpdateUnfinishedActions(ctx context.Context) error {
+	request := `UPDATE svcactions
+		SET
+		    status = "err",
+		    end = "1000-01-01 00:00:00"
+		WHERE
+		    begin < DATE_SUB(NOW(), INTERVAL 120 MINUTE)
+		    AND end IS NULL
+		    AND status IS NULL
+		    AND action NOT LIKE "%#%"`
+	result, err := oDb.DB.ExecContext(ctx, request)
+	if err != nil {
+		return err
+	}
+	if rowAffected, err := result.RowsAffected(); err != nil {
+		return err
+	} else if rowAffected > 0 {
+		oDb.SetChange("svcactions")
+	}
+	return nil
+}
+
+func (oDb *DB) GetUnfinishedActions(ctx context.Context) (lines []SvcAction, err error) {
+	query := `SELECT id, node_id, svc_id FROM svcactions
+		WHERE
+		    begin < DATE_SUB(NOW(), INTERVAL 120 MINUTE)
+		    AND end IS NULL
+		    AND status IS NULL
+		    AND action NOT LIKE "%#%"`
+	var rows *sql.Rows
+	rows, err = oDb.DB.QueryContext(ctx, query)
+	if err != nil {
+		return
+	}
+	defer func() { _ = rows.Close() }()
+	for rows.Next() {
+		var line SvcAction
+		if err = rows.Scan(&line.ID, &line.NodeID, &line.SvcID); err != nil {
+			return
+		}
+		lines = append(lines, line)
+	}
+	err = rows.Err()
+	return
+
 }

@@ -10,26 +10,47 @@ import (
 	"github.com/opensvc/oc3/cdb"
 )
 
-var TaskAlertHourly = Task{
-	name: "alerts_hourly",
+var TaskAlert1H = Task{
+	name: "alerts_1h",
 	children: TaskList{
-		TaskAlertNetworkWithWrongMask,
+		TaskAlertAppsWithoutResponsible,
 		TaskAlertInstancesOutdated,
+		TaskAlertNetworkWithWrongMask,
+		TaskAlertNodesNotUpdated,
+		TaskAlertOnNodesWithoutAsset,
+		TaskAlertOnServicesWithoutAsset,
 	},
 	period:  time.Hour,
 	timeout: 15 * time.Minute,
 }
 
-var TaskAlertDaily = Task{
-	name: "alerts_daily",
+var TaskAlert1D = Task{
+	name: "alerts_1d",
 	children: TaskList{
-		TaskAlertAppsWithoutResponsible,
-		TaskAlertPurgeActionErrors,
 		TaskAlertActionErrorsNotAcked,
 		TaskAlertMACDup,
+		TaskAlertPurgeActionErrors,
 	},
 	period:  24 * time.Hour,
 	timeout: 15 * time.Minute,
+}
+
+var TaskAlertNodesNotUpdated = Task{
+	name:    "alert_nodes_not_updated",
+	fn:      taskAlertNodesNotUpdated,
+	timeout: time.Minute,
+}
+
+var TaskAlertOnNodesWithoutAsset = Task{
+	name:    "alert_nodes_without_asset",
+	fn:      taskAlertOnNodesWithoutAsset,
+	timeout: time.Minute,
+}
+
+var TaskAlertOnServicesWithoutAsset = Task{
+	name:    "alert_on_services_without_asset",
+	fn:      taskAlertOnServicesWithoutAsset,
+	timeout: time.Minute,
 }
 
 var TaskAlertMACDup = Task{
@@ -236,6 +257,54 @@ func taskAlertActionErrorsNotAcked(ctx context.Context, task *Task) error {
 		if err := odb.AlertActionErrors(ctx, line); err != nil {
 			return err
 		}
+	}
+	if err := odb.Session.NotifyChanges(ctx); err != nil {
+		return err
+	}
+	return odb.Commit()
+}
+
+func taskAlertOnNodesWithoutAsset(ctx context.Context, task *Task) error {
+	odb, err := task.DBX(ctx)
+	if err != nil {
+		return err
+	}
+	defer odb.Rollback()
+
+	if err := odb.PurgeAlertsOnNodesWithoutAsset(ctx); err != nil {
+		return err
+	}
+	if err := odb.Session.NotifyChanges(ctx); err != nil {
+		return err
+	}
+	return odb.Commit()
+}
+
+func taskAlertOnServicesWithoutAsset(ctx context.Context, task *Task) error {
+	odb, err := task.DBX(ctx)
+	if err != nil {
+		return err
+	}
+	defer odb.Rollback()
+
+	if err := odb.PurgeAlertsOnServicesWithoutAsset(ctx); err != nil {
+		return err
+	}
+	if err := odb.Session.NotifyChanges(ctx); err != nil {
+		return err
+	}
+	return odb.Commit()
+}
+
+func taskAlertNodesNotUpdated(ctx context.Context, task *Task) error {
+	odb, err := task.DBX(ctx)
+	if err != nil {
+		return err
+	}
+	defer odb.Rollback()
+
+	if err := odb.DashboardUpdateNodesNotUpdated(ctx); err != nil {
+		return err
 	}
 	if err := odb.Session.NotifyChanges(ctx); err != nil {
 		return err

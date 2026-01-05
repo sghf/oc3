@@ -5,8 +5,8 @@ import (
 	"time"
 )
 
-var TaskStatDaily = Task{
-	name:   "stat_daily",
+var TaskStat1D = Task{
+	name:   "stat_1d",
 	period: 24 * time.Hour,
 	children: TaskList{
 		TaskStatDiskAppDaily,
@@ -14,37 +14,44 @@ var TaskStatDaily = Task{
 		TaskStatDiskArrayDaily,
 		TaskStatDiskArrayDGDaily,
 		TaskStatSvcDaily,
+		TaskStatObsolescence,
 	},
 	timeout: 5 * time.Minute,
 }
 
 var TaskStatDiskAppDaily = Task{
-	name:    "stat_disk_app_daily",
+	name:    "stat_disk_app",
 	fn:      taskStatDiskAppDaily,
 	timeout: 5 * time.Minute,
 }
 
 var TaskStatDiskAppDGDaily = Task{
-	name:    "stat_disk_app_dg_daily",
+	name:    "stat_disk_app_dg",
 	fn:      taskStatDiskAppDGDaily,
 	timeout: 5 * time.Minute,
 }
 
 var TaskStatDiskArrayDaily = Task{
-	name:    "stat_disk_array_daily",
+	name:    "stat_disk_array",
 	fn:      taskStatDiskArrayDaily,
 	timeout: 5 * time.Minute,
 }
 
 var TaskStatDiskArrayDGDaily = Task{
-	name:    "stat_disk_array_dg_daily",
+	name:    "stat_disk_array_dg",
 	fn:      taskStatDiskArrayDGDaily,
 	timeout: 5 * time.Minute,
 }
 
 var TaskStatSvcDaily = Task{
-	name:    "stat_svc_daily",
+	name:    "stat_svc",
 	fn:      taskStatSvcDaily,
+	timeout: 5 * time.Minute,
+}
+
+var TaskStatObsolescence = Task{
+	name:    "stat_obsolescence",
+	fn:      taskStatObsolescence,
 	timeout: 5 * time.Minute,
 }
 
@@ -129,6 +136,30 @@ func taskStatSvcDaily(ctx context.Context, task *Task) error {
 		return err
 	}
 	if err := odb.StatDaySvcLocalDiskSize(ctx); err != nil {
+		return err
+	}
+	if err := odb.Session.NotifyChanges(ctx); err != nil {
+		return err
+	}
+	return odb.Commit()
+}
+
+func taskStatObsolescence(ctx context.Context, task *Task) error {
+	odb, err := task.DBX(ctx)
+	if err != nil {
+		return err
+	}
+	defer odb.Rollback()
+	if err := odb.StatObsolescenceHW(ctx); err != nil {
+		return err
+	}
+	if err := odb.StatObsolescenceOS(ctx); err != nil {
+		return err
+	}
+	if err := odb.PurgeAlertsObsWithout(ctx); err != nil {
+		return err
+	}
+	if err := odb.UpdateNodesObsolescence(ctx); err != nil {
 		return err
 	}
 	if err := odb.Session.NotifyChanges(ctx); err != nil {

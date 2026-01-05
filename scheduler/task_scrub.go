@@ -19,18 +19,28 @@ import (
 //	UPDATE services SET svc_status="up" WHERE svc_id IN (SELECT svc_id FROM v_outdated_services);
 var TaskScrubObjects = Task{
 	name:    "scrub_object",
+	desc:    "marks services status=undef if all instances have outdated (aged 15m) or absent data",
 	fn:      taskScrubObjects,
+	timeout: time.Minute,
+}
+
+var TaskScrubUnfinishedActions = Task{
+	name:    "scrub_unfinished_actions",
+	desc:    "set a end date and status=err on actions not finished after 2h running",
+	fn:      taskScrubUnfinishedActions,
 	timeout: time.Minute,
 }
 
 var TaskScrubResources = Task{
 	name:    "scrub_resources",
+	desc:    "marks status=undef outdated (aged 15m) resources",
 	fn:      taskScrubResources,
 	timeout: time.Minute,
 }
 
 var TaskScrubInstances = Task{
 	name:    "scrub_instances",
+	desc:    "marks status=undef outdated (aged 15m) instances",
 	fn:      taskScrubInstances,
 	timeout: time.Minute,
 }
@@ -131,24 +141,10 @@ var TaskUpdateStorArrayDGQuota = Task{
 	timeout: time.Minute,
 }
 
-var TaskScrubAlertsOnNodesWithoutAsset = Task{
-	name:    "scrub_alerts_on_nodes_without_asset",
-	fn:      taskScrubAlertsOnNodesWithoutAsset,
-	timeout: time.Minute,
-}
-
-var TaskScrubAlertsOnServicesWithoutAsset = Task{
-	name:    "scrub_alerts_on_services_without_asset",
-	fn:      taskScrubAlertsOnServicesWithoutAsset,
-	timeout: time.Minute,
-}
-
-var TaskScrubDaily = Task{
-	name:   "scrub_daily",
+var TaskScrub1D = Task{
+	name:   "scrub_1d",
 	period: 24 * time.Hour,
 	children: TaskList{
-		TaskScrubAlertsOnNodesWithoutAsset,
-		TaskScrubAlertsOnServicesWithoutAsset,
 		TaskScrubChecksLive,
 		TaskScrubCompModulesetsNodes,
 		TaskScrubCompModulesetsServices,
@@ -168,8 +164,8 @@ var TaskScrubDaily = Task{
 	timeout: 5 * time.Minute,
 }
 
-var TaskScrubHourly = Task{
-	name:   "scrub_hourly",
+var TaskScrub1H = Task{
+	name:   "scrub_1h",
 	period: time.Minute,
 	children: TaskList{
 		TaskScrubTempviz,
@@ -177,8 +173,17 @@ var TaskScrubHourly = Task{
 	timeout: time.Minute,
 }
 
-var TaskScrubMinutely = Task{
-	name:   "scrub_minutely",
+var TaskScrub10M = Task{
+	name:   "scrub_10m",
+	period: 10 * time.Minute,
+	children: TaskList{
+		TaskScrubUnfinishedActions,
+	},
+	timeout: time.Minute,
+}
+
+var TaskScrub1M = Task{
+	name:   "scrub_1m",
 	period: time.Minute,
 	children: TaskList{
 		TaskScrubObjects,
@@ -557,38 +562,6 @@ func taskScrubCompStatus(ctx context.Context, task *Task) error {
 	return odb.Commit()
 }
 
-func taskScrubAlertsOnNodesWithoutAsset(ctx context.Context, task *Task) error {
-	odb, err := task.DBX(ctx)
-	if err != nil {
-		return err
-	}
-	defer odb.Rollback()
-
-	if err := odb.PurgeAlertsOnNodesWithoutAsset(ctx); err != nil {
-		return err
-	}
-	if err := odb.Session.NotifyChanges(ctx); err != nil {
-		return err
-	}
-	return odb.Commit()
-}
-
-func taskScrubAlertsOnServicesWithoutAsset(ctx context.Context, task *Task) error {
-	odb, err := task.DBX(ctx)
-	if err != nil {
-		return err
-	}
-	defer odb.Rollback()
-
-	if err := odb.PurgeAlertsOnServicesWithoutAsset(ctx); err != nil {
-		return err
-	}
-	if err := odb.Session.NotifyChanges(ctx); err != nil {
-		return err
-	}
-	return odb.Commit()
-}
-
 func taskUpdateStorArrayDGQuota(ctx context.Context, task *Task) error {
 	odb, err := task.DBX(ctx)
 	if err != nil {
@@ -667,4 +640,45 @@ func taskScrubPdf(ctx context.Context, task *Task) error {
 		}
 	}
 	return nil
+}
+
+func taskScrubUnfinishedActions(ctx context.Context, task *Task) error {
+	odb, err := task.DBX(ctx)
+	if err != nil {
+		return err
+	}
+	defer odb.Rollback()
+
+	lines, err := odb.GetUnfinishedActions(ctx)
+	if err != nil {
+		return fmt.Errorf("get: %w", err)
+	}
+	if len(lines) == 0 {
+		return nil
+	}
+	var entries []cdb.LogEntry
+	for _, line := range lines {
+		entries = append(entries, cdb.LogEntry{
+			Action: "action.timeout",
+			User:   "collector",
+			Fmt:    "action ids %(ids)s closed on timeout",
+			Level:  "warning",
+			SvcID:  &line.SvcID,
+			NodeID: &line.NodeID,
+			Dict: map[string]any{
+				"ids": line.ID,
+			},
+		})
+
+	}
+	if err := odb.Log(ctx, entries...); err != nil {
+		return fmt.Errorf("log: %w", err)
+	}
+	if err := odb.UpdateUnfinishedActions(ctx); err != nil {
+		return fmt.Errorf("update: %w", err)
+	}
+	if err := odb.Session.NotifyChanges(ctx); err != nil {
+		return fmt.Errorf("notify: %w", err)
+	}
+	return odb.Commit()
 }
