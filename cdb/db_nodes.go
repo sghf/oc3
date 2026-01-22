@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"log/slog"
 	"time"
+
+	"github.com/google/uuid"
 )
 
 type (
@@ -84,6 +86,57 @@ func (oDb *DB) NodeByNodeID(ctx context.Context, nodeID string) (*DBNode, error)
 			Tz:            tz.String,
 		}
 		return &node, nil
+	}
+}
+
+func (oDb *DB) NodeByNodeIDOrNodename(ctx context.Context, nodeIdOrName string) (*DBNode, error) {
+	defer logDuration("nodeByNodeIDOrNodename", time.Now())
+	if nodeIdOrName == "" {
+		return nil, fmt.Errorf("nodeByNodeIDOrNodename: called with empty node ID or name")
+	}
+
+	// Valid UUID : should be a node_id
+	if _, err := uuid.Parse(nodeIdOrName); err == nil {
+		n, err := oDb.NodeByNodeID(ctx, nodeIdOrName)
+		if err != nil {
+			return nil, err
+		}
+		return n, nil
+	}
+
+	// Otherwise treat it as a nodename and resolve the node_id first.
+	const query = `SELECT node_id FROM nodes WHERE nodename = ?`
+	rows, err := oDb.DB.QueryContext(ctx, query, nodeIdOrName)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = rows.Close() }()
+
+	var nodeIDs []string
+	for rows.Next() {
+		var nodeID sql.NullString
+		if err := rows.Scan(&nodeID); err != nil {
+			return nil, err
+		}
+		if nodeID.Valid {
+			nodeIDs = append(nodeIDs, nodeID.String)
+		}
+	}
+	if err := rows.Err(); err != nil {
+		return nil, err
+	}
+
+	switch len(nodeIDs) {
+	case 0:
+		return nil, fmt.Errorf("node %s not found", nodeIdOrName)
+	case 1:
+		n, err := oDb.NodeByNodeID(ctx, nodeIDs[0])
+		if err != nil {
+			return nil, err
+		}
+		return n, nil
+	default:
+		return nil, fmt.Errorf("nodeByNodeIDOrNodename: multiple node_ids found for nodename %s", nodeIdOrName)
 	}
 }
 

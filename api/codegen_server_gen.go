@@ -51,6 +51,18 @@ type ServerInterface interface {
 	// (POST /feed/object/config)
 	PostFeedObjectConfig(ctx echo.Context) error
 
+	// (DELETE /nodes/{node_id}/compliance/modulesets/{mset_id})
+	DeleteNodeComplianceModuleset(ctx echo.Context, nodeId string, msetId string) error
+
+	// (POST /nodes/{node_id}/compliance/modulesets/{mset_id})
+	PostNodeComplianceModuleset(ctx echo.Context, nodeId string, msetId string) error
+
+	// (DELETE /nodes/{node_id}/compliance/rulesets/{rset_id})
+	DeleteNodeComplianceRuleset(ctx echo.Context, nodeId string, rsetId string) error
+
+	// (POST /nodes/{node_id}/compliance/rulesets/{rset_id})
+	PostNodeComplianceRuleset(ctx echo.Context, nodeId string, rsetId string) error
+
 	// (GET /version)
 	GetVersion(ctx echo.Context) error
 }
@@ -195,6 +207,118 @@ func (w *ServerInterfaceWrapper) PostFeedObjectConfig(ctx echo.Context) error {
 	return err
 }
 
+// DeleteNodeComplianceModuleset converts echo context to params.
+func (w *ServerInterfaceWrapper) DeleteNodeComplianceModuleset(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "node_id" -------------
+	var nodeId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "node_id", ctx.Param("node_id"), &nodeId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter node_id: %s", err))
+	}
+
+	// ------------- Path parameter "mset_id" -------------
+	var msetId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "mset_id", ctx.Param("mset_id"), &msetId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter mset_id: %s", err))
+	}
+
+	ctx.Set(BasicAuthScopes, []string{})
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.DeleteNodeComplianceModuleset(ctx, nodeId, msetId)
+	return err
+}
+
+// PostNodeComplianceModuleset converts echo context to params.
+func (w *ServerInterfaceWrapper) PostNodeComplianceModuleset(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "node_id" -------------
+	var nodeId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "node_id", ctx.Param("node_id"), &nodeId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter node_id: %s", err))
+	}
+
+	// ------------- Path parameter "mset_id" -------------
+	var msetId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "mset_id", ctx.Param("mset_id"), &msetId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter mset_id: %s", err))
+	}
+
+	ctx.Set(BasicAuthScopes, []string{})
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.PostNodeComplianceModuleset(ctx, nodeId, msetId)
+	return err
+}
+
+// DeleteNodeComplianceRuleset converts echo context to params.
+func (w *ServerInterfaceWrapper) DeleteNodeComplianceRuleset(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "node_id" -------------
+	var nodeId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "node_id", ctx.Param("node_id"), &nodeId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter node_id: %s", err))
+	}
+
+	// ------------- Path parameter "rset_id" -------------
+	var rsetId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "rset_id", ctx.Param("rset_id"), &rsetId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter rset_id: %s", err))
+	}
+
+	ctx.Set(BasicAuthScopes, []string{})
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.DeleteNodeComplianceRuleset(ctx, nodeId, rsetId)
+	return err
+}
+
+// PostNodeComplianceRuleset converts echo context to params.
+func (w *ServerInterfaceWrapper) PostNodeComplianceRuleset(ctx echo.Context) error {
+	var err error
+	// ------------- Path parameter "node_id" -------------
+	var nodeId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "node_id", ctx.Param("node_id"), &nodeId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter node_id: %s", err))
+	}
+
+	// ------------- Path parameter "rset_id" -------------
+	var rsetId string
+
+	err = runtime.BindStyledParameterWithOptions("simple", "rset_id", ctx.Param("rset_id"), &rsetId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, fmt.Sprintf("Invalid format for parameter rset_id: %s", err))
+	}
+
+	ctx.Set(BasicAuthScopes, []string{})
+
+	ctx.Set(BearerAuthScopes, []string{})
+
+	// Invoke the callback with all the unmarshaled arguments
+	err = w.Handler.PostNodeComplianceRuleset(ctx, nodeId, rsetId)
+	return err
+}
+
 // GetVersion converts echo context to params.
 func (w *ServerInterfaceWrapper) GetVersion(ctx echo.Context) error {
 	var err error
@@ -242,6 +366,10 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 	router.POST(baseURL+"/feed/node/disk", wrapper.PostFeedNodeDisk)
 	router.POST(baseURL+"/feed/node/system", wrapper.PostFeedSystem)
 	router.POST(baseURL+"/feed/object/config", wrapper.PostFeedObjectConfig)
+	router.DELETE(baseURL+"/nodes/:node_id/compliance/modulesets/:mset_id", wrapper.DeleteNodeComplianceModuleset)
+	router.POST(baseURL+"/nodes/:node_id/compliance/modulesets/:mset_id", wrapper.PostNodeComplianceModuleset)
+	router.DELETE(baseURL+"/nodes/:node_id/compliance/rulesets/:rset_id", wrapper.DeleteNodeComplianceRuleset)
+	router.POST(baseURL+"/nodes/:node_id/compliance/rulesets/:rset_id", wrapper.PostNodeComplianceRuleset)
 	router.GET(baseURL+"/version", wrapper.GetVersion)
 
 }
@@ -249,41 +377,45 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"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",
-	"AAA=",
+	"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",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

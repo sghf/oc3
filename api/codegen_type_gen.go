@@ -187,6 +187,12 @@ type PostFeedInstanceStatusParams struct {
 	Sync *InQuerySync `form:"sync,omitempty" json:"sync,omitempty"`
 }
 
+// PostNodeComplianceModulesetJSONBody defines parameters for PostNodeComplianceModuleset.
+type PostNodeComplianceModulesetJSONBody = map[string]interface{}
+
+// PostNodeComplianceRulesetJSONBody defines parameters for PostNodeComplianceRuleset.
+type PostNodeComplianceRulesetJSONBody = map[string]interface{}
+
 // PostFeedDaemonPingJSONRequestBody defines body for PostFeedDaemonPing for application/json ContentType.
 type PostFeedDaemonPingJSONRequestBody = PostFeedDaemonPing
 
@@ -213,3 +219,9 @@ type PostFeedSystemJSONRequestBody = System
 
 // PostFeedObjectConfigJSONRequestBody defines body for PostFeedObjectConfig for application/json ContentType.
 type PostFeedObjectConfigJSONRequestBody = ObjectConfig
+
+// PostNodeComplianceModulesetJSONRequestBody defines body for PostNodeComplianceModuleset for application/json ContentType.
+type PostNodeComplianceModulesetJSONRequestBody = PostNodeComplianceModulesetJSONBody
+
+// PostNodeComplianceRulesetJSONRequestBody defines body for PostNodeComplianceRuleset for application/json ContentType.
+type PostNodeComplianceRulesetJSONRequestBody = PostNodeComplianceRulesetJSONBody
