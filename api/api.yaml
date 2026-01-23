@@ -261,18 +261,8 @@ paths:
         Detach a moduleset from a node
       operationId: DeleteNodeComplianceModuleset
       parameters:
-        - name: node_id
-          required: true
-          description: The ID of the node from which to detach the moduleset
-          in: path
-          schema:
-            type: string
-        - name: mset_id
-          required: true
-          description: The ID of the moduleset to detach
-          in: path
-          schema:
-            type: string
+        - $ref: '#/components/parameters/inPathNodeId'
+        - $ref: '#/components/parameters/inPathMsetId'
       responses:
         204:
           description: Moduleset successfully detached
@@ -290,18 +280,8 @@ paths:
         Attach a moduleset to a node
       operationId: PostNodeComplianceModuleset
       parameters:
-        - name: node_id
-          in: path
-          required: true
-          description: Node ID
-          schema:
-            type: string
-        - name: mset_id
-          in: path
-          required: true
-          description: Moduleset ID
-          schema:
-            type: string
+        - $ref: '#/components/parameters/inPathNodeId'
+        - $ref: '#/components/parameters/inPathMsetId'
       requestBody:
         required: true
         content:
@@ -331,18 +311,8 @@ paths:
         Detach a ruleset from a node
       operationId: DeleteNodeComplianceRuleset
       parameters:
-        - name: node_id
-          required: true
-          description: The ID of the node from which to detach the ruleset
-          in: path
-          schema:
-            type: string
-        - name: rset_id
-          required: true
-          description: The ID of the ruleset to detach
-          in: path
-          schema:
-            type: string
+        - $ref: '#/components/parameters/inPathNodeId'
+        - $ref: '#/components/parameters/inPathRsetId'
       responses:
         204:
           description: Ruleset successfully detached
@@ -360,18 +330,8 @@ paths:
         Attach a ruleset to a node
       operationId: PostNodeComplianceRuleset
       parameters:
-        - name: node_id
-          in: path
-          required: true
-          description: Node ID
-          schema:
-            type: string
-        - name: rset_id
-          in: path
-          required: true
-          description: Ruleset ID
-          schema:
-            type: string
+        - $ref: '#/components/parameters/inPathNodeId'
+        - $ref: '#/components/parameters/inPathRsetId'
       requestBody:
         required: true
         content:
@@ -701,9 +661,27 @@ components:
           example: "0.0.1"
 
   parameters:
-    ObjectPathHeader:
-      name: OC3-ObjectPath
-      in: header
+    inPathMsetId:
+      in: path
+      name: mset_id
+      required: true
+      description: ID of the moduleset
+      schema:
+        type: string
+
+    inPathNodeId:
+      in: path
+      name: node_id
+      required: true
+      description: ID of the node
+      schema:
+        type: string
+
+    inPathRsetId:
+      in: path
+      name: rset_id
+      required: true
+      description: ID of the ruleset
       schema:
         type: string
 
@@ -712,6 +690,12 @@ components:
       name: sync
       schema:
         type: boolean
+
+    ObjectPathHeader:
+      name: OC3-ObjectPath
+      in: header
+      schema:
+        type: string
 
   securitySchemes:
     basicAuth:

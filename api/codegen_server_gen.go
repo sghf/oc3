@@ -52,16 +52,16 @@ type ServerInterface interface {
 	PostFeedObjectConfig(ctx echo.Context) error
 
 	// (DELETE /nodes/{node_id}/compliance/modulesets/{mset_id})
-	DeleteNodeComplianceModuleset(ctx echo.Context, nodeId string, msetId string) error
+	DeleteNodeComplianceModuleset(ctx echo.Context, nodeId InPathNodeId, msetId InPathMsetId) error
 
 	// (POST /nodes/{node_id}/compliance/modulesets/{mset_id})
-	PostNodeComplianceModuleset(ctx echo.Context, nodeId string, msetId string) error
+	PostNodeComplianceModuleset(ctx echo.Context, nodeId InPathNodeId, msetId InPathMsetId) error
 
 	// (DELETE /nodes/{node_id}/compliance/rulesets/{rset_id})
-	DeleteNodeComplianceRuleset(ctx echo.Context, nodeId string, rsetId string) error
+	DeleteNodeComplianceRuleset(ctx echo.Context, nodeId InPathNodeId, rsetId InPathRsetId) error
 
 	// (POST /nodes/{node_id}/compliance/rulesets/{rset_id})
-	PostNodeComplianceRuleset(ctx echo.Context, nodeId string, rsetId string) error
+	PostNodeComplianceRuleset(ctx echo.Context, nodeId InPathNodeId, rsetId InPathRsetId) error
 
 	// (GET /version)
 	GetVersion(ctx echo.Context) error
@@ -211,7 +211,7 @@ func (w *ServerInterfaceWrapper) PostFeedObjectConfig(ctx echo.Context) error {
 func (w *ServerInterfaceWrapper) DeleteNodeComplianceModuleset(ctx echo.Context) error {
 	var err error
 	// ------------- Path parameter "node_id" -------------
-	var nodeId string
+	var nodeId InPathNodeId
 
 	err = runtime.BindStyledParameterWithOptions("simple", "node_id", ctx.Param("node_id"), &nodeId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
 	if err != nil {
@@ -219,7 +219,7 @@ func (w *ServerInterfaceWrapper) DeleteNodeComplianceModuleset(ctx echo.Context)
 	}
 
 	// ------------- Path parameter "mset_id" -------------
-	var msetId string
+	var msetId InPathMsetId
 
 	err = runtime.BindStyledParameterWithOptions("simple", "mset_id", ctx.Param("mset_id"), &msetId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
 	if err != nil {
@@ -239,7 +239,7 @@ func (w *ServerInterfaceWrapper) DeleteNodeComplianceModuleset(ctx echo.Context)
 func (w *ServerInterfaceWrapper) PostNodeComplianceModuleset(ctx echo.Context) error {
 	var err error
 	// ------------- Path parameter "node_id" -------------
-	var nodeId string
+	var nodeId InPathNodeId
 
 	err = runtime.BindStyledParameterWithOptions("simple", "node_id", ctx.Param("node_id"), &nodeId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
 	if err != nil {
@@ -247,7 +247,7 @@ func (w *ServerInterfaceWrapper) PostNodeComplianceModuleset(ctx echo.Context) e
 	}
 
 	// ------------- Path parameter "mset_id" -------------
-	var msetId string
+	var msetId InPathMsetId
 
 	err = runtime.BindStyledParameterWithOptions("simple", "mset_id", ctx.Param("mset_id"), &msetId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
 	if err != nil {
@@ -267,7 +267,7 @@ func (w *ServerInterfaceWrapper) PostNodeComplianceModuleset(ctx echo.Context) e
 func (w *ServerInterfaceWrapper) DeleteNodeComplianceRuleset(ctx echo.Context) error {
 	var err error
 	// ------------- Path parameter "node_id" -------------
-	var nodeId string
+	var nodeId InPathNodeId
 
 	err = runtime.BindStyledParameterWithOptions("simple", "node_id", ctx.Param("node_id"), &nodeId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
 	if err != nil {
@@ -275,7 +275,7 @@ func (w *ServerInterfaceWrapper) DeleteNodeComplianceRuleset(ctx echo.Context) e
 	}
 
 	// ------------- Path parameter "rset_id" -------------
-	var rsetId string
+	var rsetId InPathRsetId
 
 	err = runtime.BindStyledParameterWithOptions("simple", "rset_id", ctx.Param("rset_id"), &rsetId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
 	if err != nil {
@@ -295,7 +295,7 @@ func (w *ServerInterfaceWrapper) DeleteNodeComplianceRuleset(ctx echo.Context) e
 func (w *ServerInterfaceWrapper) PostNodeComplianceRuleset(ctx echo.Context) error {
 	var err error
 	// ------------- Path parameter "node_id" -------------
-	var nodeId string
+	var nodeId InPathNodeId
 
 	err = runtime.BindStyledParameterWithOptions("simple", "node_id", ctx.Param("node_id"), &nodeId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
 	if err != nil {
@@ -303,7 +303,7 @@ func (w *ServerInterfaceWrapper) PostNodeComplianceRuleset(ctx echo.Context) err
 	}
 
 	// ------------- Path parameter "rset_id" -------------
-	var rsetId string
+	var rsetId InPathRsetId
 
 	err = runtime.BindStyledParameterWithOptions("simple", "rset_id", ctx.Param("rset_id"), &rsetId, runtime.BindStyledParameterOptions{ParamLocation: runtime.ParamLocationPath, Explode: false, Required: true})
 	if err != nil {
@@ -377,45 +377,45 @@ func RegisterHandlersWithBaseURL(router EchoRouter, si ServerInterface, baseURL 
 // Base64 encoded, gzipped, json marshaled Swagger object
 var swaggerSpec = []string{
 
-	"H4sIAAAAAAAC/+xaW3PbuhH+Kxi0D8kMjyRbaTtVn5w46XEvSWo57YPj0UDgisIJCTAAqETx6L93cOFN",
-	"BCVZsTI5kzzZIkDs7dsPiwXvMRVZLjhwrfDkHudEkgw0SPuL8f8UINfTNafuJ57gj+YJjjAnGeAJVmYs",
-	"woouISNmkl7n5vlciBQIx5vNJsISVC64Arvos9HI/KGCa+Da/EvyPGWUaCb48DcluHlWL/hHCQs8wX8Y",
-	"1poO3agavpVinkLmpMSgqGS5WQZP8HMSo2v4WIDSeBPhZ6OzbyH1HSeFXgrJvkDsxI6/hdhXQs5ZHAM3",
-	"Mv/0bRx8xTVITlI0BbkCiV5KKaSR/wogviSQCf6W8eSCUsg1xA9SKZciB6mZQ4yY/wZUzz4xvRSFnlHB",
-	"FywxA22FUqY0EgvkpiMDUIX0kmgk4WPBJCj09s30Bg0FHQ8XAPHQzRz6BSPMNGSqu3BjQRyVAFdaMp4Y",
-	"e/0DIiVZ4039wL0Wcl1svYOUJrpQSLMMlCZZrtAnlqZoDkjCQoJaQowWQiIuYmg7dmrf/Onafa7d5c9N",
-	"yVpWrQvqFth2EKmed5QjMllZWixN26N+hOeQMN51gn2MnKQaDYhxdP3qxXg8/utrwoXRPCM65CUqWxpW",
-	"1Bth4HFXHPD4K4TlRC+DxipQigk+KwoWhyfYmOwYmqUiCQ73LrkCqXx42jbqJSCRA1crimjKgGsUE01Q",
-	"+ULHMLtLWSjHeHLrrIzK6NeCyhh6p29Z7THhFXbuLxdJRbJgqUG598NdB82RR6Hftprp3QZljz+2bLCz",
-	"QlIumfrQXTQO+77H85mIIQ2OeErpxYmEpC+jFPsCZsCjb4IZ1+PzOliMa0jAbjKFgqZijZEV8FjI/e6x",
-	"EWoq6+X7tauFSlsj46GQO6+40oRTuAYlCknhii9E173MP63Yoj38AdZq93A4AUhawH5bzevl5JAJ20Ql",
-	"D8GXtB60ih+yZi8gtMhFKpL1fok+TNaVuyIxrZhmC+JEN2vU+sVe3U5NMFajWkzIqNciBpOxO+ypQLOr",
-	"lLNZf8CeGuE39r8XVS2wtSPmedBVVGSZr0A6Y7HMZ3bX3TWoHraZAl8F5y1S+DzLyOcwO7hRxneMaiIT",
-	"0OEJmeBMCwnxTPpsn1FR8J7ZQtIlKC2JDlvez5HkU6MWq+hwvtbBMklRkcPDvPfApAsB861Qul3rd8FS",
-	"xTVcT9K0UBp8RdZbJDZnHVgqlsx+gOxmTftIheoJecM5tDZvN3e0Q9RHi3RJeLKVfkHrhUTMU+whTuin",
-	"WwkrJgo1K/KYaIhnRLdwbh7+YmrTkJRj3jlZODx/lx7cEw1/mO7yOGjC0q52F2hZZIT/IoHEZJ4Cgs95",
-	"Srg92iGVA2ULRpEWSC+ZQoLSQkrgFAy89RLe89xJHLznQdqo8NAWe7ME9OvNzdvyFEVN3j25vX714i/n",
-	"47O7CE3BHR/+/BQlwMHwW4zmaydTSGaOM8p1Bcx5K6wdCinXIE/NdAohn6ilkDrado0qsozI9dbiyKw7",
-	"QOhKo+mvb9796/I9f/3mBrl4oYUUWVMxLfrVjBB8NvX4e25MyguZCwXKTEoFJSn74qLyBAbJIEKFYjwx",
-	"r5rifwXIH8/fcw6J0MzO/RtSACjg1vHg2dNgyLbB52BTBbL0WQh7OaEfSAKB7VzS8B5kMz1NH5hpri0Y",
-	"rO2THRvT7tJrDyU6Tq5T1prkV3aCQx5Ra6VDydjw1EF1VTn/oNKqYVRbamMAPpMsN9DHo8FocLYXBv2U",
-	"Y0/ltJBMr6dGWydqThSjF4UrPawVtmtgntayllrnrmVBJMhytvv1qkTCP/53U/Z+7RJ2dHuNzSaqDj8+",
-	"p3FFuSJNgWohEclZI4YTfGZMP7MbeQ7cjE7weDAajLArm6wlw1hQNawm3GNftxnH2hS7ivEE/x309BNJ",
-	"EqtaqxV9/sBO6d7u05t/NnrNIdBU4odmUt0g3jd33Gjs7p5rJlnokUTZ8q2Yp4ziO/PMteZci2yYlwWb",
-	"ULpLs9euY1ZVSX0tS0tTbX8H6kIHWFD6uYjXj9ec7gratJNDywI2naCf7/diTw97E+Hz0bOutzKmLOG3",
-	"vVT2GiPfHPWO96NMoUrRZqbiyW0rR2/vNtF9Kw9v7zZ3dYBJYhzZjW+9ux8R4b1hnZZbzukD60U9fmi3",
-	"uug2G0eHZOPou8nyRwNNWdcP64Z3GDbPXbO66lcbkBOUsBXw8ihl+HkHgMouzUXZXD0FhPzih4PmEaVu",
-	"928DG4V3Xtn5/4ERGOG8CMDsJY+PA1kRwNhL24f/LmAWhIG7kflJQw0aqtprZekYZqN3thmAhERUgvmv",
-	"XACVCyCzwAFs1OrenwYsQVHHQidsqCnMDaI6F58nCtO+ImOqhaw7LOeDszpAvgyKiSaDA+JTFRzNT1Ru",
-	"ww6vpwybn7AYk04Z14cUKqMdEfWeUbbRjFRBKSi1KNJ0jZ6oNadLKbgo1FNXjp7vX6m+/i5ZBj0h2yv9",
-	"uKRjavRhXF6KHsYzthdt3lHINeoLh90dSC4vck7ELvU90bGU0mfTqdnE+r/RjglGwHgRuUlGRypWINc7",
-	"vD11653G117ZYx1dmkE02fPJz4+blO0PiA5PTF8eHpqUrbvO04ClJeKrt/tvlZn2oml4b/7MWLyxhqXM",
-	"bvqZiIsUFGg1vM8UaDPuNE5BB1r2l6AJXSKCqhdd551YmAeCc2kXMoT2opL67/LdbgnQvb24uiy795bT",
-	"rLRPS0aXSAsUO3XMaNZY1H7d6q/l/cet3ni8HbHA9651b3a3PrULKk3Csr1jHyT7roOkQK+qcmS7snC6",
-	"lOePwHsmHCbPagu40GghCh43WKLnG1F/GwTuG9GvgGjVMXZHxyAnXOgO3rToR5uhgiOxZn1ydXlC9NTR",
-	"6hNzNFCOY7pAD/wIOqvNIrqJux9kt2uieA/Zyopq5UOoVh5NtNePT7PyG5OsPIxi5ako9vqrCFb+XuhV",
-	"HkWu198LtV7vIVb5eyTW65+0WtNq41Ld3wy3nSVBF5IjkrPGBz+dy+P/VkNfdXm864hQSu+9Uj7q6peS",
-	"nMxZyuw3Bncb51lDFC7fCpniCR4KOsabu83/AwAA///HqmURCjYAAA==",
+	"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",
 }
 
 // GetSwagger returns the content of the embedded swagger specification file

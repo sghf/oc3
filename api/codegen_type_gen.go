@@ -155,6 +155,15 @@ type Version struct {
 	Version string `json:"version"`
 }
 
+// InPathMsetId defines model for inPathMsetId.
+type InPathMsetId = string
+
+// InPathNodeId defines model for inPathNodeId.
+type InPathNodeId = string
+
+// InPathRsetId defines model for inPathRsetId.
+type InPathRsetId = string
+
 // InQuerySync defines model for inQuerySync.
 type InQuerySync = bool
 
