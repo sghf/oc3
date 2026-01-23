@@ -255,76 +255,6 @@ paths:
       tags:
         - agent
 
-  /nodes/{node_id}/compliance/rulesets/{rset_id}:
-    delete:
-      description: |
-        Detach a ruleset from a node
-      operationId: DeleteNodeComplianceRuleset
-      parameters:
-        - name: node_id
-          required: true
-          description: The ID of the node from which to detach the ruleset
-          in: path
-          schema:
-            type: string
-        - name: rset_id
-          required: true
-          description: The ID of the ruleset to detach
-          in: path
-          schema:
-            type: string
-      responses:
-        204:
-          description: Ruleset successfully detached
-        404:
-          description: Node or ruleset not found
-        500:
-          description: Internal server error
-      security:
-        - basicAuth: [ ]
-        - bearerAuth: [ ]
-      tags:
-        - collector
-    post:
-      description: |
-        Attach a ruleset to a node
-      operationId: PostNodeComplianceRuleset
-      parameters:
-        - name: node_id
-          in: path
-          required: true
-          description: Node ID
-          schema:
-            type: string
-        - name: rset_id
-          in: path
-          required: true
-          description: Ruleset ID
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              type: object
-      responses:
-        202:
-          description: Ruleset attached
-        400:
-          $ref: '#/components/responses/400'
-        401:
-          $ref: '#/components/responses/401'
-        403:
-          $ref: '#/components/responses/403'
-        500:
-          $ref: '#/components/responses/500'
-      security:
-        - basicAuth: [ ]
-        - bearerAuth: [ ]
-      tags:
-        - collector
-
   /nodes/{node_id}/compliance/modulesets/{mset_id}:
     delete:
       description: |
@@ -381,6 +311,76 @@ paths:
       responses:
         202:
           description: Moduleset attached
+        400:
+          $ref: '#/components/responses/400'
+        401:
+          $ref: '#/components/responses/401'
+        403:
+          $ref: '#/components/responses/403'
+        500:
+          $ref: '#/components/responses/500'
+      security:
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
+      tags:
+        - collector
+
+  /nodes/{node_id}/compliance/rulesets/{rset_id}:
+    delete:
+      description: |
+        Detach a ruleset from a node
+      operationId: DeleteNodeComplianceRuleset
+      parameters:
+        - name: node_id
+          required: true
+          description: The ID of the node from which to detach the ruleset
+          in: path
+          schema:
+            type: string
+        - name: rset_id
+          required: true
+          description: The ID of the ruleset to detach
+          in: path
+          schema:
+            type: string
+      responses:
+        204:
+          description: Ruleset successfully detached
+        404:
+          description: Node or ruleset not found
+        500:
+          description: Internal server error
+      security:
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
+      tags:
+        - collector
+    post:
+      description: |
+        Attach a ruleset to a node
+      operationId: PostNodeComplianceRuleset
+      parameters:
+        - name: node_id
+          in: path
+          required: true
+          description: Node ID
+          schema:
+            type: string
+        - name: rset_id
+          in: path
+          required: true
+          description: Ruleset ID
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+      responses:
+        202:
+          description: Ruleset attached
         400:
           $ref: '#/components/responses/400'
         401:
