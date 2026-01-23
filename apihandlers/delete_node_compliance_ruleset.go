@@ -1,6 +1,7 @@
 package apihandlers
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 
@@ -11,11 +12,25 @@ import (
 func (a *Api) DeleteNodeComplianceRuleset(c echo.Context, nodeId string, rsetId string) error {
 	log := getLog(c)
 	odb := a.cdbSession()
+	ctx := c.Request().Context()
+	odb.CreateTx(ctx, nil)
+	ctx, cancel := context.WithTimeout(ctx, a.SyncTimeout)
+	defer cancel()
+
+	var success bool
+
+	defer func() {
+		if success {
+			odb.Commit()
+		} else {
+			odb.Rollback()
+		}
+	}()
 
 	log.Info("DeleteNodeComplianceRuleset called", "node_id", nodeId, "rset_id", rsetId)
 
 	// get ruleset name
-	rset, err := odb.CompRulesetName(c.Request().Context(), rsetId)
+	rset, err := odb.CompRulesetName(ctx, rsetId)
 	if err != nil {
 		log.Error("PostNodeComplianceRuleset: cannot find ruleset", "rset_id", rsetId, "error", err)
 		return JSONProblemf(c, http.StatusNotFound, "NotFound", "ruleset %s not found", rsetId)
@@ -24,7 +39,7 @@ func (a *Api) DeleteNodeComplianceRuleset(c echo.Context, nodeId string, rsetId 
 	}
 
 	// check if the ruleset is attached to the node
-	attached, err := odb.CompRulesetAttached(c.Request().Context(), nodeId, rsetId)
+	attached, err := odb.CompRulesetAttached(ctx, nodeId, rsetId)
 	if err != nil {
 		log.Error("DeleteNodeComplianceRuleset: cannot check if ruleset is attached", "node_id", nodeId, "rset_id", rsetId, "error", err)
 		return JSONProblemf(c, http.StatusInternalServerError, "InternalError", "cannot check if ruleset %s is attached to node %s", rsetId, nodeId)
@@ -42,6 +57,8 @@ func (a *Api) DeleteNodeComplianceRuleset(c echo.Context, nodeId string, rsetId 
 		log.Error("DeleteNodeComplianceRuleset: cannot detach ruleset from node", "node_id", nodeId, "rset_id", rsetId, "error", err)
 		return JSONProblemf(c, http.StatusInternalServerError, "InternalError", "cannot detach ruleset %s from node %s", rsetId, nodeId)
 	}
+
+	success = true
 
 	response := map[string]string{
 		"info": fmt.Sprintf("ruleset %s detached from node %s", rsetId, nodeId),

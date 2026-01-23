@@ -12,7 +12,6 @@ import (
 
 	"github.com/opensvc/oc3/api"
 	"github.com/opensvc/oc3/apihandlers"
-	"github.com/opensvc/oc3/cdb"
 	"github.com/opensvc/oc3/xauth"
 )
 
@@ -58,7 +57,6 @@ func listenAndServe(addr string) error {
 	slog.Info("register openapi handlers with base url: /oc3")
 	api.RegisterHandlersWithBaseURL(e, &apihandlers.Api{
 		DB:          db,
-		CDB:         cdb.New(db),
 		Redis:       redisClient,
 		UI:          enableUI,
 		SyncTimeout: viper.GetDuration("listener.sync.timeout"),

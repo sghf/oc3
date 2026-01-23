@@ -14,13 +14,13 @@ import (
 type (
 	Api struct {
 		DB    *sql.DB
-		CDB   *cdb.DB
 		Redis *redis.Client
 		UI    bool
 
 		// SyncTimeout is the timeout for synchronous api calls
 		SyncTimeout time.Duration
-		Ev          interface {
+
+		Ev interface {
 			EventPublish(eventName string, data map[string]any) error
 		}
 	}
