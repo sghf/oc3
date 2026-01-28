@@ -66,6 +66,7 @@ func initConfig() error {
 	viper.SetDefault("scheduler.metrics.addr", "127.0.0.1:2111")
 	viper.SetDefault("scheduler.task.trim.retention", 365)
 	viper.SetDefault("scheduler.task.trim.batch_size", 1000)
+	viper.SetDefault("w2p_hmac", "sha512:7755f108-1b83-45dc-8302-54be8f3616a1")
 
 	// config file
 	viper.SetConfigName("config")

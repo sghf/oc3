@@ -41,7 +41,7 @@ func listenAndServeServer(addr string) error {
 
 	strategy := union.New(
 		xauth.NewPublicStrategy("/oc3/api/public/", "/oc3/api/docs", "/oc3/api/version", "/oc3/api/openapi"),
-		xauth.NewBasicNode(db),
+		xauth.NewBasicWeb2py(db, viper.GetString("w2p_hmac")),
 	)
 	if viper.GetBool("server.metrics.enable") {
 		slog.Info("add handler /oc3/api/public/metrics")
