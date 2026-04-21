@@ -218,41 +218,6 @@ paths:
         - basicAuth: [ ]
         - bearerAuth: [ ]
 
-  /apps/{app_id}/responsibles:
-    get:
-      operationId: GetAppResponsibles
-      description: List an application code responsible groups
-      parameters:
-        - in: path
-          name: app_id
-          required: true
-          description: App record id or app code
-          schema:
-            type: string
-        - $ref: '#/components/parameters/inQueryProps'
-        - $ref: '#/components/parameters/inQueryLimit'
-        - $ref: '#/components/parameters/inQueryOffset'
-        - $ref: '#/components/parameters/inQueryMeta'
-        - $ref: '#/components/parameters/inQueryStats'
-        - $ref: '#/components/parameters/inQueryOrderby'
-        - $ref: '#/components/parameters/inQueryGroupby'
-      tags:
-        - collector
-      responses:
-        200:
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ListResponse'
-        404:
-          $ref: '#/components/responses/404'
-        500:
-          $ref: '#/components/responses/500'
-      security:
-        - basicAuth: [ ]
-        - bearerAuth: [ ]
-
   /apps/{app_id}/publications:
     get:
       operationId: GetAppPublications
@@ -288,42 +253,15 @@ paths:
         - basicAuth: [ ]
         - bearerAuth: [ ]
 
-  /nodes:
+  /apps/{app_id}/responsibles:
     get:
-      operationId: GetNodes
-      description: List nodes
-      parameters:
-        - $ref: '#/components/parameters/inQueryProps'
-        - $ref: '#/components/parameters/inQueryLimit'
-        - $ref: '#/components/parameters/inQueryOffset'
-        - $ref: '#/components/parameters/inQueryMeta'
-        - $ref: '#/components/parameters/inQueryStats'
-        - $ref: '#/components/parameters/inQueryOrderby'
-        - $ref: '#/components/parameters/inQueryGroupby'
-      tags:
-        - collector
-      responses:
-        200:
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ListResponse'
-        500:
-          $ref: '#/components/responses/500'
-      security:
-        - basicAuth: [ ]
-        - bearerAuth: [ ]
-
-  /nodes/{node_id}:
-    get:
-      operationId: GetNode
-      description: List entries for a specific node
+      operationId: GetAppResponsibles
+      description: List an application code responsible groups
       parameters:
         - in: path
-          name: node_id
+          name: app_id
           required: true
-          description: Node identifier (node_id UUID or nodename)
+          description: App record id or app code
           schema:
             type: string
         - $ref: '#/components/parameters/inQueryProps'
@@ -344,321 +282,6 @@ paths:
                 $ref: '#/components/schemas/ListResponse'
         404:
           $ref: '#/components/responses/404'
-        500:
-          $ref: '#/components/responses/500'
-      security:
-        - basicAuth: [ ]
-        - bearerAuth: [ ]
-
-  /nodes/{node_id}/interfaces:
-    get:
-      operationId: GetNodeInterfaces
-      description: List a node network interfaces
-      parameters:
-        - in: path
-          name: node_id
-          required: true
-          description: Node identifier (node_id UUID or nodename)
-          schema:
-            type: string
-        - $ref: '#/components/parameters/inQueryProps'
-        - $ref: '#/components/parameters/inQueryLimit'
-        - $ref: '#/components/parameters/inQueryOffset'
-        - $ref: '#/components/parameters/inQueryMeta'
-        - $ref: '#/components/parameters/inQueryStats'
-        - $ref: '#/components/parameters/inQueryOrderby'
-        - $ref: '#/components/parameters/inQueryGroupby'
-      tags:
-        - collector
-      responses:
-        200:
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ListResponse'
-        404:
-          $ref: '#/components/responses/404'
-        500:
-          $ref: '#/components/responses/500'
-      security:
-        - basicAuth: [ ]
-        - bearerAuth: [ ]
-
-  /nodes/{node_id}/hbas:
-    get:
-      operationId: GetNodeHbas
-      description: List a node storage host bus adapters
-      parameters:
-        - in: path
-          name: node_id
-          required: true
-          description: Node identifier (node_id UUID or nodename)
-          schema:
-            type: string
-        - $ref: '#/components/parameters/inQueryProps'
-        - $ref: '#/components/parameters/inQueryLimit'
-        - $ref: '#/components/parameters/inQueryOffset'
-        - $ref: '#/components/parameters/inQueryMeta'
-        - $ref: '#/components/parameters/inQueryStats'
-        - $ref: '#/components/parameters/inQueryOrderby'
-        - $ref: '#/components/parameters/inQueryGroupby'
-      tags:
-        - collector
-      responses:
-        200:
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ListResponse'
-        404:
-          $ref: '#/components/responses/404'
-        500:
-          $ref: '#/components/responses/500'
-      security:
-        - basicAuth: [ ]
-        - bearerAuth: [ ]
-
-  /nodes/{node_id}/disks:
-    get:
-      operationId: GetNodeDisks
-      description: List disks of a specific node
-      parameters:
-        - in: path
-          name: node_id
-          required: true
-          description: Node identifier (node_id UUID or nodename)
-          schema:
-            type: string
-        - $ref: '#/components/parameters/inQueryProps'
-        - $ref: '#/components/parameters/inQueryLimit'
-        - $ref: '#/components/parameters/inQueryOffset'
-        - $ref: '#/components/parameters/inQueryMeta'
-        - $ref: '#/components/parameters/inQueryStats'
-        - $ref: '#/components/parameters/inQueryOrderby'
-        - $ref: '#/components/parameters/inQueryGroupby'
-      tags:
-        - collector
-      responses:
-        200:
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ListResponse'
-        404:
-          $ref: '#/components/responses/404'
-        500:
-          $ref: '#/components/responses/500'
-      security:
-        - basicAuth: [ ]
-        - bearerAuth: [ ]
-
-  /nodes/{node_id}/uuid:
-    get:
-      operationId: GetNodeUUID
-      description: Display node uuid. Only node responsibles and managers are allowed.
-      parameters:
-        - in: path
-          name: node_id
-          required: true
-          description: Node identifier (node_id UUID or nodename)
-          schema:
-            type: string
-      tags:
-        - collector
-      responses:
-        200:
-          description: OK
-          content:
-            application/json:
-              schema:
-                type: object
-        401:
-          $ref: '#/components/responses/401'
-        403:
-          $ref: '#/components/responses/403'
-        404:
-          $ref: '#/components/responses/404'
-        500:
-          $ref: '#/components/responses/500'
-      security:
-        - basicAuth: [ ]
-        - bearerAuth: [ ]
-
-  /services:
-    get:
-      operationId: GetServices
-      description: List services
-      parameters:
-        - $ref: '#/components/parameters/inQueryProps'
-        - $ref: '#/components/parameters/inQueryLimit'
-        - $ref: '#/components/parameters/inQueryOffset'
-        - $ref: '#/components/parameters/inQueryMeta'
-        - $ref: '#/components/parameters/inQueryStats'
-        - $ref: '#/components/parameters/inQueryOrderby'
-        - $ref: '#/components/parameters/inQueryGroupby'
-      tags:
-        - collector
-      responses:
-        200:
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ListResponse'
-        500:
-          $ref: '#/components/responses/500'
-      security:
-        - basicAuth: [ ]
-        - bearerAuth: [ ]
-
-  /services/{svc_id}:
-    get:
-      operationId: GetService
-      description: List entries for a specific service
-      parameters:
-        - in: path
-          name: svc_id
-          required: true
-          description: Service identifier (svc_id UUID or svcname)
-          schema:
-            type: string
-        - $ref: '#/components/parameters/inQueryProps'
-        - $ref: '#/components/parameters/inQueryLimit'
-        - $ref: '#/components/parameters/inQueryOffset'
-        - $ref: '#/components/parameters/inQueryMeta'
-        - $ref: '#/components/parameters/inQueryStats'
-        - $ref: '#/components/parameters/inQueryOrderby'
-        - $ref: '#/components/parameters/inQueryGroupby'
-      tags:
-        - collector
-      responses:
-        200:
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ListResponse'
-        404:
-          $ref: '#/components/responses/404'
-        500:
-          $ref: '#/components/responses/500'
-      security:
-        - basicAuth: [ ]
-        - bearerAuth: [ ]
-
-  /services_instances:
-    get:
-      operationId: GetServicesInstances
-      description: List services instances
-      parameters:
-        - $ref: '#/components/parameters/inQueryProps'
-        - $ref: '#/components/parameters/inQueryLimit'
-        - $ref: '#/components/parameters/inQueryOffset'
-        - $ref: '#/components/parameters/inQueryMeta'
-        - $ref: '#/components/parameters/inQueryStats'
-        - $ref: '#/components/parameters/inQueryOrderby'
-        - $ref: '#/components/parameters/inQueryGroupby'
-      tags:
-        - collector
-      responses:
-        200:
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ListResponse'
-        500:
-          $ref: '#/components/responses/500'
-      security:
-        - basicAuth: [ ]
-        - bearerAuth: [ ]
-
-  /services_instances/{svc_id}:
-    get:
-      operationId: GetServicesInstance
-      description: List instances for a specific service (all nodes)
-      parameters:
-        - in: path
-          name: svc_id
-          required: true
-          description: Service identifier (svc_id UUID or svcname)
-          schema:
-            type: string
-        - $ref: '#/components/parameters/inQueryProps'
-        - $ref: '#/components/parameters/inQueryLimit'
-        - $ref: '#/components/parameters/inQueryOffset'
-        - $ref: '#/components/parameters/inQueryMeta'
-        - $ref: '#/components/parameters/inQueryStats'
-        - $ref: '#/components/parameters/inQueryOrderby'
-        - $ref: '#/components/parameters/inQueryGroupby'
-      tags:
-        - collector
-      responses:
-        200:
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ListResponse'
-        404:
-          $ref: '#/components/responses/404'
-        500:
-          $ref: '#/components/responses/500'
-      security:
-        - basicAuth: [ ]
-        - bearerAuth: [ ]
-
-  /services_instances_status_log:
-    get:
-      operationId: GetServicesInstancesStatusLog
-      description: List services instances status log. Each entry is a time range where a service instance status was stable.
-      parameters:
-        - $ref: '#/components/parameters/inQueryProps'
-        - $ref: '#/components/parameters/inQueryLimit'
-        - $ref: '#/components/parameters/inQueryOffset'
-        - $ref: '#/components/parameters/inQueryMeta'
-        - $ref: '#/components/parameters/inQueryStats'
-        - $ref: '#/components/parameters/inQueryOrderby'
-        - $ref: '#/components/parameters/inQueryGroupby'
-      tags:
-        - collector
-      responses:
-        200:
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ListResponse'
-        500:
-          $ref: '#/components/responses/500'
-      security:
-        - basicAuth: [ ]
-        - bearerAuth: [ ]
-
-  /nodes/hbas:
-    get:
-      operationId: GetNodesHbas
-      description: List all nodes FC and iSCSI host bus adapters
-      parameters:
-        - $ref: '#/components/parameters/inQueryProps'
-        - $ref: '#/components/parameters/inQueryLimit'
-        - $ref: '#/components/parameters/inQueryOffset'
-        - $ref: '#/components/parameters/inQueryMeta'
-        - $ref: '#/components/parameters/inQueryStats'
-        - $ref: '#/components/parameters/inQueryOrderby'
-        - $ref: '#/components/parameters/inQueryGroupby'
-      tags:
-        - collector
-      responses:
-        200:
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ListResponse'
         500:
           $ref: '#/components/responses/500'
       security:
@@ -691,6 +314,52 @@ paths:
       security:
         - basicAuth: [ ]
         - bearerAuth: [ ]
+
+  /auth/node:
+    post:
+      description: |
+        Register a node authentication
+      operationId: PostAuthNode
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - nodename
+              properties:
+                nodename:
+                  type: string
+                app:
+                  type: string
+      responses:
+        200:
+          description: Accepted
+          content:
+            application/json:
+              schema:
+                type: object
+                required:
+                  - uuid
+                  - info
+                properties:
+                  uuid:
+                    type: string
+                  info:
+                    type: string
+        403:
+          $ref: '#/components/responses/403'
+        409:
+          $ref: '#/components/responses/409'
+        500:
+          $ref: '#/components/responses/500'
+      security:
+        - { }
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
+      tags:
+        - auth
 
   /disks:
     get:
@@ -754,57 +423,20 @@ paths:
         - basicAuth: [ ]
         - bearerAuth: [ ]
 
-  /auth/node:
-    post:
-      description: |
-        Register a node authentication
-      operationId: PostAuthNode
-      requestBody:
-        required: false
-        content:
-          application/json:
-            schema:
-              type: object
-              required:
-                - nodename
-              properties:
-                nodename:
-                  type: string
-                app:
-                  type: string
-      responses:
-        200:
-          description: Accepted
-          content:
-            application/json:
-              schema:
-                type: object
-                required:
-                  - uuid
-                  - info
-                properties:
-                  uuid:
-                    type: string
-                  info:
-                    type: string
-        403:
-          $ref: '#/components/responses/403'
-        409:
-          $ref: '#/components/responses/409'
-        500:
-          $ref: '#/components/responses/500'
-      security:
-        - { }
-        - basicAuth: [ ]
-        - bearerAuth: [ ]
-      tags:
-        - auth
-
-  /openapi.json:
+  /nodes:
     get:
-      operationId: GetSwagger
+      operationId: GetNodes
+      description: List nodes
+      parameters:
+        - $ref: '#/components/parameters/inQueryProps'
+        - $ref: '#/components/parameters/inQueryLimit'
+        - $ref: '#/components/parameters/inQueryOffset'
+        - $ref: '#/components/parameters/inQueryMeta'
+        - $ref: '#/components/parameters/inQueryStats'
+        - $ref: '#/components/parameters/inQueryOrderby'
+        - $ref: '#/components/parameters/inQueryGroupby'
       tags:
-        - public
+        - collector
       responses:
         200:
           description: OK
@@ -812,12 +444,108 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ListResponse'
-        401:
-          $ref: '#/components/responses/401'
-        403:
-          $ref: '#/components/responses/403'
         500:
           $ref: '#/components/responses/500'
+      security:
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
+
+  /nodes/hbas:
+    get:
+      operationId: GetNodesHbas
+      description: List all nodes FC and iSCSI host bus adapters
+      parameters:
+        - $ref: '#/components/parameters/inQueryProps'
+        - $ref: '#/components/parameters/inQueryLimit'
+        - $ref: '#/components/parameters/inQueryOffset'
+        - $ref: '#/components/parameters/inQueryMeta'
+        - $ref: '#/components/parameters/inQueryStats'
+        - $ref: '#/components/parameters/inQueryOrderby'
+        - $ref: '#/components/parameters/inQueryGroupby'
+      tags:
+        - collector
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListResponse'
+        500:
+          $ref: '#/components/responses/500'
+      security:
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
+
+  /nodes/{node_id}:
+    get:
+      operationId: GetNode
+      description: List entries for a specific node
+      parameters:
+        - in: path
+          name: node_id
+          required: true
+          description: Node identifier (node_id UUID or nodename)
+          schema:
+            type: string
+        - $ref: '#/components/parameters/inQueryProps'
+        - $ref: '#/components/parameters/inQueryLimit'
+        - $ref: '#/components/parameters/inQueryOffset'
+        - $ref: '#/components/parameters/inQueryMeta'
+        - $ref: '#/components/parameters/inQueryStats'
+        - $ref: '#/components/parameters/inQueryOrderby'
+        - $ref: '#/components/parameters/inQueryGroupby'
+      tags:
+        - collector
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListResponse'
+        404:
+          $ref: '#/components/responses/404'
+        500:
+          $ref: '#/components/responses/500'
+      security:
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
+
+  /nodes/{node_id}/candidate_tags:
+    get:
+      operationId: GetNodeCandidateTags
+      description: List tags attachable to a node (not yet attached and not excluded)
+      parameters:
+        - in: path
+          name: node_id
+          required: true
+          description: Node identifier (node_id UUID or nodename)
+          schema:
+            type: string
+        - $ref: '#/components/parameters/inQueryProps'
+        - $ref: '#/components/parameters/inQueryLimit'
+        - $ref: '#/components/parameters/inQueryOffset'
+        - $ref: '#/components/parameters/inQueryMeta'
+        - $ref: '#/components/parameters/inQueryStats'
+        - $ref: '#/components/parameters/inQueryOrderby'
+        - $ref: '#/components/parameters/inQueryGroupby'
+      tags:
+        - collector
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListResponse'
+        404:
+          $ref: '#/components/responses/404'
+        500:
+          $ref: '#/components/responses/500'
+      security:
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
 
   /nodes/{node_id}/compliance/candidate_modulesets:
     get:
@@ -1070,10 +798,476 @@ paths:
       tags:
         - collector
 
+  /nodes/{node_id}/disks:
+    get:
+      operationId: GetNodeDisks
+      description: List disks of a specific node
+      parameters:
+        - in: path
+          name: node_id
+          required: true
+          description: Node identifier (node_id UUID or nodename)
+          schema:
+            type: string
+        - $ref: '#/components/parameters/inQueryProps'
+        - $ref: '#/components/parameters/inQueryLimit'
+        - $ref: '#/components/parameters/inQueryOffset'
+        - $ref: '#/components/parameters/inQueryMeta'
+        - $ref: '#/components/parameters/inQueryStats'
+        - $ref: '#/components/parameters/inQueryOrderby'
+        - $ref: '#/components/parameters/inQueryGroupby'
+      tags:
+        - collector
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListResponse'
+        404:
+          $ref: '#/components/responses/404'
+        500:
+          $ref: '#/components/responses/500'
+      security:
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
+
+  /nodes/{node_id}/hbas:
+    get:
+      operationId: GetNodeHbas
+      description: List a node storage host bus adapters
+      parameters:
+        - in: path
+          name: node_id
+          required: true
+          description: Node identifier (node_id UUID or nodename)
+          schema:
+            type: string
+        - $ref: '#/components/parameters/inQueryProps'
+        - $ref: '#/components/parameters/inQueryLimit'
+        - $ref: '#/components/parameters/inQueryOffset'
+        - $ref: '#/components/parameters/inQueryMeta'
+        - $ref: '#/components/parameters/inQueryStats'
+        - $ref: '#/components/parameters/inQueryOrderby'
+        - $ref: '#/components/parameters/inQueryGroupby'
+      tags:
+        - collector
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListResponse'
+        404:
+          $ref: '#/components/responses/404'
+        500:
+          $ref: '#/components/responses/500'
+      security:
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
+
+  /nodes/{node_id}/interfaces:
+    get:
+      operationId: GetNodeInterfaces
+      description: List a node network interfaces
+      parameters:
+        - in: path
+          name: node_id
+          required: true
+          description: Node identifier (node_id UUID or nodename)
+          schema:
+            type: string
+        - $ref: '#/components/parameters/inQueryProps'
+        - $ref: '#/components/parameters/inQueryLimit'
+        - $ref: '#/components/parameters/inQueryOffset'
+        - $ref: '#/components/parameters/inQueryMeta'
+        - $ref: '#/components/parameters/inQueryStats'
+        - $ref: '#/components/parameters/inQueryOrderby'
+        - $ref: '#/components/parameters/inQueryGroupby'
+      tags:
+        - collector
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListResponse'
+        404:
+          $ref: '#/components/responses/404'
+        500:
+          $ref: '#/components/responses/500'
+      security:
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
+
+  /nodes/{node_id}/tags:
+    get:
+      operationId: GetNodeTags
+      description: List tags attached to a node
+      parameters:
+        - in: path
+          name: node_id
+          required: true
+          description: Node identifier (node_id UUID or nodename)
+          schema:
+            type: string
+        - $ref: '#/components/parameters/inQueryProps'
+        - $ref: '#/components/parameters/inQueryLimit'
+        - $ref: '#/components/parameters/inQueryOffset'
+        - $ref: '#/components/parameters/inQueryMeta'
+        - $ref: '#/components/parameters/inQueryStats'
+        - $ref: '#/components/parameters/inQueryOrderby'
+        - $ref: '#/components/parameters/inQueryGroupby'
+      tags:
+        - collector
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListResponse'
+        404:
+          $ref: '#/components/responses/404'
+        500:
+          $ref: '#/components/responses/500'
+      security:
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
+
+  /nodes/{node_id}/uuid:
+    get:
+      operationId: GetNodeUUID
+      description: Display node uuid. Only node responsibles and managers are allowed.
+      parameters:
+        - in: path
+          name: node_id
+          required: true
+          description: Node identifier (node_id UUID or nodename)
+          schema:
+            type: string
+      tags:
+        - collector
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+        401:
+          $ref: '#/components/responses/401'
+        403:
+          $ref: '#/components/responses/403'
+        404:
+          $ref: '#/components/responses/404'
+        500:
+          $ref: '#/components/responses/500'
+      security:
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
+
+  /openapi.json:
+    get:
+      operationId: GetSwagger
+      tags:
+        - public
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListResponse'
+        401:
+          $ref: '#/components/responses/401'
+        403:
+          $ref: '#/components/responses/403'
+        500:
+          $ref: '#/components/responses/500'
+
+  /services:
+    get:
+      operationId: GetServices
+      description: List services
+      parameters:
+        - $ref: '#/components/parameters/inQueryProps'
+        - $ref: '#/components/parameters/inQueryLimit'
+        - $ref: '#/components/parameters/inQueryOffset'
+        - $ref: '#/components/parameters/inQueryMeta'
+        - $ref: '#/components/parameters/inQueryStats'
+        - $ref: '#/components/parameters/inQueryOrderby'
+        - $ref: '#/components/parameters/inQueryGroupby'
+      tags:
+        - collector
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListResponse'
+        500:
+          $ref: '#/components/responses/500'
+      security:
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
+
+  /services/{svc_id}:
+    get:
+      operationId: GetService
+      description: List entries for a specific service
+      parameters:
+        - in: path
+          name: svc_id
+          required: true
+          description: Service identifier (svc_id UUID or svcname)
+          schema:
+            type: string
+        - $ref: '#/components/parameters/inQueryProps'
+        - $ref: '#/components/parameters/inQueryLimit'
+        - $ref: '#/components/parameters/inQueryOffset'
+        - $ref: '#/components/parameters/inQueryMeta'
+        - $ref: '#/components/parameters/inQueryStats'
+        - $ref: '#/components/parameters/inQueryOrderby'
+        - $ref: '#/components/parameters/inQueryGroupby'
+      tags:
+        - collector
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListResponse'
+        404:
+          $ref: '#/components/responses/404'
+        500:
+          $ref: '#/components/responses/500'
+      security:
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
+
+  /services/{svc_id}/candidate_tags:
+    get:
+      operationId: GetServiceCandidateTags
+      description: List tags attachable to a service (not yet attached and not excluded)
+      parameters:
+        - in: path
+          name: svc_id
+          required: true
+          description: Service identifier (svc_id UUID or svcname)
+          schema:
+            type: string
+        - $ref: '#/components/parameters/inQueryProps'
+        - $ref: '#/components/parameters/inQueryLimit'
+        - $ref: '#/components/parameters/inQueryOffset'
+        - $ref: '#/components/parameters/inQueryMeta'
+        - $ref: '#/components/parameters/inQueryStats'
+        - $ref: '#/components/parameters/inQueryOrderby'
+        - $ref: '#/components/parameters/inQueryGroupby'
+      tags:
+        - collector
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListResponse'
+        404:
+          $ref: '#/components/responses/404'
+        500:
+          $ref: '#/components/responses/500'
+      security:
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
+
+  /services/{svc_id}/tags:
+    get:
+      operationId: GetServiceTags
+      description: List tags attached to a service
+      parameters:
+        - in: path
+          name: svc_id
+          required: true
+          description: Service identifier (svc_id UUID or svcname)
+          schema:
+            type: string
+        - $ref: '#/components/parameters/inQueryProps'
+        - $ref: '#/components/parameters/inQueryLimit'
+        - $ref: '#/components/parameters/inQueryOffset'
+        - $ref: '#/components/parameters/inQueryMeta'
+        - $ref: '#/components/parameters/inQueryStats'
+        - $ref: '#/components/parameters/inQueryOrderby'
+        - $ref: '#/components/parameters/inQueryGroupby'
+      tags:
+        - collector
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListResponse'
+        404:
+          $ref: '#/components/responses/404'
+        500:
+          $ref: '#/components/responses/500'
+      security:
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
+
+  /services_instances:
+    get:
+      operationId: GetServicesInstances
+      description: List services instances
+      parameters:
+        - $ref: '#/components/parameters/inQueryProps'
+        - $ref: '#/components/parameters/inQueryLimit'
+        - $ref: '#/components/parameters/inQueryOffset'
+        - $ref: '#/components/parameters/inQueryMeta'
+        - $ref: '#/components/parameters/inQueryStats'
+        - $ref: '#/components/parameters/inQueryOrderby'
+        - $ref: '#/components/parameters/inQueryGroupby'
+      tags:
+        - collector
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListResponse'
+        500:
+          $ref: '#/components/responses/500'
+      security:
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
+
+  /services_instances/{svc_id}:
+    get:
+      operationId: GetServicesInstance
+      description: List instances for a specific service (all nodes)
+      parameters:
+        - in: path
+          name: svc_id
+          required: true
+          description: Service identifier (svc_id UUID or svcname)
+          schema:
+            type: string
+        - $ref: '#/components/parameters/inQueryProps'
+        - $ref: '#/components/parameters/inQueryLimit'
+        - $ref: '#/components/parameters/inQueryOffset'
+        - $ref: '#/components/parameters/inQueryMeta'
+        - $ref: '#/components/parameters/inQueryStats'
+        - $ref: '#/components/parameters/inQueryOrderby'
+        - $ref: '#/components/parameters/inQueryGroupby'
+      tags:
+        - collector
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListResponse'
+        404:
+          $ref: '#/components/responses/404'
+        500:
+          $ref: '#/components/responses/500'
+      security:
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
+
+  /services_instances_status_log:
+    get:
+      operationId: GetServicesInstancesStatusLog
+      description: List services instances status log. Each entry is a time range where a service instance status was stable.
+      parameters:
+        - $ref: '#/components/parameters/inQueryProps'
+        - $ref: '#/components/parameters/inQueryLimit'
+        - $ref: '#/components/parameters/inQueryOffset'
+        - $ref: '#/components/parameters/inQueryMeta'
+        - $ref: '#/components/parameters/inQueryStats'
+        - $ref: '#/components/parameters/inQueryOrderby'
+        - $ref: '#/components/parameters/inQueryGroupby'
+      tags:
+        - collector
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListResponse'
+        500:
+          $ref: '#/components/responses/500'
+      security:
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
+
   /tags:
     get:
       operationId: GetTags
       description: List existing tags
+      parameters:
+        - $ref: '#/components/parameters/inQueryProps'
+        - $ref: '#/components/parameters/inQueryLimit'
+        - $ref: '#/components/parameters/inQueryOffset'
+        - $ref: '#/components/parameters/inQueryMeta'
+        - $ref: '#/components/parameters/inQueryStats'
+        - $ref: '#/components/parameters/inQueryOrderby'
+        - $ref: '#/components/parameters/inQueryGroupby'
+      tags:
+        - collector
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListResponse'
+        500:
+          $ref: '#/components/responses/500'
+      security:
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
+
+  /tags/nodes:
+    get:
+      operationId: GetTagsNodes
+      description: List all tag-node attachments
+      parameters:
+        - $ref: '#/components/parameters/inQueryProps'
+        - $ref: '#/components/parameters/inQueryLimit'
+        - $ref: '#/components/parameters/inQueryOffset'
+        - $ref: '#/components/parameters/inQueryMeta'
+        - $ref: '#/components/parameters/inQueryStats'
+        - $ref: '#/components/parameters/inQueryOrderby'
+        - $ref: '#/components/parameters/inQueryGroupby'
+      tags:
+        - collector
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListResponse'
+        500:
+          $ref: '#/components/responses/500'
+      security:
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
+
+  /tags/services:
+    get:
+      operationId: GetTagsServices
+      description: List all tag-service attachments
       parameters:
         - $ref: '#/components/parameters/inQueryProps'
         - $ref: '#/components/parameters/inQueryLimit'
@@ -1153,200 +1347,6 @@ paths:
                   type: object
         404:
           description: Tag not found
-        500:
-          $ref: '#/components/responses/500'
-      security:
-        - basicAuth: [ ]
-        - bearerAuth: [ ]
-
-  /nodes/{node_id}/tags:
-    get:
-      operationId: GetNodeTags
-      description: List tags attached to a node
-      parameters:
-        - in: path
-          name: node_id
-          required: true
-          description: Node identifier (node_id UUID or nodename)
-          schema:
-            type: string
-        - $ref: '#/components/parameters/inQueryProps'
-        - $ref: '#/components/parameters/inQueryLimit'
-        - $ref: '#/components/parameters/inQueryOffset'
-        - $ref: '#/components/parameters/inQueryMeta'
-        - $ref: '#/components/parameters/inQueryStats'
-        - $ref: '#/components/parameters/inQueryOrderby'
-        - $ref: '#/components/parameters/inQueryGroupby'
-      tags:
-        - collector
-      responses:
-        200:
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ListResponse'
-        404:
-          $ref: '#/components/responses/404'
-        500:
-          $ref: '#/components/responses/500'
-      security:
-        - basicAuth: [ ]
-        - bearerAuth: [ ]
-
-  /nodes/{node_id}/candidate_tags:
-    get:
-      operationId: GetNodeCandidateTags
-      description: List tags attachable to a node (not yet attached and not excluded)
-      parameters:
-        - in: path
-          name: node_id
-          required: true
-          description: Node identifier (node_id UUID or nodename)
-          schema:
-            type: string
-        - $ref: '#/components/parameters/inQueryProps'
-        - $ref: '#/components/parameters/inQueryLimit'
-        - $ref: '#/components/parameters/inQueryOffset'
-        - $ref: '#/components/parameters/inQueryMeta'
-        - $ref: '#/components/parameters/inQueryStats'
-        - $ref: '#/components/parameters/inQueryOrderby'
-        - $ref: '#/components/parameters/inQueryGroupby'
-      tags:
-        - collector
-      responses:
-        200:
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ListResponse'
-        404:
-          $ref: '#/components/responses/404'
-        500:
-          $ref: '#/components/responses/500'
-      security:
-        - basicAuth: [ ]
-        - bearerAuth: [ ]
-
-  /services/{svc_id}/tags:
-    get:
-      operationId: GetServiceTags
-      description: List tags attached to a service
-      parameters:
-        - in: path
-          name: svc_id
-          required: true
-          description: Service identifier (svc_id UUID or svcname)
-          schema:
-            type: string
-        - $ref: '#/components/parameters/inQueryProps'
-        - $ref: '#/components/parameters/inQueryLimit'
-        - $ref: '#/components/parameters/inQueryOffset'
-        - $ref: '#/components/parameters/inQueryMeta'
-        - $ref: '#/components/parameters/inQueryStats'
-        - $ref: '#/components/parameters/inQueryOrderby'
-        - $ref: '#/components/parameters/inQueryGroupby'
-      tags:
-        - collector
-      responses:
-        200:
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ListResponse'
-        404:
-          $ref: '#/components/responses/404'
-        500:
-          $ref: '#/components/responses/500'
-      security:
-        - basicAuth: [ ]
-        - bearerAuth: [ ]
-
-  /services/{svc_id}/candidate_tags:
-    get:
-      operationId: GetServiceCandidateTags
-      description: List tags attachable to a service (not yet attached and not excluded)
-      parameters:
-        - in: path
-          name: svc_id
-          required: true
-          description: Service identifier (svc_id UUID or svcname)
-          schema:
-            type: string
-        - $ref: '#/components/parameters/inQueryProps'
-        - $ref: '#/components/parameters/inQueryLimit'
-        - $ref: '#/components/parameters/inQueryOffset'
-        - $ref: '#/components/parameters/inQueryMeta'
-        - $ref: '#/components/parameters/inQueryStats'
-        - $ref: '#/components/parameters/inQueryOrderby'
-        - $ref: '#/components/parameters/inQueryGroupby'
-      tags:
-        - collector
-      responses:
-        200:
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ListResponse'
-        404:
-          $ref: '#/components/responses/404'
-        500:
-          $ref: '#/components/responses/500'
-      security:
-        - basicAuth: [ ]
-        - bearerAuth: [ ]
-
-  /tags/nodes:
-    get:
-      operationId: GetTagsNodes
-      description: List all tag-node attachments
-      parameters:
-        - $ref: '#/components/parameters/inQueryProps'
-        - $ref: '#/components/parameters/inQueryLimit'
-        - $ref: '#/components/parameters/inQueryOffset'
-        - $ref: '#/components/parameters/inQueryMeta'
-        - $ref: '#/components/parameters/inQueryStats'
-        - $ref: '#/components/parameters/inQueryOrderby'
-        - $ref: '#/components/parameters/inQueryGroupby'
-      tags:
-        - collector
-      responses:
-        200:
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ListResponse'
-        500:
-          $ref: '#/components/responses/500'
-      security:
-        - basicAuth: [ ]
-        - bearerAuth: [ ]
-
-  /tags/services:
-    get:
-      operationId: GetTagsServices
-      description: List all tag-service attachments
-      parameters:
-        - $ref: '#/components/parameters/inQueryProps'
-        - $ref: '#/components/parameters/inQueryLimit'
-        - $ref: '#/components/parameters/inQueryOffset'
-        - $ref: '#/components/parameters/inQueryMeta'
-        - $ref: '#/components/parameters/inQueryStats'
-        - $ref: '#/components/parameters/inQueryOrderby'
-        - $ref: '#/components/parameters/inQueryGroupby'
-      tags:
-        - collector
-      responses:
-        200:
-          description: OK
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ListResponse'
         500:
           $ref: '#/components/responses/500'
       security:
@@ -1465,26 +1465,6 @@ components:
             $ref: "#/components/schemas/Problem"
 
   schemas:
-    Problem:
-      type: object
-      properties:
-        text:
-          description: |
-            A human-readable explanation specific to this occurrence of the
-            problem.
-          type: string
-      required:
-        - text
-
-    version:
-      type: object
-      required:
-        - version
-      properties:
-        version:
-          type: string
-          example: "0.0.1"
-
     ListMeta:
       type: object
       required:
@@ -1528,7 +1508,33 @@ components:
         meta:
           $ref: '#/components/schemas/ListMeta'
 
+    Problem:
+      type: object
+      properties:
+        text:
+          description: |
+            A human-readable explanation specific to this occurrence of the
+            problem.
+          type: string
+      required:
+        - text
+
+    version:
+      type: object
+      required:
+        - version
+      properties:
+        version:
+          type: string
+          example: "0.0.1"
+
   parameters:
+    ObjectPathHeader:
+      name: OC3-ObjectPath
+      in: header
+      schema:
+        type: string
+
     inPathMsetId:
       in: path
       name: mset_id
@@ -1553,6 +1559,14 @@ components:
       schema:
         type: string
 
+    inQueryGroupby:
+      in: query
+      name: groupby
+      required: false
+      description: Comma-separated list of properties to group the result by (e.g. groupby=app,svcname).
+      schema:
+        type: string
+
     inQueryLimit:
       in: query
       name: limit
@@ -1562,6 +1576,14 @@ components:
         type: integer
         minimum: 0
         default: 50
+
+    inQueryMeta:
+      in: query
+      name: meta
+      required: false
+      description: Include metadata in the response. Enabled by default. Use false or 0 to omit the meta field.
+      schema:
+        type: string
 
     inQueryOffset:
       in: query
@@ -1573,19 +1595,19 @@ components:
         minimum: 0
         default: 0
 
+    inQueryOrderby:
+      in: query
+      name: orderby
+      required: false
+      description: Comma-separated list of properties to sort by. Prefix a property with - for descending order (e.g. orderby=nodename,-app).
+      schema:
+        type: string
+
     inQueryProps:
       in: query
       name: props
       required: false
       description: A list of properties to include in each data dictionnary.
-      schema:
-        type: string
-
-    inQueryMeta:
-      in: query
-      name: meta
-      required: false
-      description: Include metadata in the response. Enabled by default. Use false or 0 to omit the meta field.
       schema:
         type: string
 
@@ -1597,33 +1619,11 @@ components:
       schema:
         type: string
 
-    inQueryOrderby:
-      in: query
-      name: orderby
-      required: false
-      description: Comma-separated list of properties to sort by. Prefix a property with - for descending order (e.g. orderby=nodename,-app).
-      schema:
-        type: string
-
-    inQueryGroupby:
-      in: query
-      name: groupby
-      required: false
-      description: Comma-separated list of properties to group the result by (e.g. groupby=app,svcname).
-      schema:
-        type: string
-
     inQuerySync:
       in: query
       name: sync
       schema:
         type: boolean
-
-    ObjectPathHeader:
-      name: OC3-ObjectPath
-      in: header
-      schema:
-        type: string
 
   securitySchemes:
     basicAuth:
