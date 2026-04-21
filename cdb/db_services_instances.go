@@ -7,7 +7,7 @@ import (
 	"github.com/opensvc/oc3/schema"
 )
 
-func buildServicesInstancesQuery(groups []string, isManager bool, selectExprs []string) (string, []any) {
+func buildServicesInstancesQuery(groups []string, isManager bool, selectExprs []string) (string, []any, error) {
 	q := From(schema.TSvcmon).
 		Via(schema.TServices).
 		RawSelect(selectExprs...)
@@ -37,13 +37,16 @@ func buildServicesInstancesQuery(groups []string, isManager bool, selectExprs []
 
 	query, args, err := q.Build()
 	if err != nil {
-		panic(fmt.Sprintf("buildServicesInstancesQuery: %v", err))
+		return "", nil, fmt.Errorf("buildServicesInstancesQuery: %w", err)
 	}
-	return query, args
+	return query, args, nil
 }
 
 func (oDb *DB) GetServicesInstances(ctx context.Context, p ListParams) ([]map[string]any, error) {
-	query, args := buildServicesInstancesQuery(p.Groups, p.IsManager, p.SelectExprs)
+	query, args, err := buildServicesInstancesQuery(p.Groups, p.IsManager, p.SelectExprs)
+	if err != nil {
+		return nil, err
+	}
 	if gb := p.GroupByClause(""); gb != "" {
 		query += " " + gb
 	}
@@ -61,7 +64,10 @@ func (oDb *DB) GetServicesInstances(ctx context.Context, p ListParams) ([]map[st
 
 // GetServicesInstance fetches all instances of a single service by svc_id (UUID) or svcname.
 func (oDb *DB) GetServicesInstance(ctx context.Context, svcID string, p ListParams) ([]map[string]any, error) {
-	query, args := buildServicesInstancesQuery(p.Groups, p.IsManager, p.SelectExprs)
+	query, args, err := buildServicesInstancesQuery(p.Groups, p.IsManager, p.SelectExprs)
+	if err != nil {
+		return nil, err
+	}
 	query += " AND (svcmon.svc_id = ? OR services.svcname = ?)"
 	args = append(args, svcID, svcID)
 	if gb := p.GroupByClause(""); gb != "" {

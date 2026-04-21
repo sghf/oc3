@@ -7,7 +7,7 @@ import (
 	"github.com/opensvc/oc3/schema"
 )
 
-func buildDisksQuery(groups []string, isManager bool, selectExprs []string) (string, []any) {
+func buildDisksQuery(groups []string, isManager bool, selectExprs []string) (string, []any, error) {
 	q := From(schema.TDiskinfo).
 		LeftJoin(schema.TSvcdisks, schema.TNodes, schema.TServices, schema.TApps).
 		RawSelect(selectExprs...)
@@ -39,14 +39,16 @@ func buildDisksQuery(groups []string, isManager bool, selectExprs []string) (str
 
 	query, args, err := q.Build()
 	if err != nil {
-		// schema relations are static; a build error here is a programming mistake
-		panic(fmt.Sprintf("buildDisksQuery: %v", err))
+		return "", nil, fmt.Errorf("buildDisksQuery: %w", err)
 	}
-	return query, args
+	return query, args, nil
 }
 
 func (oDb *DB) GetDisk(ctx context.Context, diskID string, p ListParams) ([]map[string]any, error) {
-	query, args := buildDisksQuery(p.Groups, p.IsManager, p.SelectExprs)
+	query, args, err := buildDisksQuery(p.Groups, p.IsManager, p.SelectExprs)
+	if err != nil {
+		return nil, err
+	}
 	query += " AND diskinfo.disk_id = ?"
 	args = append(args, diskID)
 	if gb := p.GroupByClause(""); gb != "" {
@@ -65,7 +67,10 @@ func (oDb *DB) GetDisk(ctx context.Context, diskID string, p ListParams) ([]map[
 }
 
 func (oDb *DB) GetNodeDisks(ctx context.Context, nodeID string, p ListParams) ([]map[string]any, error) {
-	query, args := buildDisksQuery(p.Groups, p.IsManager, p.SelectExprs)
+	query, args, err := buildDisksQuery(p.Groups, p.IsManager, p.SelectExprs)
+	if err != nil {
+		return nil, err
+	}
 	query += " AND svcdisks.node_id = ?"
 	args = append(args, nodeID)
 	if gb := p.GroupByClause(""); gb != "" {
@@ -84,7 +89,10 @@ func (oDb *DB) GetNodeDisks(ctx context.Context, nodeID string, p ListParams) ([
 }
 
 func (oDb *DB) GetDisks(ctx context.Context, p ListParams) ([]map[string]any, error) {
-	query, args := buildDisksQuery(p.Groups, p.IsManager, p.SelectExprs)
+	query, args, err := buildDisksQuery(p.Groups, p.IsManager, p.SelectExprs)
+	if err != nil {
+		return nil, err
+	}
 	if gb := p.GroupByClause(""); gb != "" {
 		query += " " + gb
 	}

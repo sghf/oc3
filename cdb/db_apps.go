@@ -62,7 +62,7 @@ func scanApps(rows *sql.Rows) ([]App, error) {
 	return apps, nil
 }
 
-func buildAppsQuery(groups []string, isManager bool, selectExprs []string) (string, []any) {
+func buildAppsQuery(groups []string, isManager bool, selectExprs []string) (string, []any, error) {
 	q := From(schema.TApps).
 		Distinct().
 		RawSelect(selectExprs...)
@@ -77,12 +77,12 @@ func buildAppsQuery(groups []string, isManager bool, selectExprs []string) (stri
 
 	query, args, err := q.Build()
 	if err != nil {
-		panic(fmt.Sprintf("buildAppsQuery: %v", err))
+		return "", nil, fmt.Errorf("buildAppsQuery: %w", err)
 	}
-	return query, args
+	return query, args, nil
 }
 
-func buildAppsQueryAll(groups []string, isManager bool) (string, []any) {
+func buildAppsQueryAll(groups []string, isManager bool) (string, []any, error) {
 	return buildAppsQuery(groups, isManager, []string{
 		"apps.id", "apps.app",
 		"COALESCE(apps.updated, '')", "COALESCE(apps.app_domain, '')",
@@ -91,7 +91,10 @@ func buildAppsQueryAll(groups []string, isManager bool) (string, []any) {
 }
 
 func (oDb *DB) GetApps(ctx context.Context, p ListParams) ([]map[string]any, error) {
-	query, args := buildAppsQuery(p.Groups, p.IsManager, p.SelectExprs)
+	query, args, err := buildAppsQuery(p.Groups, p.IsManager, p.SelectExprs)
+	if err != nil {
+		return nil, err
+	}
 	if gb := p.GroupByClause(""); gb != "" {
 		query += " " + gb
 	}
@@ -108,7 +111,10 @@ func (oDb *DB) GetApps(ctx context.Context, p ListParams) ([]map[string]any, err
 }
 
 func (oDb *DB) GetApp(ctx context.Context, appIDOrName string, groups []string, isManager bool) (*App, error) {
-	query, args := buildAppsQueryAll(groups, isManager)
+	query, args, err := buildAppsQueryAll(groups, isManager)
+	if err != nil {
+		return nil, err
+	}
 
 	if id, err := strconv.ParseInt(appIDOrName, 10, 64); err == nil {
 		query += " AND apps.id = ?"

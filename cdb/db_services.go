@@ -7,7 +7,7 @@ import (
 	"github.com/opensvc/oc3/schema"
 )
 
-func buildServicesQuery(groups []string, isManager bool, selectExprs []string) (string, []any) {
+func buildServicesQuery(groups []string, isManager bool, selectExprs []string) (string, []any, error) {
 	q := From(schema.TServices).
 		RawSelect(selectExprs...)
 
@@ -36,13 +36,16 @@ func buildServicesQuery(groups []string, isManager bool, selectExprs []string) (
 
 	query, args, err := q.Build()
 	if err != nil {
-		panic(fmt.Sprintf("buildServicesQuery: %v", err))
+		return "", nil, fmt.Errorf("buildServicesQuery: %w", err)
 	}
-	return query, args
+	return query, args, nil
 }
 
 func (oDb *DB) GetServices(ctx context.Context, p ListParams) ([]map[string]any, error) {
-	query, args := buildServicesQuery(p.Groups, p.IsManager, p.SelectExprs)
+	query, args, err := buildServicesQuery(p.Groups, p.IsManager, p.SelectExprs)
+	if err != nil {
+		return nil, err
+	}
 	if gb := p.GroupByClause(""); gb != "" {
 		query += " " + gb
 	}
@@ -60,7 +63,10 @@ func (oDb *DB) GetServices(ctx context.Context, p ListParams) ([]map[string]any,
 
 // GetService fetches a single service by svc_id (UUID) or svcname.
 func (oDb *DB) GetService(ctx context.Context, svcID string, p ListParams) ([]map[string]any, error) {
-	query, args := buildServicesQuery(p.Groups, p.IsManager, p.SelectExprs)
+	query, args, err := buildServicesQuery(p.Groups, p.IsManager, p.SelectExprs)
+	if err != nil {
+		return nil, err
+	}
 	query += " AND (services.svc_id = ? OR services.svcname = ?)"
 	args = append(args, svcID, svcID)
 	query, args = appendLimitOffset(query, args, p.Limit, p.Offset)

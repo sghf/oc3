@@ -82,7 +82,10 @@ func (oDb *DB) GetTags(ctx context.Context, tagID *int, limit, offset int) ([]Ta
 
 // GetTagNodes returns nodes where a tag (by integer id) is attached, with app-based auth.
 func (oDb *DB) GetTagNodes(ctx context.Context, tagID int, p ListParams) ([]map[string]any, error) {
-	query, args := buildNodesQuery(p.Groups, p.IsManager, p.SelectExprs)
+	query, args, err := buildNodesQuery(p.Groups, p.IsManager, p.SelectExprs)
+	if err != nil {
+		return nil, err
+	}
 	query += " AND nodes.node_id IN (SELECT node_id FROM node_tags WHERE node_tags.tag_id = (SELECT tag_id FROM tags WHERE id = ?))"
 	args = append(args, tagID)
 	if gb := p.GroupByClause(""); gb != "" {
@@ -247,7 +250,10 @@ func (oDb *DB) GetServiceCandidateTags(ctx context.Context, svcID string, p List
 
 // GetTagServices returns services where a tag (by integer id) is attached, with app-based auth.
 func (oDb *DB) GetTagServices(ctx context.Context, tagID int, p ListParams) ([]map[string]any, error) {
-	query, args := buildServicesQuery(p.Groups, p.IsManager, p.SelectExprs)
+	query, args, err := buildServicesQuery(p.Groups, p.IsManager, p.SelectExprs)
+	if err != nil {
+		return nil, err
+	}
 	query += " AND services.svc_id IN (SELECT svc_id FROM svc_tags WHERE svc_tags.tag_id = (SELECT tag_id FROM tags WHERE id = ?))"
 	args = append(args, tagID)
 	if gb := p.GroupByClause(""); gb != "" {

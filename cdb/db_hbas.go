@@ -7,7 +7,7 @@ import (
 	"github.com/opensvc/oc3/schema"
 )
 
-func buildHbasQuery(groups []string, isManager bool, selectExprs []string) (string, []any) {
+func buildHbasQuery(groups []string, isManager bool, selectExprs []string) (string, []any, error) {
 	q := From(schema.TNodeHBA).
 		RawSelect(selectExprs...)
 
@@ -37,13 +37,16 @@ func buildHbasQuery(groups []string, isManager bool, selectExprs []string) (stri
 
 	query, args, err := q.Build()
 	if err != nil {
-		panic(fmt.Sprintf("buildHbasQuery: %v", err))
+		return "", nil, fmt.Errorf("buildHbasQuery: %w", err)
 	}
-	return query, args
+	return query, args, nil
 }
 
 func (oDb *DB) GetHbas(ctx context.Context, p ListParams) ([]map[string]any, error) {
-	query, args := buildHbasQuery(p.Groups, p.IsManager, p.SelectExprs)
+	query, args, err := buildHbasQuery(p.Groups, p.IsManager, p.SelectExprs)
+	if err != nil {
+		return nil, err
+	}
 	if gb := p.GroupByClause(""); gb != "" {
 		query += " " + gb
 	}
@@ -60,7 +63,10 @@ func (oDb *DB) GetHbas(ctx context.Context, p ListParams) ([]map[string]any, err
 }
 
 func (oDb *DB) GetNodeHbas(ctx context.Context, nodeID string, p ListParams) ([]map[string]any, error) {
-	query, args := buildHbasQuery(p.Groups, p.IsManager, p.SelectExprs)
+	query, args, err := buildHbasQuery(p.Groups, p.IsManager, p.SelectExprs)
+	if err != nil {
+		return nil, err
+	}
 	query += " AND node_hba.node_id = ?"
 	args = append(args, nodeID)
 	if gb := p.GroupByClause(""); gb != "" {

@@ -7,7 +7,7 @@ import (
 	"github.com/opensvc/oc3/schema"
 )
 
-func buildServicesInstancesStatusLogQuery(groups []string, isManager bool, selectExprs []string) (string, []any) {
+func buildServicesInstancesStatusLogQuery(groups []string, isManager bool, selectExprs []string) (string, []any, error) {
 	q := From(schema.TSvcmonLog).
 		Via(schema.TServices).
 		RawSelect(selectExprs...)
@@ -37,13 +37,16 @@ func buildServicesInstancesStatusLogQuery(groups []string, isManager bool, selec
 
 	query, args, err := q.Build()
 	if err != nil {
-		panic(fmt.Sprintf("buildServicesInstancesStatusLogQuery: %v", err))
+		return "", nil, fmt.Errorf("buildServicesInstancesStatusLogQuery: %w", err)
 	}
-	return query, args
+	return query, args, nil
 }
 
 func (oDb *DB) GetServicesInstancesStatusLog(ctx context.Context, p ListParams) ([]map[string]any, error) {
-	query, args := buildServicesInstancesStatusLogQuery(p.Groups, p.IsManager, p.SelectExprs)
+	query, args, err := buildServicesInstancesStatusLogQuery(p.Groups, p.IsManager, p.SelectExprs)
+	if err != nil {
+		return nil, err
+	}
 	if gb := p.GroupByClause(""); gb != "" {
 		query += " " + gb
 	}

@@ -7,20 +7,23 @@ import (
 	"github.com/opensvc/oc3/schema"
 )
 
-func buildArraysQuery(selectExprs []string) (string, []any) {
+func buildArraysQuery(selectExprs []string) (string, []any, error) {
 	q := From(schema.TStorArray).
 		RawSelect(selectExprs...).
 		Where(schema.StorArrayID, ">", 0)
 
 	query, args, err := q.Build()
 	if err != nil {
-		panic(fmt.Sprintf("buildArraysQuery: %v", err))
+		return "", nil, fmt.Errorf("buildArraysQuery: %w", err)
 	}
-	return query, args
+	return query, args, nil
 }
 
 func (oDb *DB) GetArrays(ctx context.Context, p ListParams) ([]map[string]any, error) {
-	query, args := buildArraysQuery(p.SelectExprs)
+	query, args, err := buildArraysQuery(p.SelectExprs)
+	if err != nil {
+		return nil, err
+	}
 	if gb := p.GroupByClause(""); gb != "" {
 		query += " " + gb
 	}

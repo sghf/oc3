@@ -50,7 +50,7 @@ func (n *DBNode) String() string {
 	return fmt.Sprintf("node: {nodename: %s, node_id: %s, cluster_id: %s, app: %s}", n.Nodename, n.NodeID, n.ClusterID, n.App)
 }
 
-func buildNodesQuery(groups []string, isManager bool, selectExprs []string) (string, []any) {
+func buildNodesQuery(groups []string, isManager bool, selectExprs []string) (string, []any, error) {
 	q := From(schema.TNodes).
 		RawSelect(selectExprs...)
 
@@ -79,13 +79,16 @@ func buildNodesQuery(groups []string, isManager bool, selectExprs []string) (str
 
 	query, args, err := q.Build()
 	if err != nil {
-		panic(fmt.Sprintf("buildNodesQuery: %v", err))
+		return "", nil, fmt.Errorf("buildNodesQuery: %w", err)
 	}
-	return query, args
+	return query, args, nil
 }
 
 func (oDb *DB) GetNodes(ctx context.Context, p ListParams) ([]map[string]any, error) {
-	query, args := buildNodesQuery(p.Groups, p.IsManager, p.SelectExprs)
+	query, args, err := buildNodesQuery(p.Groups, p.IsManager, p.SelectExprs)
+	if err != nil {
+		return nil, err
+	}
 	if gb := p.GroupByClause(""); gb != "" {
 		query += " " + gb
 	}
@@ -103,7 +106,10 @@ func (oDb *DB) GetNodes(ctx context.Context, p ListParams) ([]map[string]any, er
 
 // GetNode fetches a single node by node_id or nodename.
 func (oDb *DB) GetNode(ctx context.Context, nodeID string, p ListParams) ([]map[string]any, error) {
-	query, args := buildNodesQuery(p.Groups, p.IsManager, p.SelectExprs)
+	query, args, err := buildNodesQuery(p.Groups, p.IsManager, p.SelectExprs)
+	if err != nil {
+		return nil, err
+	}
 	query += " AND (nodes.node_id = ? OR nodes.nodename = ?)"
 	args = append(args, nodeID, nodeID)
 	query, args = appendLimitOffset(query, args, p.Limit, p.Offset)

@@ -8,7 +8,7 @@ import (
 	"github.com/opensvc/oc3/schema"
 )
 
-func buildNodeInterfacesQuery(nodeID string, p ListParams) (string, []any) {
+func buildNodeInterfacesQuery(nodeID string, p ListParams) (string, []any, error) {
 	q := From(schema.TNodeIP).
 		RawSelect(p.SelectExprs...).
 		Where(schema.NodeIPNodeID, "=", nodeID)
@@ -45,13 +45,16 @@ func buildNodeInterfacesQuery(nodeID string, p ListParams) (string, []any) {
 
 	query, args, err := q.Build()
 	if err != nil {
-		panic(fmt.Sprintf("buildNodeInterfacesQuery: %v", err))
+		return "", nil, fmt.Errorf("buildNodeInterfacesQuery: %w", err)
 	}
-	return query, args
+	return query, args, nil
 }
 
 func (oDb *DB) GetNodeInterfaces(ctx context.Context, nodeID string, p ListParams) ([]map[string]any, error) {
-	query, args := buildNodeInterfacesQuery(nodeID, p)
+	query, args, err := buildNodeInterfacesQuery(nodeID, p)
+	if err != nil {
+		return nil, err
+	}
 	query += " " + p.GroupByClause("node_ip.intf") + " " + p.OrderByClause("node_ip.intf")
 	query, args = appendLimitOffset(query, args, p.Limit, p.Offset)
 
