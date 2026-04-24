@@ -424,6 +424,186 @@ paths:
         - bearerAuth: [ ]
 
   /nodes:
+    post:
+      operationId: PostNodes
+      description: Create or update a node (by nodename or node_id)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                nodename:
+                  type: string
+                node_id:
+                  type: string
+                team_responsible:
+                  type: string
+                app:
+                  type: string
+                cluster_id:
+                  type: string
+                warranty_end:
+                  type: string
+                maintenance_end:
+                  type: string
+                status:
+                  type: string
+                role:
+                  type: string
+                listener_port:
+                  type: integer
+                version:
+                  type: string
+                collector:
+                  type: string
+                connect_to:
+                  type: string
+                tz:
+                  type: string
+                asset_env:
+                  type: string
+                type:
+                  type: string
+                fqdn:
+                  type: string
+                manufacturer:
+                  type: string
+                loc_addr:
+                  type: string
+                loc_city:
+                  type: string
+                loc_zip:
+                  type: string
+                loc_rack:
+                  type: string
+                loc_floor:
+                  type: string
+                loc_country:
+                  type: string
+                loc_building:
+                  type: string
+                loc_room:
+                  type: string
+                power_supply_nb:
+                  type: integer
+                power_cabinet1:
+                  type: string
+                power_cabinet2:
+                  type: string
+                power_protect:
+                  type: string
+                power_protect_breaker:
+                  type: string
+                power_breaker1:
+                  type: string
+                power_breaker2:
+                  type: string
+                enclosure:
+                  type: string
+                enclosureslot:
+                  type: string
+                assetname:
+                  type: string
+                sec_zone:
+                  type: string
+                action_type:
+                  type: string
+                  enum: [push, pull]
+                hvpool:
+                  type: string
+                hvvdc:
+                  type: string
+                hv:
+                  type: string
+                hw_obs_warn_date:
+                  type: string
+                hw_obs_alert_date:
+                  type: string
+                os_obs_warn_date:
+                  type: string
+                os_obs_alert_date:
+                  type: string
+                notifications:
+                  type: boolean
+                snooze_till:
+                  type: string
+                node_frozen:
+                  type: boolean
+                node_frozen_at:
+                  type: string
+                bios_version:
+                  type: string
+                cpu_cores:
+                  type: integer
+                cpu_dies:
+                  type: integer
+                cpu_freq:
+                  type: string
+                cpu_model:
+                  type: string
+                cpu_threads:
+                  type: integer
+                cpu_vendor:
+                  type: string
+                last_boot:
+                  type: string
+                last_comm:
+                  type: string
+                mem_banks:
+                  type: integer
+                mem_bytes:
+                  type: integer
+                mem_slots:
+                  type: integer
+                model:
+                  type: string
+                node_env:
+                  type: string
+                os_arch:
+                  type: string
+                os_concat:
+                  type: string
+                os_kernel:
+                  type: string
+                os_name:
+                  type: string
+                os_release:
+                  type: string
+                os_vendor:
+                  type: string
+                serial:
+                  type: string
+                sp_version:
+                  type: string
+                team_integ:
+                  type: string
+                team_support:
+                  type: string
+                updated:
+                  type: string
+      tags:
+        - collector
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+        400:
+          $ref: '#/components/responses/400'
+        401:
+          $ref: '#/components/responses/401'
+        403:
+          $ref: '#/components/responses/403'
+        500:
+          $ref: '#/components/responses/500'
+      security:
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
+
     get:
       operationId: GetNodes
       description: List nodes
@@ -478,6 +658,193 @@ paths:
         - bearerAuth: [ ]
 
   /nodes/{node_id}:
+    post:
+      operationId: PostNode
+      description: Update a node properties
+      parameters:
+        - in: path
+          name: node_id
+          required: true
+          description: Node identifier (node_id UUID or nodename)
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                nodename:
+                  type: string
+                team_responsible:
+                  type: string
+                app:
+                  type: string
+                cluster_id:
+                  type: string
+                warranty_end:
+                  type: string
+                maintenance_end:
+                  type: string
+                status:
+                  type: string
+                role:
+                  type: string
+                listener_port:
+                  type: integer
+                version:
+                  type: string
+                collector:
+                  type: string
+                connect_to:
+                  type: string
+                tz:
+                  type: string
+                asset_env:
+                  type: string
+                type:
+                  type: string
+                fqdn:
+                  type: string
+                manufacturer:
+                  type: string
+                loc_addr:
+                  type: string
+                loc_city:
+                  type: string
+                loc_zip:
+                  type: string
+                loc_rack:
+                  type: string
+                loc_floor:
+                  type: string
+                loc_country:
+                  type: string
+                loc_building:
+                  type: string
+                loc_room:
+                  type: string
+                power_supply_nb:
+                  type: integer
+                power_cabinet1:
+                  type: string
+                power_cabinet2:
+                  type: string
+                power_protect:
+                  type: string
+                power_protect_breaker:
+                  type: string
+                power_breaker1:
+                  type: string
+                power_breaker2:
+                  type: string
+                enclosure:
+                  type: string
+                enclosureslot:
+                  type: string
+                assetname:
+                  type: string
+                sec_zone:
+                  type: string
+                action_type:
+                  type: string
+                  enum: [push, pull]
+                hvpool:
+                  type: string
+                hvvdc:
+                  type: string
+                hv:
+                  type: string
+                hw_obs_warn_date:
+                  type: string
+                hw_obs_alert_date:
+                  type: string
+                os_obs_warn_date:
+                  type: string
+                os_obs_alert_date:
+                  type: string
+                notifications:
+                  type: boolean
+                snooze_till:
+                  type: string
+                node_frozen:
+                  type: boolean
+                node_frozen_at:
+                  type: string
+                bios_version:
+                  type: string
+                cpu_cores:
+                  type: integer
+                cpu_dies:
+                  type: integer
+                cpu_freq:
+                  type: string
+                cpu_model:
+                  type: string
+                cpu_threads:
+                  type: integer
+                cpu_vendor:
+                  type: string
+                last_boot:
+                  type: string
+                last_comm:
+                  type: string
+                mem_banks:
+                  type: integer
+                mem_bytes:
+                  type: integer
+                mem_slots:
+                  type: integer
+                model:
+                  type: string
+                node_env:
+                  type: string
+                os_arch:
+                  type: string
+                os_concat:
+                  type: string
+                os_kernel:
+                  type: string
+                os_name:
+                  type: string
+                os_release:
+                  type: string
+                os_vendor:
+                  type: string
+                serial:
+                  type: string
+                sp_version:
+                  type: string
+                team_integ:
+                  type: string
+                team_support:
+                  type: string
+                updated:
+                  type: string
+      tags:
+        - collector
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+        400:
+          $ref: '#/components/responses/400'
+        401:
+          $ref: '#/components/responses/401'
+        403:
+          $ref: '#/components/responses/403'
+        404:
+          $ref: '#/components/responses/404'
+        500:
+          $ref: '#/components/responses/500'
+      security:
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
+
     get:
       operationId: GetNode
       description: List entries for a specific node

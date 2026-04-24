@@ -43,6 +43,18 @@ func (oDb *DB) AuthNodesByNodeID(ctx context.Context, nodeID string) ([]DBAuthNo
 	return result, nil
 }
 
+// UpdateAuthNodeNodename updates the nodename in auth_node for a given node_id so the node
+// does not have to re-register after a hostname change.
+func (oDb *DB) UpdateAuthNodeNodename(ctx context.Context, nodeID, nodename string) error {
+	defer logDuration("UpdateAuthNodeNodename", time.Now())
+	const query = `UPDATE auth_node SET nodename = ?, updated = NOW() WHERE node_id = ?`
+	if _, err := oDb.DB.ExecContext(ctx, query, nodename, nodeID); err != nil {
+		return fmt.Errorf("UpdateAuthNodeNodename: %w", err)
+	}
+	oDb.SetChange("auth_node")
+	return nil
+}
+
 // InsertAuthNode inserts a new auth_node row with the given nodename, uuid, and node_id.
 func (oDb *DB) InsertAuthNode(ctx context.Context, nodename, nodeUUID, nodeID string) error {
 	defer logDuration("InsertAuthNode", time.Now())

@@ -14,6 +14,18 @@ const (
 	BearerAuthScopes = "bearerAuth.Scopes"
 )
 
+// Defines values for PostNodesJSONBodyActionType.
+const (
+	PostNodesJSONBodyActionTypePull PostNodesJSONBodyActionType = "pull"
+	PostNodesJSONBodyActionTypePush PostNodesJSONBodyActionType = "push"
+)
+
+// Defines values for PostNodeJSONBodyActionType.
+const (
+	PostNodeJSONBodyActionTypePull PostNodeJSONBodyActionType = "pull"
+	PostNodeJSONBodyActionTypePush PostNodeJSONBodyActionType = "push"
+)
+
 // ListMeta defines model for ListMeta.
 type ListMeta struct {
 	AvailableProps *[]string       `json:"available_props,omitempty"`
@@ -298,6 +310,87 @@ type GetNodesParams struct {
 	Groupby *InQueryGroupby `form:"groupby,omitempty" json:"groupby,omitempty"`
 }
 
+// PostNodesJSONBody defines parameters for PostNodes.
+type PostNodesJSONBody struct {
+	ActionType          *PostNodesJSONBodyActionType `json:"action_type,omitempty"`
+	App                 *string                      `json:"app,omitempty"`
+	AssetEnv            *string                      `json:"asset_env,omitempty"`
+	Assetname           *string                      `json:"assetname,omitempty"`
+	BiosVersion         *string                      `json:"bios_version,omitempty"`
+	ClusterId           *string                      `json:"cluster_id,omitempty"`
+	Collector           *string                      `json:"collector,omitempty"`
+	ConnectTo           *string                      `json:"connect_to,omitempty"`
+	CpuCores            *int                         `json:"cpu_cores,omitempty"`
+	CpuDies             *int                         `json:"cpu_dies,omitempty"`
+	CpuFreq             *string                      `json:"cpu_freq,omitempty"`
+	CpuModel            *string                      `json:"cpu_model,omitempty"`
+	CpuThreads          *int                         `json:"cpu_threads,omitempty"`
+	CpuVendor           *string                      `json:"cpu_vendor,omitempty"`
+	Enclosure           *string                      `json:"enclosure,omitempty"`
+	Enclosureslot       *string                      `json:"enclosureslot,omitempty"`
+	Fqdn                *string                      `json:"fqdn,omitempty"`
+	Hv                  *string                      `json:"hv,omitempty"`
+	Hvpool              *string                      `json:"hvpool,omitempty"`
+	Hvvdc               *string                      `json:"hvvdc,omitempty"`
+	HwObsAlertDate      *string                      `json:"hw_obs_alert_date,omitempty"`
+	HwObsWarnDate       *string                      `json:"hw_obs_warn_date,omitempty"`
+	LastBoot            *string                      `json:"last_boot,omitempty"`
+	LastComm            *string                      `json:"last_comm,omitempty"`
+	ListenerPort        *int                         `json:"listener_port,omitempty"`
+	LocAddr             *string                      `json:"loc_addr,omitempty"`
+	LocBuilding         *string                      `json:"loc_building,omitempty"`
+	LocCity             *string                      `json:"loc_city,omitempty"`
+	LocCountry          *string                      `json:"loc_country,omitempty"`
+	LocFloor            *string                      `json:"loc_floor,omitempty"`
+	LocRack             *string                      `json:"loc_rack,omitempty"`
+	LocRoom             *string                      `json:"loc_room,omitempty"`
+	LocZip              *string                      `json:"loc_zip,omitempty"`
+	MaintenanceEnd      *string                      `json:"maintenance_end,omitempty"`
+	Manufacturer        *string                      `json:"manufacturer,omitempty"`
+	MemBanks            *int                         `json:"mem_banks,omitempty"`
+	MemBytes            *int                         `json:"mem_bytes,omitempty"`
+	MemSlots            *int                         `json:"mem_slots,omitempty"`
+	Model               *string                      `json:"model,omitempty"`
+	NodeEnv             *string                      `json:"node_env,omitempty"`
+	NodeFrozen          *bool                        `json:"node_frozen,omitempty"`
+	NodeFrozenAt        *string                      `json:"node_frozen_at,omitempty"`
+	NodeId              *string                      `json:"node_id,omitempty"`
+	Nodename            *string                      `json:"nodename,omitempty"`
+	Notifications       *bool                        `json:"notifications,omitempty"`
+	OsArch              *string                      `json:"os_arch,omitempty"`
+	OsConcat            *string                      `json:"os_concat,omitempty"`
+	OsKernel            *string                      `json:"os_kernel,omitempty"`
+	OsName              *string                      `json:"os_name,omitempty"`
+	OsObsAlertDate      *string                      `json:"os_obs_alert_date,omitempty"`
+	OsObsWarnDate       *string                      `json:"os_obs_warn_date,omitempty"`
+	OsRelease           *string                      `json:"os_release,omitempty"`
+	OsVendor            *string                      `json:"os_vendor,omitempty"`
+	PowerBreaker1       *string                      `json:"power_breaker1,omitempty"`
+	PowerBreaker2       *string                      `json:"power_breaker2,omitempty"`
+	PowerCabinet1       *string                      `json:"power_cabinet1,omitempty"`
+	PowerCabinet2       *string                      `json:"power_cabinet2,omitempty"`
+	PowerProtect        *string                      `json:"power_protect,omitempty"`
+	PowerProtectBreaker *string                      `json:"power_protect_breaker,omitempty"`
+	PowerSupplyNb       *int                         `json:"power_supply_nb,omitempty"`
+	Role                *string                      `json:"role,omitempty"`
+	SecZone             *string                      `json:"sec_zone,omitempty"`
+	Serial              *string                      `json:"serial,omitempty"`
+	SnoozeTill          *string                      `json:"snooze_till,omitempty"`
+	SpVersion           *string                      `json:"sp_version,omitempty"`
+	Status              *string                      `json:"status,omitempty"`
+	TeamInteg           *string                      `json:"team_integ,omitempty"`
+	TeamResponsible     *string                      `json:"team_responsible,omitempty"`
+	TeamSupport         *string                      `json:"team_support,omitempty"`
+	Type                *string                      `json:"type,omitempty"`
+	Tz                  *string                      `json:"tz,omitempty"`
+	Updated             *string                      `json:"updated,omitempty"`
+	Version             *string                      `json:"version,omitempty"`
+	WarrantyEnd         *string                      `json:"warranty_end,omitempty"`
+}
+
+// PostNodesJSONBodyActionType defines parameters for PostNodes.
+type PostNodesJSONBodyActionType string
+
 // GetNodesHbasParams defines parameters for GetNodesHbas.
 type GetNodesHbasParams struct {
 	// Props A list of properties to include in each data dictionnary.
@@ -345,6 +438,86 @@ type GetNodeParams struct {
 	// Groupby Comma-separated list of properties to group the result by (e.g. groupby=app,svcname).
 	Groupby *InQueryGroupby `form:"groupby,omitempty" json:"groupby,omitempty"`
 }
+
+// PostNodeJSONBody defines parameters for PostNode.
+type PostNodeJSONBody struct {
+	ActionType          *PostNodeJSONBodyActionType `json:"action_type,omitempty"`
+	App                 *string                     `json:"app,omitempty"`
+	AssetEnv            *string                     `json:"asset_env,omitempty"`
+	Assetname           *string                     `json:"assetname,omitempty"`
+	BiosVersion         *string                     `json:"bios_version,omitempty"`
+	ClusterId           *string                     `json:"cluster_id,omitempty"`
+	Collector           *string                     `json:"collector,omitempty"`
+	ConnectTo           *string                     `json:"connect_to,omitempty"`
+	CpuCores            *int                        `json:"cpu_cores,omitempty"`
+	CpuDies             *int                        `json:"cpu_dies,omitempty"`
+	CpuFreq             *string                     `json:"cpu_freq,omitempty"`
+	CpuModel            *string                     `json:"cpu_model,omitempty"`
+	CpuThreads          *int                        `json:"cpu_threads,omitempty"`
+	CpuVendor           *string                     `json:"cpu_vendor,omitempty"`
+	Enclosure           *string                     `json:"enclosure,omitempty"`
+	Enclosureslot       *string                     `json:"enclosureslot,omitempty"`
+	Fqdn                *string                     `json:"fqdn,omitempty"`
+	Hv                  *string                     `json:"hv,omitempty"`
+	Hvpool              *string                     `json:"hvpool,omitempty"`
+	Hvvdc               *string                     `json:"hvvdc,omitempty"`
+	HwObsAlertDate      *string                     `json:"hw_obs_alert_date,omitempty"`
+	HwObsWarnDate       *string                     `json:"hw_obs_warn_date,omitempty"`
+	LastBoot            *string                     `json:"last_boot,omitempty"`
+	LastComm            *string                     `json:"last_comm,omitempty"`
+	ListenerPort        *int                        `json:"listener_port,omitempty"`
+	LocAddr             *string                     `json:"loc_addr,omitempty"`
+	LocBuilding         *string                     `json:"loc_building,omitempty"`
+	LocCity             *string                     `json:"loc_city,omitempty"`
+	LocCountry          *string                     `json:"loc_country,omitempty"`
+	LocFloor            *string                     `json:"loc_floor,omitempty"`
+	LocRack             *string                     `json:"loc_rack,omitempty"`
+	LocRoom             *string                     `json:"loc_room,omitempty"`
+	LocZip              *string                     `json:"loc_zip,omitempty"`
+	MaintenanceEnd      *string                     `json:"maintenance_end,omitempty"`
+	Manufacturer        *string                     `json:"manufacturer,omitempty"`
+	MemBanks            *int                        `json:"mem_banks,omitempty"`
+	MemBytes            *int                        `json:"mem_bytes,omitempty"`
+	MemSlots            *int                        `json:"mem_slots,omitempty"`
+	Model               *string                     `json:"model,omitempty"`
+	NodeEnv             *string                     `json:"node_env,omitempty"`
+	NodeFrozen          *bool                       `json:"node_frozen,omitempty"`
+	NodeFrozenAt        *string                     `json:"node_frozen_at,omitempty"`
+	Nodename            *string                     `json:"nodename,omitempty"`
+	Notifications       *bool                       `json:"notifications,omitempty"`
+	OsArch              *string                     `json:"os_arch,omitempty"`
+	OsConcat            *string                     `json:"os_concat,omitempty"`
+	OsKernel            *string                     `json:"os_kernel,omitempty"`
+	OsName              *string                     `json:"os_name,omitempty"`
+	OsObsAlertDate      *string                     `json:"os_obs_alert_date,omitempty"`
+	OsObsWarnDate       *string                     `json:"os_obs_warn_date,omitempty"`
+	OsRelease           *string                     `json:"os_release,omitempty"`
+	OsVendor            *string                     `json:"os_vendor,omitempty"`
+	PowerBreaker1       *string                     `json:"power_breaker1,omitempty"`
+	PowerBreaker2       *string                     `json:"power_breaker2,omitempty"`
+	PowerCabinet1       *string                     `json:"power_cabinet1,omitempty"`
+	PowerCabinet2       *string                     `json:"power_cabinet2,omitempty"`
+	PowerProtect        *string                     `json:"power_protect,omitempty"`
+	PowerProtectBreaker *string                     `json:"power_protect_breaker,omitempty"`
+	PowerSupplyNb       *int                        `json:"power_supply_nb,omitempty"`
+	Role                *string                     `json:"role,omitempty"`
+	SecZone             *string                     `json:"sec_zone,omitempty"`
+	Serial              *string                     `json:"serial,omitempty"`
+	SnoozeTill          *string                     `json:"snooze_till,omitempty"`
+	SpVersion           *string                     `json:"sp_version,omitempty"`
+	Status              *string                     `json:"status,omitempty"`
+	TeamInteg           *string                     `json:"team_integ,omitempty"`
+	TeamResponsible     *string                     `json:"team_responsible,omitempty"`
+	TeamSupport         *string                     `json:"team_support,omitempty"`
+	Type                *string                     `json:"type,omitempty"`
+	Tz                  *string                     `json:"tz,omitempty"`
+	Updated             *string                     `json:"updated,omitempty"`
+	Version             *string                     `json:"version,omitempty"`
+	WarrantyEnd         *string                     `json:"warranty_end,omitempty"`
+}
+
+// PostNodeJSONBodyActionType defines parameters for PostNode.
+type PostNodeJSONBodyActionType string
 
 // GetNodeCandidateTagsParams defines parameters for GetNodeCandidateTags.
 type GetNodeCandidateTagsParams struct {
@@ -864,6 +1037,12 @@ type PostAppJSONRequestBody PostAppJSONBody
 
 // PostAuthNodeJSONRequestBody defines body for PostAuthNode for application/json ContentType.
 type PostAuthNodeJSONRequestBody PostAuthNodeJSONBody
+
+// PostNodesJSONRequestBody defines body for PostNodes for application/json ContentType.
+type PostNodesJSONRequestBody PostNodesJSONBody
+
+// PostNodeJSONRequestBody defines body for PostNode for application/json ContentType.
+type PostNodeJSONRequestBody PostNodeJSONBody
 
 // PostNodeComplianceModulesetJSONRequestBody defines body for PostNodeComplianceModuleset for application/json ContentType.
 type PostNodeComplianceModulesetJSONRequestBody = PostNodeComplianceModulesetJSONBody
