@@ -42,24 +42,34 @@ func buildNodeHardwareQuery(groups []string, isManager bool, selectExprs []strin
 	return query, args, nil
 }
 
-func (oDb *DB) GetNodeHardware(ctx context.Context, nodeID string, p ListParams) ([]map[string]any, error) {
+func (oDb *DB) queryHardware(ctx context.Context, nodeID string, defaultOrderBy string, p ListParams) ([]map[string]any, error) {
 	query, args, err := buildNodeHardwareQuery(p.Groups, p.IsManager, p.SelectExprs)
 	if err != nil {
 		return nil, err
 	}
-	query += " AND node_hw.node_id = ?"
-	args = append(args, nodeID)
+	if nodeID != "" {
+		query += " AND node_hw.node_id = ?"
+		args = append(args, nodeID)
+	}
 	if gb := p.GroupByClause(""); gb != "" {
 		query += " " + gb
 	}
-	query += " " + p.OrderByClause("node_hw.hw_type, node_hw.hw_path")
+	query += " " + p.OrderByClause(defaultOrderBy)
 	query, args = appendLimitOffset(query, args, p.Limit, p.Offset)
 
 	rows, err := oDb.DB.QueryContext(ctx, query, args...)
 	if err != nil {
-		return nil, fmt.Errorf("getNodeHardware: %w", err)
+		return nil, fmt.Errorf("queryHardware: %w", err)
 	}
 	defer func() { _ = rows.Close() }()
 
 	return scanRowsToMaps(rows, p.Props, p.TypeHints)
+}
+
+func (oDb *DB) GetNodesHardware(ctx context.Context, p ListParams) ([]map[string]any, error) {
+	return oDb.queryHardware(ctx, "", "node_hw.node_id, node_hw.hw_type, node_hw.hw_path", p)
+}
+
+func (oDb *DB) GetNodeHardware(ctx context.Context, nodeID string, p ListParams) ([]map[string]any, error) {
+	return oDb.queryHardware(ctx, nodeID, "node_hw.hw_type, node_hw.hw_path", p)
 }
