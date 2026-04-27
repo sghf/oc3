@@ -237,6 +237,20 @@ var propsMapping = map[string]propMapping{
 			},
 		},
 	},
+	"node_hw": {
+		Available: []string{"id", "node_id", "hw_type", "hw_path", "hw_class", "hw_description", "hw_driver", "updated"},
+		Default:   []string{"node_id", "hw_type", "hw_path", "hw_class", "hw_description", "hw_driver", "updated"},
+		Props: map[string]propDef{
+			"id":             col(schema.NodeHWID),
+			"node_id":        colStr(schema.NodeHWNodeID),
+			"hw_type":        colStr(schema.NodeHWHWType),
+			"hw_path":        colStr(schema.NodeHWHWPath),
+			"hw_class":       colStr(schema.NodeHWHWClass),
+			"hw_description": colStr(schema.NodeHWHWDescription),
+			"hw_driver":      colStr(schema.NodeHWHWDriver),
+			"updated":        colStr(schema.NodeHWUpdated),
+		},
+	},
 	"hba": {
 		Available: []string{"id", "node_id", "hba_id", "hba_type", "updated"},
 		Props: map[string]propDef{
