@@ -1402,6 +1402,38 @@ paths:
         - basicAuth: [ ]
         - bearerAuth: [ ]
 
+  /nodes/{node_id}/am_i_responsible:
+    get:
+      operationId: GetNodeAmIResponsible
+      description: Return true if the requester is responsible for this node.
+      parameters:
+        - in: path
+          name: node_id
+          required: true
+          description: Node identifier (node_id UUID or nodename)
+          schema:
+            type: string
+      tags:
+        - collector
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+        401:
+          $ref: '#/components/responses/401'
+        403:
+          $ref: '#/components/responses/403'
+        404:
+          $ref: '#/components/responses/404'
+        500:
+          $ref: '#/components/responses/500'
+      security:
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
+
   /nodes/{node_id}/uuid:
     get:
       operationId: GetNodeUUID
