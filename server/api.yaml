@@ -1402,6 +1402,52 @@ paths:
         - basicAuth: [ ]
         - bearerAuth: [ ]
 
+  /nodes/{node_id}/snooze:
+    post:
+      operationId: PostNodeSnooze
+      description: |
+        Snooze or unsnooze notifications on a node.
+        If duration is provided, snooze until now + duration (e.g. "1h", "2d").
+        If duration is omitted, unsnooze the node.
+        The node can snooze itself. Users must be NodeManager and responsible for the node.
+      parameters:
+        - $ref: '#/components/parameters/inPathNodeId'
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                duration:
+                  type: string
+                  description: Duration string (e.g. "1h", "30m", "2d"). Omit to unsnooze.
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  info:
+                    type: string
+        400:
+          $ref: '#/components/responses/400'
+        401:
+          $ref: '#/components/responses/401'
+        403:
+          $ref: '#/components/responses/403'
+        404:
+          $ref: '#/components/responses/404'
+        500:
+          $ref: '#/components/responses/500'
+      security:
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
+      tags:
+        - collector
+
   /nodes/{node_id}/am_i_responsible:
     get:
       operationId: GetNodeAmIResponsible

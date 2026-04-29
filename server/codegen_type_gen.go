@@ -795,6 +795,12 @@ type GetNodeIpsParams struct {
 	Groupby *InQueryGroupby `form:"groupby,omitempty" json:"groupby,omitempty"`
 }
 
+// PostNodeSnoozeJSONBody defines parameters for PostNodeSnooze.
+type PostNodeSnoozeJSONBody struct {
+	// Duration Duration string (e.g. "1h", "30m", "2d"). Omit to unsnooze.
+	Duration *string `json:"duration,omitempty"`
+}
+
 // GetNodeTagsParams defines parameters for GetNodeTags.
 type GetNodeTagsParams struct {
 	// Props A list of properties to include in each data dictionnary.
@@ -1121,6 +1127,9 @@ type PostNodeComplianceModulesetJSONRequestBody = PostNodeComplianceModulesetJSO
 
 // PostNodeComplianceRulesetJSONRequestBody defines body for PostNodeComplianceRuleset for application/json ContentType.
 type PostNodeComplianceRulesetJSONRequestBody = PostNodeComplianceRulesetJSONBody
+
+// PostNodeSnoozeJSONRequestBody defines body for PostNodeSnooze for application/json ContentType.
+type PostNodeSnoozeJSONRequestBody PostNodeSnoozeJSONBody
 
 // AsListResponseData0 returns the union data inside the ListResponse_Data as a ListResponseData0
 func (t ListResponse_Data) AsListResponseData0() (ListResponseData0, error) {
