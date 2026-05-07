@@ -2,35 +2,25 @@ package serverhandlers
 
 import (
 	"context"
-	"net/http"
 
 	"github.com/labstack/echo/v4"
 
 	"github.com/opensvc/oc3/cdb"
 	"github.com/opensvc/oc3/server"
 	"github.com/opensvc/oc3/util/echolog"
-	"github.com/opensvc/oc3/util/logkey"
 )
 
 // GetNodeDisks handles GET /nodes/{node_id}/disks
 func (a *Api) GetNodeDisks(c echo.Context, nodeId string, params server.GetNodeDisksParams) error {
 	log := echolog.GetLogHandler(c, "GetNodeDisks")
-	odb := a.getODB()
-	ctx := c.Request().Context()
-
-	node, err := odb.NodeByNodeIDOrNodename(ctx, nodeId)
+	node, err := a.resolveNode(c, log, nodeId)
 	if err != nil {
-		log.Error("cannot resolve node", "node_id", nodeId, logkey.Error, err)
-		return JSONProblemf(c, http.StatusInternalServerError, "cannot resolve node")
+		return err
 	}
-	if node == nil {
-		return JSONProblemf(c, http.StatusNotFound, "node %s not found", nodeId)
-	}
-
 	return a.handleList(c, "GetNodeDisks", "disk", listEndpointParams{
 		props: params.Props, limit: params.Limit, offset: params.Offset,
 		meta: params.Meta, stats: params.Stats, orderby: params.Orderby, groupby: params.Groupby,
 	}, func(ctx context.Context, p cdb.ListParams) ([]map[string]any, error) {
-		return odb.GetNodeDisks(ctx, node.NodeID, p)
+		return a.getODB().GetNodeDisks(ctx, node.NodeID, p)
 	})
 }
