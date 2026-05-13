@@ -23,7 +23,8 @@ func (a *Api) PostApp(c echo.Context, appId string) error {
 		return JSONProblemf(c, http.StatusUnauthorized, "user authentication required")
 	}
 
-	if !IsManager(c) {
+	isManager := IsManager(c)
+	if !isManager {
 		return JSONProblemf(c, http.StatusForbidden, "AppManager privilege required")
 	}
 
@@ -37,8 +38,6 @@ func (a *Api) PostApp(c echo.Context, appId string) error {
 
 	odb := cdb.New(a.DB)
 	odb.CreateSession(a.Ev)
-
-	isManager := IsManager(c)
 
 	app, err := odb.GetApp(ctx, appId, nil, true)
 	if err != nil {

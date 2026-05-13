@@ -22,7 +22,8 @@ func (a *Api) DeleteApps(c echo.Context, appId string) error {
 		return JSONProblemf(c, http.StatusUnauthorized, "user authentication required")
 	}
 
-	if !IsManager(c) {
+	isManager := IsManager(c)
+	if !isManager {
 		return JSONProblemf(c, http.StatusForbidden, "AppManager privilege required")
 	}
 
@@ -30,8 +31,6 @@ func (a *Api) DeleteApps(c echo.Context, appId string) error {
 	odb.CreateSession(a.Ev)
 
 	log.Info("called", "app_id", appId)
-
-	isManager := IsManager(c)
 
 	app, err := odb.GetApp(ctx, appId, nil, true)
 	if err != nil {
