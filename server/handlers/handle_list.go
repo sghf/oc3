@@ -87,3 +87,54 @@ func (a *Api) handleList(
 
 	return c.JSON(http.StatusOK, newListResponse(items, mapping, query))
 }
+
+// handleItem is like handleList but expects exactly one result and returns 404
+// when none is found. idKey and idVal are added to the "called" log entry.
+func (a *Api) handleItem(
+	c echo.Context,
+	handlerName string,
+	mappingKey string,
+	idKey string,
+	idVal string,
+	p listEndpointParams,
+	fetch listFetcher,
+) error {
+	mapping := propsMapping[mappingKey]
+
+	query, err := buildListQueryParameters(p.props, p.limit, p.offset, p.meta, p.stats, p.orderby, p.groupby, mapping)
+	if err != nil {
+		return JSONProblem(c, http.StatusBadRequest, err.Error())
+	}
+
+	log := echolog.GetLogHandler(c, handlerName)
+	groups := UserGroupsFromContext(c)
+	isManager := IsManager(c)
+
+	log.Info("called", idKey, idVal, "props", query.Props, "is_manager", isManager)
+
+	selectExprs, err := buildSelectClause(query.Props, mapping)
+	if err != nil {
+		log.Error("cannot build select clause", logkey.Error, err)
+		return JSONProblemf(c, http.StatusInternalServerError, "cannot build select clause")
+	}
+
+	dbParams := cdb.ListParams{
+		Groups:      groups,
+		IsManager:   isManager,
+		Limit:       query.Page.Limit,
+		Offset:      query.Page.Offset,
+		Props:       query.Props,
+		SelectExprs: selectExprs,
+	}
+
+	items, err := fetch(c.Request().Context(), dbParams)
+	if err != nil {
+		log.Error("cannot fetch item", idKey, idVal, logkey.Error, err)
+		return JSONProblemf(c, http.StatusInternalServerError, "cannot get %s", mappingKey)
+	}
+	if len(items) == 0 {
+		return JSONProblemf(c, http.StatusNotFound, "%s %s not found", mappingKey, idVal)
+	}
+
+	return c.JSON(http.StatusOK, newListResponse(items, mapping, query))
+}

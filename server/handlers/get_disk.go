@@ -1,52 +1,20 @@
 package serverhandlers
 
 import (
-	"net/http"
+	"context"
 
 	"github.com/labstack/echo/v4"
 
 	"github.com/opensvc/oc3/cdb"
 	"github.com/opensvc/oc3/server"
-	"github.com/opensvc/oc3/util/echolog"
-	"github.com/opensvc/oc3/util/logkey"
 )
 
 // GetDisk handles GET /disks/{disk_id}
 func (a *Api) GetDisk(c echo.Context, diskId string, params server.GetDiskParams) error {
-	query, err := buildListQueryParameters(params.Props, params.Limit, params.Offset, params.Meta, params.Stats, params.Orderby, params.Groupby, propsMapping["disk"])
-	if err != nil {
-		return JSONProblem(c, http.StatusBadRequest, err.Error())
-	}
-
-	log := echolog.GetLogHandler(c, "GetDisk")
-	odb := a.getODB()
-	ctx := c.Request().Context()
-	groups := UserGroupsFromContext(c)
-	isManager := IsManager(c)
-
-	log.Info("called", "disk_id", diskId, "props", query.Props, "is_manager", isManager)
-
-	selectExprs, err := buildSelectClause(query.Props, propsMapping["disk"])
-	if err != nil {
-		log.Error("cannot build select clause", logkey.Error, err)
-		return JSONProblemf(c, http.StatusInternalServerError, "cannot build select clause")
-	}
-
-	disks, err := odb.GetDisk(ctx, diskId, cdb.ListParams{
-		Groups:      groups,
-		IsManager:   isManager,
-		Limit:       query.Page.Limit,
-		Offset:      query.Page.Offset,
-		Props:       query.Props,
-		SelectExprs: selectExprs,
+	return a.handleItem(c, "GetDisk", "disk", "disk_id", diskId, listEndpointParams{
+		props: params.Props, limit: params.Limit, offset: params.Offset,
+		meta: params.Meta, stats: params.Stats, orderby: params.Orderby, groupby: params.Groupby,
+	}, func(ctx context.Context, p cdb.ListParams) ([]map[string]any, error) {
+		return a.getODB().GetDisk(ctx, diskId, p)
 	})
-	if err != nil {
-		log.Error("cannot get disk", "disk_id", diskId, logkey.Error, err)
-		return JSONProblemf(c, http.StatusInternalServerError, "cannot get disk")
-	}
-	if len(disks) == 0 {
-		return JSONProblemf(c, http.StatusNotFound, "disk %s not found", diskId)
-	}
-
-	return c.JSON(http.StatusOK, newListResponse(disks, propsMapping["disk"], query))
 }
