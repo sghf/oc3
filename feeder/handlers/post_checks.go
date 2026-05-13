@@ -48,7 +48,6 @@ func (a *Api) PostChecks(c echo.Context) error {
 
 	msg := fmt.Sprintf("Checks Vars: %v Vals: %v", payload.Vars, payload.Vals)
 	log.Info(msg)
-	fmt.Println(msg)
 
 	return c.NoContent(http.StatusOK)
 }
