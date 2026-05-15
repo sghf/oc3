@@ -11,7 +11,7 @@ import (
 
 // GetDisks handles GET /disks
 func (a *Api) GetDisks(c echo.Context, params server.GetDisksParams) error {
-	odb := a.getODB()
+	odb := a.ODB
 	return a.handleList(c, "GetDisks", "disk", listEndpointParams{
 		props: params.Props, limit: params.Limit, offset: params.Offset,
 		meta: params.Meta, stats: params.Stats, orderby: params.Orderby, groupby: params.Groupby,

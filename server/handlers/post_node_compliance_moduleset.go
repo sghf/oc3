@@ -14,7 +14,7 @@ import (
 // PostNodeComplianceModuleset handles POST /nodes/{node_id}/compliance/modulesets/{mset_id}
 func (a *Api) PostNodeComplianceModuleset(c echo.Context, nodeId string, msetId string) error {
 	log := echolog.GetLogHandler(c, "PostNodeComplianceModuleset")
-	odb := a.getODB()
+	odb := a.ODB
 	ctx, cancel := context.WithTimeout(c.Request().Context(), a.SyncTimeout)
 	defer cancel()
 

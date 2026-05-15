@@ -13,7 +13,7 @@ import (
 // GetNodeAmIResponsible handles GET /nodes/{node_id}/am_i_responsible
 func (a *Api) GetNodeAmIResponsible(c echo.Context, nodeId string) error {
 	log := echolog.GetLogHandler(c, "GetNodeAmIResponsible")
-	odb := a.getODB()
+	odb := a.ODB
 	ctx, cancel := context.WithTimeout(c.Request().Context(), a.SyncTimeout)
 	defer cancel()
 

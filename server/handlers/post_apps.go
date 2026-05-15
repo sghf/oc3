@@ -17,7 +17,7 @@ import (
 // PostApps handles POST /apps
 func (a *Api) PostApps(c echo.Context) error {
 	log := echolog.GetLogHandler(c, "PostApps")
-	odb := a.getODB()
+	odb := a.ODB
 	ctx, cancel := context.WithTimeout(c.Request().Context(), a.SyncTimeout)
 	defer cancel()
 

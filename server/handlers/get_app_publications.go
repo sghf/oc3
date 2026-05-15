@@ -18,7 +18,7 @@ func (a *Api) GetAppPublications(c echo.Context, appId string, params server.Get
 	}
 
 	log := echolog.GetLogHandler(c, "GetAppPublications")
-	odb := a.getODB()
+	odb := a.ODB
 	ctx := c.Request().Context()
 	groups := UserGroupsFromContext(c)
 	isManager := IsManager(c)

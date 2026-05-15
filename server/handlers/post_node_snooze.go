@@ -47,7 +47,7 @@ func parseDuration(s string) (time.Duration, error) {
 // PostNodeSnooze handles POST /nodes/{node_id}/snooze
 func (a *Api) PostNodeSnooze(c echo.Context, nodeId server.InPathNodeId) error {
 	log := echolog.GetLogHandler(c, "PostNodeSnooze")
-	odb := a.getODB()
+	odb := a.ODB
 	ctx, cancel := context.WithTimeout(c.Request().Context(), a.SyncTimeout)
 	defer cancel()
 

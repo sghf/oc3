@@ -15,6 +15,6 @@ func (a *Api) GetNode(c echo.Context, nodeId string, params server.GetNodeParams
 		props: params.Props, limit: params.Limit, offset: params.Offset,
 		meta: params.Meta, stats: params.Stats, orderby: params.Orderby, groupby: params.Groupby,
 	}, func(ctx context.Context, p cdb.ListParams) ([]map[string]any, error) {
-		return a.getODB().GetNode(ctx, nodeId, p)
+		return a.ODB.GetNode(ctx, nodeId, p)
 	})
 }

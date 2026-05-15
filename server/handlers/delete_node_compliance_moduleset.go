@@ -14,7 +14,7 @@ import (
 // DeleteNodeComplianceModuleset handles DELETE /nodes/{node_id}/compliance/modulesets/{mset_id}
 func (a *Api) DeleteNodeComplianceModuleset(c echo.Context, nodeId string, msetId string) error {
 	log := echolog.GetLogHandler(c, "DeleteNodeComplianceModuleset")
-	odb := a.getODB()
+	odb := a.ODB
 	ctx, cancel := context.WithTimeout(c.Request().Context(), a.SyncTimeout)
 	defer cancel()
 

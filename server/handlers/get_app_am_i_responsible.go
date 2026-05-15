@@ -13,7 +13,7 @@ import (
 // GetAppAmIResponsible handles GET /apps/{app_id}/am_i_responsible
 func (a *Api) GetAppAmIResponsible(c echo.Context, appId string) error {
 	log := echolog.GetLogHandler(c, "GetAppAmIResponsible")
-	odb := a.getODB()
+	odb := a.ODB
 	ctx, cancel := context.WithTimeout(c.Request().Context(), a.SyncTimeout)
 	defer cancel()
 

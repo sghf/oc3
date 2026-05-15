@@ -11,7 +11,7 @@ import (
 
 // GetServices handles GET /services
 func (a *Api) GetServices(c echo.Context, params server.GetServicesParams) error {
-	odb := a.getODB()
+	odb := a.ODB
 	return a.handleList(c, "GetServices", "service", listEndpointParams{
 		props: params.Props, limit: params.Limit, offset: params.Offset,
 		meta: params.Meta, stats: params.Stats, orderby: params.Orderby, groupby: params.Groupby,

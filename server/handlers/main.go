@@ -33,10 +33,6 @@ var (
 	SCHEMA openapi3.T
 )
 
-func (a *Api) getODB() *cdb.DB {
-	return a.ODB
-}
-
 func init() {
 	if schema, err := server.GetSwagger(); err == nil {
 		SCHEMA = *schema

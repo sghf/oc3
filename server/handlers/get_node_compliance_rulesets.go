@@ -17,7 +17,7 @@ func (a *Api) GetNodeComplianceRulesets(c echo.Context, nodeId string, params se
 		return JSONProblem(c, http.StatusBadRequest, err.Error())
 	}
 	log := echolog.GetLogHandler(c, "GetNodeComplianceRulesets")
-	odb := a.getODB()
+	odb := a.ODB
 	ctx := c.Request().Context()
 
 	log.Info("called", logkey.NodeID, nodeId, "limit", query.Page.Limit, "offset", query.Page.Offset, "props", query.Props)

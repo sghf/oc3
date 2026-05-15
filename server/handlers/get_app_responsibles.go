@@ -18,7 +18,7 @@ func (a *Api) GetAppResponsibles(c echo.Context, appId string, params server.Get
 	}
 
 	log := echolog.GetLogHandler(c, "GetAppResponsibles")
-	odb := a.getODB()
+	odb := a.ODB
 	ctx := c.Request().Context()
 	groups := UserGroupsFromContext(c)
 	isManager := IsManager(c)

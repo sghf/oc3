@@ -12,7 +12,7 @@ import (
 // GetNodeUUID handles GET /nodes/{node_id}/uuid
 func (a *Api) GetNodeUUID(c echo.Context, nodeId string) error {
 	log := echolog.GetLogHandler(c, "GetNodeUUID")
-	odb := a.getODB()
+	odb := a.ODB
 	ctx := c.Request().Context()
 	groups := UserGroupsFromContext(c)
 	isManager := IsManager(c)

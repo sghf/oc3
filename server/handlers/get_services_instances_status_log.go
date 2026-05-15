@@ -11,7 +11,7 @@ import (
 
 // GetServicesInstancesStatusLog handles GET /services_instances_status_log
 func (a *Api) GetServicesInstancesStatusLog(c echo.Context, params server.GetServicesInstancesStatusLogParams) error {
-	odb := a.getODB()
+	odb := a.ODB
 	return a.handleList(c, "GetServicesInstancesStatusLog", "instance_status_log", listEndpointParams{
 		props: params.Props, limit: params.Limit, offset: params.Offset,
 		meta: params.Meta, stats: params.Stats, orderby: params.Orderby, groupby: params.Groupby,

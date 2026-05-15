@@ -11,7 +11,7 @@ import (
 
 // GetArrays handles GET /arrays
 func (a *Api) GetArrays(c echo.Context, params server.GetArraysParams) error {
-	odb := a.getODB()
+	odb := a.ODB
 	return a.handleList(c, "GetArrays", "array", listEndpointParams{
 		props: params.Props, limit: params.Limit, offset: params.Offset,
 		meta: params.Meta, stats: params.Stats, orderby: params.Orderby, groupby: params.Groupby,

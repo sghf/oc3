@@ -11,7 +11,7 @@ import (
 
 // GetNodesHardware handles GET /nodes/hardware
 func (a *Api) GetNodesHardware(c echo.Context, params server.GetNodesHardwareParams) error {
-	odb := a.getODB()
+	odb := a.ODB
 	return a.handleList(c, "GetNodesHardware", "node_hw", listEndpointParams{
 		props: params.Props, limit: params.Limit, offset: params.Offset,
 		meta: params.Meta, stats: params.Stats, orderby: params.Orderby, groupby: params.Groupby,

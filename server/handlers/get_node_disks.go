@@ -21,6 +21,6 @@ func (a *Api) GetNodeDisks(c echo.Context, nodeId string, params server.GetNodeD
 		props: params.Props, limit: params.Limit, offset: params.Offset,
 		meta: params.Meta, stats: params.Stats, orderby: params.Orderby, groupby: params.Groupby,
 	}, func(ctx context.Context, p cdb.ListParams) ([]map[string]any, error) {
-		return a.getODB().GetNodeDisks(ctx, node.NodeID, p)
+		return a.ODB.GetNodeDisks(ctx, node.NodeID, p)
 	})
 }

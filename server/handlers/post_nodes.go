@@ -21,7 +21,7 @@ import (
 // PostNodes handles POST /nodes (create or delegate to update if exists)
 func (a *Api) PostNodes(c echo.Context) error {
 	log := echolog.GetLogHandler(c, "PostNodes")
-	odb := a.getODB()
+	odb := a.ODB
 	ctx, cancel := context.WithTimeout(c.Request().Context(), a.SyncTimeout)
 	defer cancel()
 

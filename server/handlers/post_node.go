@@ -14,7 +14,7 @@ import (
 // PostNode handles POST /nodes/{node_id}
 func (a *Api) PostNode(c echo.Context, nodeId string) error {
 	log := echolog.GetLogHandler(c, "PostNode")
-	odb := a.getODB()
+	odb := a.ODB
 	ctx, cancel := context.WithTimeout(c.Request().Context(), a.SyncTimeout)
 	defer cancel()
 

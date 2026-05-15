@@ -17,13 +17,13 @@ func (a *Api) GetNodeComplianceCandidateRulesets(c echo.Context, nodeId string, 
 		return JSONProblem(c, http.StatusBadRequest, err.Error())
 	}
 	log := echolog.GetLogHandler(c, "GetNodeComplianceCandidateRulesets")
-	odb := a.getODB()
+	odb := a.ODB
 	ctx := c.Request().Context()
 
 	log.Info("called", logkey.NodeID, nodeId, "limit", query.Page.Limit, "offset", query.Page.Offset, "props", query.Props)
 
 	// get node ID
-	node, err := a.getODB().NodeByNodeIDOrNodename(c.Request().Context(), nodeId)
+	node, err := a.ODB.NodeByNodeIDOrNodename(c.Request().Context(), nodeId)
 	if err != nil {
 		log.Error("cannot find node", "node", nodeId, logkey.Error, err)
 		return JSONProblemf(c, http.StatusNotFound, "node %s not found", nodeId)

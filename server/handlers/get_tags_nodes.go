@@ -15,7 +15,7 @@ func (a *Api) GetTagsNodes(c echo.Context, params server.GetTagsNodesParams) err
 	log := echolog.GetLogHandler(c, "GetTagsNodes")
 	log.Info("called")
 
-	odb := a.getODB()
+	odb := a.ODB
 	return a.handleList(c, "GetTagsNodes", "node_tag", listEndpointParams{
 		props: params.Props, limit: params.Limit, offset: params.Offset,
 		meta: params.Meta, stats: params.Stats, orderby: params.Orderby, groupby: params.Groupby,

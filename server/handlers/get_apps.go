@@ -11,7 +11,7 @@ import (
 
 // GetApps handles GET /apps
 func (a *Api) GetApps(c echo.Context, params server.GetAppsParams) error {
-	odb := a.getODB()
+	odb := a.ODB
 	return a.handleList(c, "GetApps", "app", listEndpointParams{
 		props: params.Props, limit: params.Limit, offset: params.Offset,
 		meta: params.Meta, stats: params.Stats, orderby: params.Orderby, groupby: params.Groupby,

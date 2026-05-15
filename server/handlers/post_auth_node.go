@@ -18,7 +18,7 @@ import (
 
 func (a *Api) PostAuthNode(c echo.Context) error {
 	log := echolog.GetLogHandler(c, "PostAuthNode")
-	odb := a.getODB()
+	odb := a.ODB
 	ctx, cancel := context.WithTimeout(c.Request().Context(), a.SyncTimeout)
 	defer cancel()
 

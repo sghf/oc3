@@ -14,7 +14,7 @@ import (
 // PostNodeComplianceRuleset handles POST /nodes/{node_id}/compliance/rulesets/{rset_id}
 func (a *Api) PostNodeComplianceRuleset(c echo.Context, nodeId string, rsetId string) error {
 	log := echolog.GetLogHandler(c, "PostNodeComplianceRuleset")
-	odb := a.getODB()
+	odb := a.ODB
 	ctx := c.Request().Context()
 	ctx, cancel := context.WithTimeout(ctx, a.SyncTimeout)
 	defer cancel()

@@ -21,6 +21,6 @@ func (a *Api) GetServiceTags(c echo.Context, svcId string, params server.GetServ
 		props: params.Props, limit: params.Limit, offset: params.Offset,
 		meta: params.Meta, stats: params.Stats, orderby: params.Orderby, groupby: params.Groupby,
 	}, func(ctx context.Context, p cdb.ListParams) ([]map[string]any, error) {
-		return a.getODB().GetServiceTags(ctx, svcId, p)
+		return a.ODB.GetServiceTags(ctx, svcId, p)
 	})
 }
