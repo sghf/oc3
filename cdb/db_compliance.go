@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strings"
 )
 
 type Moduleset struct {
@@ -718,4 +719,48 @@ func (oDb *DB) CompRulesetAttachNode(ctx context.Context, nodeID, rulesetID stri
 
 	id, _ := result.LastInsertId()
 	return id, nil
+}
+
+func buildCompStatusQuery(groups []string, isManager bool, selectExprs []string) (string, []any, error) {
+	if len(selectExprs) == 0 {
+		return "", nil, fmt.Errorf("buildCompStatusQuery: no columns selected")
+	}
+	query := "SELECT " + strings.Join(selectExprs, ", ") + "\nFROM comp_status"
+	var args []any
+
+	if !isManager {
+		clean := cleanGroups(groups)
+		query += "\nJOIN nodes ON comp_status.node_id = nodes.node_id"
+		if len(clean) == 0 {
+			query += "\nWHERE 1=0"
+		} else {
+			query += "\nWHERE (nodes.team_responsible = 'Everybody' OR nodes.team_responsible IN (" + Placeholders(len(clean)) + "))"
+			for _, g := range clean {
+				args = append(args, g)
+			}
+		}
+	} else {
+		query += "\nWHERE 1=1"
+	}
+	return query, args, nil
+}
+
+// GetNodeComplianceStatus returns the last compliance check run status entries for a node.
+func (oDb *DB) GetNodeComplianceStatus(ctx context.Context, nodeID string, p ListParams) ([]map[string]any, error) {
+	query, args, err := buildCompStatusQuery(p.Groups, p.IsManager, p.SelectExprs)
+	if err != nil {
+		return nil, err
+	}
+	query += " AND comp_status.node_id = ?"
+	args = append(args, nodeID)
+	query += " " + p.OrderByClause("comp_status.run_date DESC")
+	query, args = appendLimitOffset(query, args, p.Limit, p.Offset)
+
+	rows, err := oDb.DB.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("getNodeComplianceStatus: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	return scanRowsToMaps(rows, p.Props, p.TypeHints)
 }

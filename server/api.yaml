@@ -1192,6 +1192,37 @@ paths:
       tags:
         - collector
 
+  /nodes/{node_id}/compliance/status:
+    get:
+      description: |
+        List compliance modules last check run status for a node
+      operationId: GetNodeComplianceStatus
+      parameters:
+        - $ref: '#/components/parameters/inPathNodeId'
+        - $ref: '#/components/parameters/inQueryProps'
+        - $ref: '#/components/parameters/inQueryLimit'
+        - $ref: '#/components/parameters/inQueryOffset'
+        - $ref: '#/components/parameters/inQueryMeta'
+        - $ref: '#/components/parameters/inQueryStats'
+        - $ref: '#/components/parameters/inQueryOrderby'
+        - $ref: '#/components/parameters/inQueryGroupby'
+      responses:
+        200:
+          description: Compliance status entries for the node
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListResponse'
+        404:
+          description: Node not found
+        500:
+          description: Internal server error
+      security:
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
+      tags:
+        - collector
+
   /nodes/{node_id}/disks:
     get:
       operationId: GetNodeDisks

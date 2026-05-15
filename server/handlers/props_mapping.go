@@ -453,4 +453,19 @@ var propsMapping = map[string]propMapping{
 	"ruleset": {
 		Available: []string{"id", "ruleset_name", "ruleset_type", "ruleset_public"},
 	},
+	"comp_status": {
+		Available: []string{"id", "run_module", "node_id", "svc_id", "run_status", "run_log", "run_date", "run_action", "rset_md5"},
+		Default:   []string{"id", "run_module", "run_status", "run_date", "run_action", "svc_id"},
+		Props: map[string]propDef{
+			"id":          col(schema.CompStatusID),
+			"run_module":  colStr(schema.CompStatusRunModule),
+			"node_id":     colStr(schema.CompStatusNodeID),
+			"svc_id":      colStr(schema.CompStatusSvcID),
+			"run_status":  colInt(schema.CompStatusRunStatus),
+			"run_log":     colStr(schema.CompStatusRunLog),
+			"run_date":    colStr(schema.CompStatusRunDate),
+			"run_action":  colStr(schema.CompStatusRunAction),
+			"rset_md5":    colStr(schema.CompStatusRsetMD5),
+		},
+	},
 }
