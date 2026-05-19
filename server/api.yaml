@@ -1589,6 +1589,87 @@ paths:
         - basicAuth: [ ]
         - bearerAuth: [ ]
 
+    post:
+      operationId: PostServices
+      description: Create or update a service (by svcname or svc_id)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                svc_id:
+                  type: string
+                svcname:
+                  type: string
+                cluster_id:
+                  type: string
+                svc_app:
+                  type: string
+                svc_env:
+                  type: string
+                svc_comment:
+                  type: string
+                svc_nodes:
+                  type: string
+                svc_drpnode:
+                  type: string
+                svc_drpnodes:
+                  type: string
+                svc_autostart:
+                  type: string
+                svc_drptype:
+                  type: string
+                svc_drnoaction:
+                  type: string
+                svc_metrocluster:
+                  type: string
+                svc_wave:
+                  type: integer
+                svc_topology:
+                  type: string
+                svc_flex_min_nodes:
+                  type: integer
+                svc_flex_max_nodes:
+                  type: integer
+                svc_flex_cpu_low_threshold:
+                  type: integer
+                svc_flex_cpu_high_threshold:
+                  type: integer
+                svc_ha:
+                  type: string
+                svc_frozen:
+                  type: string
+                svc_provisioned:
+                  type: string
+                svc_placement:
+                  type: string
+                svc_notifications:
+                  type: boolean
+                svc_snooze_till:
+                  type: string
+      tags:
+        - collector
+      responses:
+        200:
+          description: Service created or updated
+          content:
+            application/json:
+              schema:
+                type: object
+        400:
+          $ref: '#/components/responses/400'
+        401:
+          $ref: '#/components/responses/401'
+        403:
+          $ref: '#/components/responses/403'
+        500:
+          $ref: '#/components/responses/500'
+      security:
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
+
   /services/{svc_id}:
     get:
       operationId: GetService
@@ -1616,6 +1697,92 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/ListResponse'
+        404:
+          $ref: '#/components/responses/404'
+        500:
+          $ref: '#/components/responses/500'
+      security:
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
+
+    post:
+      operationId: PostService
+      description: Update a service properties
+      parameters:
+        - in: path
+          name: svc_id
+          required: true
+          description: Service identifier (svc_id UUID or svcname)
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                svcname:
+                  type: string
+                svc_app:
+                  type: string
+                svc_env:
+                  type: string
+                svc_comment:
+                  type: string
+                svc_nodes:
+                  type: string
+                svc_drpnode:
+                  type: string
+                svc_drpnodes:
+                  type: string
+                svc_autostart:
+                  type: string
+                svc_drptype:
+                  type: string
+                svc_drnoaction:
+                  type: string
+                svc_metrocluster:
+                  type: string
+                svc_wave:
+                  type: integer
+                svc_topology:
+                  type: string
+                svc_flex_min_nodes:
+                  type: integer
+                svc_flex_max_nodes:
+                  type: integer
+                svc_flex_cpu_low_threshold:
+                  type: integer
+                svc_flex_cpu_high_threshold:
+                  type: integer
+                svc_ha:
+                  type: string
+                svc_frozen:
+                  type: string
+                svc_provisioned:
+                  type: string
+                svc_placement:
+                  type: string
+                svc_notifications:
+                  type: boolean
+                svc_snooze_till:
+                  type: string
+      tags:
+        - collector
+      responses:
+        200:
+          description: Service updated
+          content:
+            application/json:
+              schema:
+                type: object
+        400:
+          $ref: '#/components/responses/400'
+        401:
+          $ref: '#/components/responses/401'
+        403:
+          $ref: '#/components/responses/403'
         404:
           $ref: '#/components/responses/404'
         500:

@@ -873,6 +873,35 @@ type GetServicesParams struct {
 	Groupby *InQueryGroupby `form:"groupby,omitempty" json:"groupby,omitempty"`
 }
 
+// PostServicesJSONBody defines parameters for PostServices.
+type PostServicesJSONBody struct {
+	ClusterId               *string `json:"cluster_id,omitempty"`
+	SvcApp                  *string `json:"svc_app,omitempty"`
+	SvcAutostart            *string `json:"svc_autostart,omitempty"`
+	SvcComment              *string `json:"svc_comment,omitempty"`
+	SvcDrnoaction           *string `json:"svc_drnoaction,omitempty"`
+	SvcDrpnode              *string `json:"svc_drpnode,omitempty"`
+	SvcDrpnodes             *string `json:"svc_drpnodes,omitempty"`
+	SvcDrptype              *string `json:"svc_drptype,omitempty"`
+	SvcEnv                  *string `json:"svc_env,omitempty"`
+	SvcFlexCpuHighThreshold *int    `json:"svc_flex_cpu_high_threshold,omitempty"`
+	SvcFlexCpuLowThreshold  *int    `json:"svc_flex_cpu_low_threshold,omitempty"`
+	SvcFlexMaxNodes         *int    `json:"svc_flex_max_nodes,omitempty"`
+	SvcFlexMinNodes         *int    `json:"svc_flex_min_nodes,omitempty"`
+	SvcFrozen               *string `json:"svc_frozen,omitempty"`
+	SvcHa                   *string `json:"svc_ha,omitempty"`
+	SvcId                   *string `json:"svc_id,omitempty"`
+	SvcMetrocluster         *string `json:"svc_metrocluster,omitempty"`
+	SvcNodes                *string `json:"svc_nodes,omitempty"`
+	SvcNotifications        *bool   `json:"svc_notifications,omitempty"`
+	SvcPlacement            *string `json:"svc_placement,omitempty"`
+	SvcProvisioned          *string `json:"svc_provisioned,omitempty"`
+	SvcSnoozeTill           *string `json:"svc_snooze_till,omitempty"`
+	SvcTopology             *string `json:"svc_topology,omitempty"`
+	SvcWave                 *int    `json:"svc_wave,omitempty"`
+	Svcname                 *string `json:"svcname,omitempty"`
+}
+
 // GetServiceParams defines parameters for GetService.
 type GetServiceParams struct {
 	// Props A list of properties to include in each data dictionnary.
@@ -895,6 +924,33 @@ type GetServiceParams struct {
 
 	// Groupby Comma-separated list of properties to group the result by (e.g. groupby=app,svcname).
 	Groupby *InQueryGroupby `form:"groupby,omitempty" json:"groupby,omitempty"`
+}
+
+// PostServiceJSONBody defines parameters for PostService.
+type PostServiceJSONBody struct {
+	SvcApp                  *string `json:"svc_app,omitempty"`
+	SvcAutostart            *string `json:"svc_autostart,omitempty"`
+	SvcComment              *string `json:"svc_comment,omitempty"`
+	SvcDrnoaction           *string `json:"svc_drnoaction,omitempty"`
+	SvcDrpnode              *string `json:"svc_drpnode,omitempty"`
+	SvcDrpnodes             *string `json:"svc_drpnodes,omitempty"`
+	SvcDrptype              *string `json:"svc_drptype,omitempty"`
+	SvcEnv                  *string `json:"svc_env,omitempty"`
+	SvcFlexCpuHighThreshold *int    `json:"svc_flex_cpu_high_threshold,omitempty"`
+	SvcFlexCpuLowThreshold  *int    `json:"svc_flex_cpu_low_threshold,omitempty"`
+	SvcFlexMaxNodes         *int    `json:"svc_flex_max_nodes,omitempty"`
+	SvcFlexMinNodes         *int    `json:"svc_flex_min_nodes,omitempty"`
+	SvcFrozen               *string `json:"svc_frozen,omitempty"`
+	SvcHa                   *string `json:"svc_ha,omitempty"`
+	SvcMetrocluster         *string `json:"svc_metrocluster,omitempty"`
+	SvcNodes                *string `json:"svc_nodes,omitempty"`
+	SvcNotifications        *bool   `json:"svc_notifications,omitempty"`
+	SvcPlacement            *string `json:"svc_placement,omitempty"`
+	SvcProvisioned          *string `json:"svc_provisioned,omitempty"`
+	SvcSnoozeTill           *string `json:"svc_snooze_till,omitempty"`
+	SvcTopology             *string `json:"svc_topology,omitempty"`
+	SvcWave                 *int    `json:"svc_wave,omitempty"`
+	Svcname                 *string `json:"svcname,omitempty"`
 }
 
 // GetServiceCandidateTagsParams defines parameters for GetServiceCandidateTags.
@@ -1154,6 +1210,12 @@ type PostNodeComplianceRulesetJSONRequestBody = PostNodeComplianceRulesetJSONBod
 
 // PostNodeSnoozeJSONRequestBody defines body for PostNodeSnooze for application/json ContentType.
 type PostNodeSnoozeJSONRequestBody PostNodeSnoozeJSONBody
+
+// PostServicesJSONRequestBody defines body for PostServices for application/json ContentType.
+type PostServicesJSONRequestBody PostServicesJSONBody
+
+// PostServiceJSONRequestBody defines body for PostService for application/json ContentType.
+type PostServiceJSONRequestBody PostServiceJSONBody
 
 // AsListResponseData0 returns the union data inside the ListResponse_Data as a ListResponseData0
 func (t ListResponse_Data) AsListResponseData0() (ListResponseData0, error) {
