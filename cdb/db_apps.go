@@ -346,6 +346,47 @@ func (oDb *DB) GetAppResponsibles(ctx context.Context, appIDOrName string, group
 	return items, nil
 }
 
+// GetAppNodes returns nodes belonging to the app name or id
+func (oDb *DB) GetAppNodes(ctx context.Context, appIDOrName string, p ListParams) ([]map[string]any, error) {
+	targetApp, err := oDb.GetApp(ctx, appIDOrName, nil, true)
+	if err != nil {
+		return nil, fmt.Errorf("GetAppNodes: %w", err)
+	}
+	if targetApp == nil {
+		return nil, nil
+	}
+
+	if !p.IsManager {
+		visibleApp, err := oDb.GetApp(ctx, appIDOrName, p.Groups, false)
+		if err != nil {
+			return nil, fmt.Errorf("GetAppNodes: %w", err)
+		}
+		if visibleApp == nil {
+			return []map[string]any{}, nil
+		}
+	}
+
+	query, args, err := buildNodesQuery(p.Groups, p.IsManager, p.SelectExprs)
+	if err != nil {
+		return nil, err
+	}
+	query += " AND nodes.app = ?"
+	args = append(args, targetApp.App)
+	if gb := p.GroupByClause(""); gb != "" {
+		query += " " + gb
+	}
+	query += " " + p.OrderByClause("nodes.nodename")
+	query, args = appendLimitOffset(query, args, p.Limit, p.Offset)
+
+	rows, err := oDb.DB.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("GetAppNodes: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+
+	return scanRowsToMaps(rows, p.Props, p.TypeHints)
+}
+
 func (oDb *DB) GetAppPublications(ctx context.Context, appIDOrName string, groups []string, isManager bool, limit, offset int) ([]AuthGroup, error) {
 	targetApp, err := oDb.GetApp(ctx, appIDOrName, nil, true)
 	if err != nil {

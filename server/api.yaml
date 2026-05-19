@@ -218,6 +218,41 @@ paths:
         - basicAuth: [ ]
         - bearerAuth: [ ]
 
+  /apps/{app_id}/nodes:
+    get:
+      operationId: GetAppNodes
+      description: List nodes with the application code
+      parameters:
+        - in: path
+          name: app_id
+          required: true
+          description: App record id or app code
+          schema:
+            type: string
+        - $ref: '#/components/parameters/inQueryProps'
+        - $ref: '#/components/parameters/inQueryLimit'
+        - $ref: '#/components/parameters/inQueryOffset'
+        - $ref: '#/components/parameters/inQueryMeta'
+        - $ref: '#/components/parameters/inQueryStats'
+        - $ref: '#/components/parameters/inQueryOrderby'
+        - $ref: '#/components/parameters/inQueryGroupby'
+      tags:
+        - collector
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListResponse'
+        404:
+          $ref: '#/components/responses/404'
+        500:
+          $ref: '#/components/responses/500'
+      security:
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
+
   /apps/{app_id}/publications:
     get:
       operationId: GetAppPublications
