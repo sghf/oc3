@@ -92,7 +92,15 @@ func (f nodeBodyFields) toFields() map[string]any {
 	}
 	setBool := func(key string, v *bool) {
 		if v != nil {
-			m[key] = *v
+			// These columns are varchar(1) holding the collector's "T"/"F"
+			// convention: alertd matches notifications="T" OR NULL. Writing a Go
+			// bool stores "1"/"0", which matches neither and silently disables
+			// notifications for the node.
+			if *v {
+				m[key] = "T"
+			} else {
+				m[key] = "F"
+			}
 		}
 	}
 	setStr("nodename", f.Nodename)
