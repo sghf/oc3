@@ -38,6 +38,12 @@ func (t *Session) NotifyChanges(ctx context.Context) error {
 }
 
 func (t *Session) NotifyTableChangeWithData(ctx context.Context, tableName string, data map[string]any) error {
+	// Same guard as NotifyChanges: the server component creates its session with a
+	// nil publisher, and dereferencing it here panicked the request after the write
+	// had already been committed.
+	if t.ev == nil {
+		return fmt.Errorf("NotifyTableChangeWithData: eventPublisher is not configured")
+	}
 	if err := t.ev.EventPublish(tableName+"_change", data); err != nil {
 		return fmt.Errorf("EventPublish send %s: %w", tableName, err)
 	}
