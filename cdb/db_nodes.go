@@ -754,11 +754,26 @@ func (oDb *DB) UpdateNodeFields(ctx context.Context, nodeID string, fields map[s
 		"serial": true, "sp_version": true, "team_integ": true, "team_support": true,
 		"updated": true,
 	}
+	// Datetime columns reject the empty string, and one bad value fails the whole
+	// UPDATE: clearing a date would silently discard every other field of the same
+	// request. An empty value clears the column instead.
+	datetime := map[string]bool{
+		"warranty_end": true, "maintenance_end": true, "snooze_till": true,
+		"node_frozen_at": true, "last_boot": true, "last_comm": true,
+		"hw_obs_warn_date": true, "hw_obs_alert_date": true,
+		"os_obs_warn_date": true, "os_obs_alert_date": true,
+	}
 	setClauses := []string{"updated = NOW()"}
 	args := []any{}
 	for col, val := range fields {
 		if !allowed[col] {
 			continue
+		}
+		if datetime[col] {
+			if s, ok := val.(string); ok && s == "" {
+				setClauses = append(setClauses, col+" = NULL")
+				continue
+			}
 		}
 		setClauses = append(setClauses, col+" = ?")
 		args = append(args, val)
