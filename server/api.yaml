@@ -175,7 +175,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ListResponse'
+                $ref: '#/components/schemas/AlertListResponse'
         500:
           $ref: '#/components/responses/500'
       security:
@@ -306,7 +306,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ListResponse'
+                $ref: '#/components/schemas/AlertListResponse'
         404:
           $ref: '#/components/responses/404'
         500:
@@ -459,7 +459,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ListResponse'
+                $ref: '#/components/schemas/AppListResponse'
         500:
           $ref: '#/components/responses/500'
       security:
@@ -494,7 +494,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
+                $ref: '#/components/schemas/AppRow'
         400:
           $ref: '#/components/responses/400'
         401:
@@ -590,7 +590,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
+                $ref: '#/components/schemas/AppRow'
         400:
           $ref: '#/components/responses/400'
         401:
@@ -623,7 +623,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
+                $ref: '#/components/schemas/AppRow'
         404:
           $ref: '#/components/responses/404'
         500:
@@ -649,7 +649,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
+                $ref: '#/components/schemas/InfoResponse'
         401:
           $ref: '#/components/responses/401'
         403:
@@ -1382,7 +1382,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ListResponse'
+                $ref: '#/components/schemas/DiskListResponse'
         500:
           $ref: '#/components/responses/500'
       security:
@@ -1487,7 +1487,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ListResponse'
+                $ref: '#/components/schemas/DiskListResponse'
         404:
           $ref: '#/components/responses/404'
         500:
@@ -2042,7 +2042,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ListResponse'
+                $ref: '#/components/schemas/NodeListResponse'
         404:
           $ref: '#/components/responses/404'
         500:
@@ -2077,7 +2077,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ListResponse'
+                $ref: '#/components/schemas/ServiceListResponse'
         404:
           $ref: '#/components/responses/404'
         500:
@@ -2564,7 +2564,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ListResponse'
+                $ref: '#/components/schemas/GroupListResponse'
         500:
           $ref: '#/components/responses/500'
       security:
@@ -2601,7 +2601,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ListResponse'
+                $ref: '#/components/schemas/GroupListResponse'
         400:
           $ref: '#/components/responses/400'
         401:
@@ -2639,7 +2639,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
+                $ref: '#/components/schemas/InfoResponse'
                 properties:
                   info:
                     type: string
@@ -2683,7 +2683,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ListResponse'
+                $ref: '#/components/schemas/GroupListResponse'
         404:
           $ref: '#/components/responses/404'
         500:
@@ -2724,7 +2724,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ListResponse'
+                $ref: '#/components/schemas/GroupListResponse'
         400:
           $ref: '#/components/responses/400'
         401:
@@ -2758,7 +2758,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
+                $ref: '#/components/schemas/InfoResponse'
         400:
           $ref: '#/components/responses/400'
         401:
@@ -3166,7 +3166,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ListResponse'
+                $ref: '#/components/schemas/IpListResponse'
         500:
           $ref: '#/components/responses/500'
       security:
@@ -3243,7 +3243,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ListResponse'
+                $ref: '#/components/schemas/IpListResponse'
         404:
           $ref: '#/components/responses/404'
         500:
@@ -3568,7 +3568,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
+                $ref: '#/components/schemas/NodeRow'
         400:
           $ref: '#/components/responses/400'
         401:
@@ -3600,7 +3600,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ListResponse'
+                $ref: '#/components/schemas/NodeListResponse'
         500:
           $ref: '#/components/responses/500'
       security:
@@ -3877,7 +3877,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
+                $ref: '#/components/schemas/NodeRow'
         400:
           $ref: '#/components/responses/400'
         401:
@@ -3917,7 +3917,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ListResponse'
+                $ref: '#/components/schemas/NodeListResponse'
         404:
           $ref: '#/components/responses/404'
         500:
@@ -3944,7 +3944,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
+                $ref: '#/components/schemas/InfoResponse'
         401:
           $ref: '#/components/responses/401'
         403:
@@ -5042,7 +5042,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ListResponse'
+                $ref: '#/components/schemas/ServiceListResponse'
         500:
           $ref: '#/components/responses/500'
       security:
@@ -5199,7 +5199,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ListResponse'
+                $ref: '#/components/schemas/ServiceListResponse'
         404:
           $ref: '#/components/responses/404'
         500:
@@ -7251,6 +7251,559 @@ components:
             type: integer
         total:
           type: integer
+
+    NodeRow:
+      type: object
+      description: |
+        A node row of the nodes list. Every property is optional: the `props`
+        query parameter selects which columns the server returns, so a row
+        carries only the requested subset.
+      properties:
+        node_id:
+          type: string
+        nodename:
+          type: string
+        app:
+          type: string
+        node_env:
+          type: string
+        cluster_id:
+          type: string
+        loc_country:
+          type: string
+        loc_city:
+          type: string
+        loc_addr:
+          type: string
+        loc_building:
+          type: string
+        loc_floor:
+          type: string
+        loc_room:
+          type: string
+        loc_rack:
+          type: string
+        loc_zip:
+          type: string
+        cpu_freq:
+          type: string
+        cpu_cores:
+          type: integer
+        cpu_dies:
+          type: integer
+        cpu_vendor:
+          type: string
+        cpu_model:
+          type: string
+        cpu_threads:
+          type: integer
+        mem_banks:
+          type: integer
+        mem_slots:
+          type: integer
+        mem_bytes:
+          type: integer
+        os_name:
+          type: string
+        os_release:
+          type: string
+        os_update:
+          type: string
+        os_segment:
+          type: string
+        os_arch:
+          type: string
+        os_vendor:
+          type: string
+        os_kernel:
+          type: string
+        os_concat:
+          type: string
+        team_responsible:
+          type: string
+        team_integ:
+          type: string
+        team_support:
+          type: string
+        serial:
+          type: string
+        model:
+          type: string
+        manufacturer:
+          type: string
+        type:
+          type: string
+        assetname:
+          type: string
+        asset_env:
+          type: string
+        warranty_end:
+          type: string
+        maintenance_end:
+          type: string
+        status:
+          type: string
+        role:
+          type: string
+        sec_zone:
+          type: string
+        power_cabinet1:
+          type: string
+        power_cabinet2:
+          type: string
+        power_supply_nb:
+          type: integer
+        power_protect:
+          type: string
+        power_protect_breaker:
+          type: string
+        power_breaker1:
+          type: string
+        power_breaker2:
+          type: string
+        blade_cabinet:
+          type: string
+        enclosure:
+          type: string
+        enclosureslot:
+          type: string
+        hv:
+          type: string
+        hvpool:
+          type: string
+        hvvdc:
+          type: string
+        fqdn:
+          type: string
+        connect_to:
+          type: string
+        listener_port:
+          type: integer
+        version:
+          type: string
+        collector:
+          type: string
+        sp_version:
+          type: string
+        bios_version:
+          type: string
+        tz:
+          type: string
+        last_boot:
+          type: string
+        last_comm:
+          type: string
+        node_frozen:
+          type: string
+        node_frozen_at:
+          type: string
+        snooze_till:
+          type: string
+        notifications:
+          type: string
+        action_type:
+          type: string
+        hw_obs_warn_date:
+          type: string
+        hw_obs_alert_date:
+          type: string
+        os_obs_warn_date:
+          type: string
+        os_obs_alert_date:
+          type: string
+        updated:
+          type: string
+
+    NodeListResponse:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          oneOf:
+            - type: array
+              items:
+                $ref: '#/components/schemas/NodeRow'
+            - type: object
+              additionalProperties:
+                type: object
+                additionalProperties:
+                  type: integer
+        meta:
+          $ref: '#/components/schemas/ListMeta'
+
+    ServiceRow:
+      type: object
+      description: |
+        A service row of the services list. Every property is optional: the `props`
+        query parameter selects which columns the server returns, so a row
+        carries only the requested subset.
+      properties:
+        id:
+          type: integer
+        svc_id:
+          type: string
+        svcname:
+          type: string
+        cluster_id:
+          type: string
+        svc_status:
+          type: string
+        svc_availstatus:
+          type: string
+        svc_app:
+          type: string
+        svc_env:
+          type: string
+        svc_ha:
+          type: integer
+        svc_topology:
+          type: string
+        svc_frozen:
+          type: string
+        svc_placement:
+          type: string
+        svc_provisioned:
+          type: string
+        svc_flex_min_nodes:
+          type: integer
+        svc_flex_max_nodes:
+          type: integer
+        svc_flex_target:
+          type: integer
+        svc_flex_cpu_low_threshold:
+          type: integer
+        svc_flex_cpu_high_threshold:
+          type: integer
+        svc_autostart:
+          type: string
+        svc_nodes:
+          type: string
+        svc_drpnode:
+          type: string
+        svc_drpnodes:
+          type: string
+        svc_drptype:
+          type: string
+        svc_comment:
+          type: string
+        svc_created:
+          type: string
+        svc_status_updated:
+          type: string
+        svc_hostid:
+          type: string
+        svc_wave:
+          type: integer
+        svc_config:
+          type: string
+        svc_config_updated:
+          type: string
+        svc_metrocluster:
+          type: string
+        svc_drnoaction:
+          type: string
+        svc_notifications:
+          type: string
+        svc_snooze_till:
+          type: string
+        updated:
+          type: string
+
+    ServiceListResponse:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          oneOf:
+            - type: array
+              items:
+                $ref: '#/components/schemas/ServiceRow'
+            - type: object
+              additionalProperties:
+                type: object
+                additionalProperties:
+                  type: integer
+        meta:
+          $ref: '#/components/schemas/ListMeta'
+
+    AlertRow:
+      type: object
+      description: |
+        A dashboard alert row. Every property is optional: the `props` query
+        parameter selects which columns the server returns. `alert` is computed
+        from `dash_fmt` and `dash_dict`. The `nodes.` and `services.` properties
+        come from a LEFT JOIN and are null when the alert targets the other kind
+        of object.
+      properties:
+        id:
+          type: integer
+        dash_type:
+          type: string
+        svc_id:
+          type: string
+        node_id:
+          type: string
+        dash_severity:
+          type: integer
+        dash_fmt:
+          type: string
+        dash_dict:
+          type: string
+        dash_created:
+          type: string
+        dash_updated:
+          type: string
+        dash_md5:
+          type: string
+        dash_dict_md5:
+          type: string
+        dash_env:
+          type: string
+        dash_instance:
+          type: string
+        alert:
+          type: string
+          description: Human readable message, rendered from dash_fmt and dash_dict.
+        nodes.nodename:
+          type: string
+          nullable: true
+        services.svcname:
+          type: string
+          nullable: true
+
+    AlertListResponse:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          oneOf:
+            - type: array
+              items:
+                $ref: '#/components/schemas/AlertRow'
+            - type: object
+              additionalProperties:
+                type: object
+                additionalProperties:
+                  type: integer
+        meta:
+          $ref: '#/components/schemas/ListMeta'
+
+    AppRow:
+      type: object
+      description: |
+        An application code. Every property is optional: the `props` query
+        parameter selects which columns the server returns.
+      properties:
+        id:
+          type: integer
+        app:
+          type: string
+        updated:
+          type: string
+        app_domain:
+          type: string
+        app_team_ops:
+          type: string
+        description:
+          type: string
+
+    AppListResponse:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          oneOf:
+            - type: array
+              items:
+                $ref: '#/components/schemas/AppRow'
+            - type: object
+              additionalProperties:
+                type: object
+                additionalProperties:
+                  type: integer
+        meta:
+          $ref: '#/components/schemas/ListMeta'
+
+    InfoResponse:
+      type: object
+      description: Outcome message of a write that returns no record.
+      properties:
+        info:
+          type: string
+
+    IpRow:
+      type: object
+      description: |
+        An IP address detected on a node, joined to the network it belongs to.
+        Every property is optional: the `props` query parameter selects which
+        columns the server returns.
+      properties:
+        id:
+          type: integer
+        node_id:
+          type: string
+        nodename:
+          type: string
+        intf:
+          type: string
+        mac:
+          type: string
+        type:
+          type: string
+        addr:
+          type: string
+        mask:
+          type: string
+        updated:
+          type: string
+        flag_deprecated:
+          type: integer
+        net_id:
+          type: integer
+        net_name:
+          type: string
+        net_network:
+          type: string
+        net_netmask:
+          type: string
+        net_broadcast:
+          type: string
+        net_gateway:
+          type: string
+        net_begin:
+          type: string
+        net_end:
+          type: string
+        net_pvid:
+          type: string
+        net_prio:
+          type: integer
+        net_comment:
+          type: string
+        net_team_responsible:
+          type: string
+
+    IpListResponse:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          oneOf:
+            - type: array
+              items:
+                $ref: '#/components/schemas/IpRow'
+            - type: object
+              additionalProperties:
+                type: object
+                additionalProperties:
+                  type: integer
+        meta:
+          $ref: '#/components/schemas/ListMeta'
+
+    DiskRow:
+      type: object
+      description: |
+        A disk seen on a node, with the service and array it belongs to when
+        known. Every property is optional: the `props` query parameter selects
+        which columns the server returns.
+      properties:
+        disk_id:
+          type: string
+        disk_name:
+          type: string
+        disk_devid:
+          type: string
+        disk_vendor:
+          type: string
+        disk_model:
+          type: string
+        disk_size:
+          type: integer
+        disk_used:
+          type: integer
+        disk_alloc:
+          type: integer
+        disk_raid:
+          type: string
+        disk_group:
+          type: string
+        disk_level:
+          type: integer
+        disk_arrayid:
+          type: string
+        disk_dg:
+          type: string
+        disk_region:
+          type: string
+        node_id:
+          type: string
+        nodename:
+          type: string
+        svc_id:
+          type: string
+        svcname:
+          type: string
+        app:
+          type: string
+        updated:
+          type: string
+
+    DiskListResponse:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          oneOf:
+            - type: array
+              items:
+                $ref: '#/components/schemas/DiskRow'
+            - type: object
+              additionalProperties:
+                type: object
+                additionalProperties:
+                  type: integer
+        meta:
+          $ref: '#/components/schemas/ListMeta'
+
+    GroupRow:
+      type: object
+      description: |
+        A user group. `privilege` is "T" for a privilege-granting group and
+        "F" for an ordinary one. Every property is optional: the `props` query
+        parameter selects which columns the server returns.
+      properties:
+        id:
+          type: integer
+        role:
+          type: string
+        privilege:
+          type: string
+        description:
+          type: string
+
+    GroupListResponse:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          oneOf:
+            - type: array
+              items:
+                $ref: '#/components/schemas/GroupRow'
+            - type: object
+              additionalProperties:
+                type: object
+                additionalProperties:
+                  type: integer
+        meta:
+          $ref: '#/components/schemas/ListMeta'
 
     ListResponse:
       type: object
