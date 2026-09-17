@@ -258,7 +258,7 @@ var propsMapping = map[string]propMapping{
 			"net_begin":            {SQLExpr: "COALESCE(net_begin, '') AS net_begin", Kind: "string"},
 			"net_end":              {SQLExpr: "COALESCE(net_end, '') AS net_end", Kind: "string"},
 			"net_pvid":             {SQLExpr: "COALESCE(net_pvid, '') AS net_pvid", Kind: "string"},
-			"net_prio":             {SQLExpr: "COALESCE(net_prio, 0) AS net_prio", Kind: "int64"},
+			"net_prio":             {SQLExpr: "COALESCE(prio, 0) AS net_prio", Kind: "int64"},
 			"net_comment":          {SQLExpr: "COALESCE(net_comment, '') AS net_comment", Kind: "string"},
 			"net_team_responsible": {SQLExpr: "COALESCE(net_team_responsible, '') AS net_team_responsible", Kind: "string"},
 		},
@@ -641,6 +641,12 @@ var propsMapping = map[string]propMapping{
 			"dash_dict_md5": colStr(schema.DashboardDashDictMD5),
 			"dash_env":      colStr(schema.DashboardDashEnv),
 			"dash_instance": colStr(schema.DashboardDashInstance),
+		},
+		// A dashboard entry points at a node or a service by id only. The names live
+		// in the joined tables, as in the historical collector's own alert query.
+		Joins: map[string]JoinDef{
+			"nodes":    {MappingKey: "node"},
+			"services": {MappingKey: "service"},
 		},
 	},
 	"check": {
