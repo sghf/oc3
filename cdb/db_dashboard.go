@@ -40,7 +40,9 @@ func (oDb *DB) GetAlerts(ctx context.Context, p ListParams) ([]map[string]any, e
 		return nil, fmt.Errorf("getAlerts: no select expressions")
 	}
 
-	query := "SELECT " + strings.Join(p.SelectExprs, ", ") + " FROM dashboard"
+	// Joined so that "nodes.nodename" and "services.svcname" can be selected:
+	// a dashboard row only carries the ids.
+	query := "SELECT " + strings.Join(p.SelectExprs, ", ") + " FROM dashboard LEFT JOIN nodes ON nodes.node_id = dashboard.node_id LEFT JOIN services ON services.svc_id = dashboard.svc_id"
 	var args []any
 	if gb := p.GroupByClause(""); gb != "" {
 		query += " " + gb
@@ -62,7 +64,7 @@ func (oDb *DB) GetAlert(ctx context.Context, id string, p ListParams) ([]map[str
 		return nil, fmt.Errorf("getAlert: no select expressions")
 	}
 
-	query := "SELECT " + strings.Join(p.SelectExprs, ", ") + " FROM dashboard WHERE dashboard.id = ?"
+	query := "SELECT " + strings.Join(p.SelectExprs, ", ") + " FROM dashboard LEFT JOIN nodes ON nodes.node_id = dashboard.node_id LEFT JOIN services ON services.svc_id = dashboard.svc_id WHERE dashboard.id = ?"
 	args := []any{id}
 	query += " " + p.OrderByClause("dashboard.id DESC")
 	query, args = appendLimitOffset(query, args, p.Limit, p.Offset)
