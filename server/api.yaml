@@ -7150,6 +7150,162 @@ paths:
         - basicAuth: [ ]
         - bearerAuth: [ ]
 
+  /users:
+    get:
+      operationId: GetUsers
+      description: |
+        List existing users. Managers and UserManager can see all users; other
+        users only see the users sharing one of their organisational groups,
+        plus themselves.
+      parameters:
+        - $ref: '#/components/parameters/inQueryProps'
+        - $ref: '#/components/parameters/inQueryLimit'
+        - $ref: '#/components/parameters/inQueryOffset'
+        - $ref: '#/components/parameters/inQueryMeta'
+        - $ref: '#/components/parameters/inQueryStats'
+        - $ref: '#/components/parameters/inQueryOrderby'
+        - $ref: '#/components/parameters/inQueryGroupby'
+      tags:
+        - collector
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserListResponse'
+        500:
+          $ref: '#/components/responses/500'
+      security:
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
+
+  /users/{user_id}:
+    get:
+      operationId: GetUser
+      description: |
+        Display user properties. Managers and UserManager can see all users;
+        other users only see the users sharing one of their organisational
+        groups, plus themselves.
+      parameters:
+        - in: path
+          name: user_id
+          required: true
+          description: |
+            User identifier: auth_user.id, the user email when it contains an
+            "@", or "self" for the authenticated user.
+          schema:
+            type: string
+        - $ref: '#/components/parameters/inQueryProps'
+        - $ref: '#/components/parameters/inQueryLimit'
+        - $ref: '#/components/parameters/inQueryOffset'
+        - $ref: '#/components/parameters/inQueryMeta'
+        - $ref: '#/components/parameters/inQueryStats'
+        - $ref: '#/components/parameters/inQueryOrderby'
+        - $ref: '#/components/parameters/inQueryGroupby'
+      tags:
+        - collector
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserListResponse'
+        404:
+          $ref: '#/components/responses/404'
+        500:
+          $ref: '#/components/responses/500'
+      security:
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
+
+  /users/{user_id}/prefs:
+    get:
+      operationId: GetUserPrefs
+      description: |
+        Fetch the user preferences: visible columns, column filters, live mode
+        enabled flag, hidden group entries, ...
+
+        Returns an empty object when the user has no preferences stored, and
+        also when the user does not exist or is not visible to the caller.
+      parameters:
+        - in: path
+          name: user_id
+          required: true
+          description: |
+            User identifier: auth_user.id, the user email when it contains an
+            "@", or "self" for the authenticated user.
+          schema:
+            type: string
+      tags:
+        - collector
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserPrefsResponse'
+        500:
+          $ref: '#/components/responses/500'
+      security:
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
+
+    post:
+      operationId: PostUserPrefs
+      description: |
+        Save the user preferences: visible columns, column filters, live mode
+        enabled flag, hidden group entries, ...
+      parameters:
+        - in: path
+          name: user_id
+          required: true
+          description: |
+            User identifier: auth_user.id, the user email when it contains an
+            "@", or "self" for the authenticated user.
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - data
+              properties:
+                data:
+                  type: object
+                  additionalProperties: true
+                  description: The preferences object, stored verbatim.
+                uuid:
+                  type: string
+                  description: |
+                    Opaque sender identifier echoed in the user_prefs_change
+                    event, so a client can ignore its own update.
+      tags:
+        - collector
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/InfoResponse'
+        400:
+          $ref: '#/components/responses/400'
+        401:
+          $ref: '#/components/responses/401'
+        403:
+          $ref: '#/components/responses/403'
+        500:
+          $ref: '#/components/responses/500'
+      security:
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
+
   /version:
     get:
       operationId: GetVersion
@@ -7797,6 +7953,88 @@ components:
             - type: array
               items:
                 $ref: '#/components/schemas/GroupRow'
+            - type: object
+              additionalProperties:
+                type: object
+                additionalProperties:
+                  type: integer
+        meta:
+          $ref: '#/components/schemas/ListMeta'
+
+    UserRow:
+      type: object
+      description: |
+        A user of the users list. `password` and `registration_key` are never
+        returned. The boolean-like columns (`email_notifications`,
+        `im_notifications`, `lock_filter`) carry the collector's "T"/"F"
+        convention, and the delay and quota columns are returned as strings.
+        Every property is optional: the `props` query parameter selects which
+        columns the server returns.
+      properties:
+        id:
+          type: integer
+        username:
+          type: string
+        email:
+          type: string
+        first_name:
+          type: string
+        last_name:
+          type: string
+        phone_work:
+          type: string
+        im_type:
+          type: string
+        im_username:
+          type: string
+        email_notifications:
+          type: string
+        im_notifications:
+          type: string
+        email_log_level:
+          type: string
+        im_log_level:
+          type: string
+        email_notifications_delay:
+          type: string
+        im_notifications_delay:
+          type: string
+        lock_filter:
+          type: string
+        registration_id:
+          type: string
+        reset_password_key:
+          type: string
+        quota_app:
+          type: string
+        quota_org_group:
+          type: string
+        quota_docker_registries:
+          type: string
+
+    UserPrefsResponse:
+      type: object
+      required:
+        - data
+      description: |
+        The stored preferences, as saved by POST /users/{user_id}/prefs. The
+        collector never interprets the content; an empty object means "no
+        preferences stored", "user unknown" or "user not visible" alike.
+      properties:
+        data:
+          type: object
+          additionalProperties: true
+
+    UserListResponse:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          oneOf:
+            - type: array
+              items:
+                $ref: '#/components/schemas/UserRow'
             - type: object
               additionalProperties:
                 type: object

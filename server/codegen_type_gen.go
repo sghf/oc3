@@ -466,6 +466,59 @@ type ServiceRow struct {
 	Updated                 *string `json:"updated,omitempty"`
 }
 
+// UserListResponse defines model for UserListResponse.
+type UserListResponse struct {
+	Data UserListResponse_Data `json:"data"`
+	Meta *ListMeta             `json:"meta,omitempty"`
+}
+
+// UserListResponseData0 defines model for .
+type UserListResponseData0 = []UserRow
+
+// UserListResponseData1 defines model for .
+type UserListResponseData1 map[string]map[string]int
+
+// UserListResponse_Data defines model for UserListResponse.Data.
+type UserListResponse_Data struct {
+	union json.RawMessage
+}
+
+// UserPrefsResponse The stored preferences, as saved by POST /users/{user_id}/prefs. The
+// collector never interprets the content; an empty object means "no
+// preferences stored", "user unknown" or "user not visible" alike.
+type UserPrefsResponse struct {
+	Data map[string]interface{} `json:"data"`
+}
+
+// UserRow A user of the users list. `password` and `registration_key` are never
+// returned. The boolean-like columns (`email_notifications`,
+// `im_notifications`, `lock_filter`) carry the collector's "T"/"F"
+// convention, and the delay and quota columns are returned as strings.
+// Every property is optional: the `props` query parameter selects which
+// columns the server returns.
+type UserRow struct {
+	Email                   *string `json:"email,omitempty"`
+	EmailLogLevel           *string `json:"email_log_level,omitempty"`
+	EmailNotifications      *string `json:"email_notifications,omitempty"`
+	EmailNotificationsDelay *string `json:"email_notifications_delay,omitempty"`
+	FirstName               *string `json:"first_name,omitempty"`
+	Id                      *int    `json:"id,omitempty"`
+	ImLogLevel              *string `json:"im_log_level,omitempty"`
+	ImNotifications         *string `json:"im_notifications,omitempty"`
+	ImNotificationsDelay    *string `json:"im_notifications_delay,omitempty"`
+	ImType                  *string `json:"im_type,omitempty"`
+	ImUsername              *string `json:"im_username,omitempty"`
+	LastName                *string `json:"last_name,omitempty"`
+	LockFilter              *string `json:"lock_filter,omitempty"`
+	PhoneWork               *string `json:"phone_work,omitempty"`
+	QuotaApp                *string `json:"quota_app,omitempty"`
+	QuotaDockerRegistries   *string `json:"quota_docker_registries,omitempty"`
+	QuotaOrgGroup           *string `json:"quota_org_group,omitempty"`
+	RegistrationId          *string `json:"registration_id,omitempty"`
+	ResetPasswordKey        *string `json:"reset_password_key,omitempty"`
+	Username                *string `json:"username,omitempty"`
+}
+
 // Version defines model for version.
 type Version struct {
 	Version string `json:"version"`
@@ -3360,6 +3413,64 @@ type PostTagServiceJSONBody struct {
 	TagAttachData *string `json:"tag_attach_data,omitempty"`
 }
 
+// GetUsersParams defines parameters for GetUsers.
+type GetUsersParams struct {
+	// Props A list of properties to include in each data dictionnary.
+	Props *InQueryProps `form:"props,omitempty" json:"props,omitempty"`
+
+	// Limit The maximum number of entries to return. 0 means no limit.
+	Limit *InQueryLimit `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// Offset Skip the first entries of the data cursor.
+	Offset *InQueryOffset `form:"offset,omitempty" json:"offset,omitempty"`
+
+	// Meta Include metadata in the response. Enabled by default. Use false or 0 to omit the meta field.
+	Meta *InQueryMeta `form:"meta,omitempty" json:"meta,omitempty"`
+
+	// Stats Controls the inclusion in the returned dictionnary of a "stats" key, containing the selected properties distinct values counts.
+	Stats *InQueryStats `form:"stats,omitempty" json:"stats,omitempty"`
+
+	// Orderby Comma-separated list of properties to sort by. Prefix a property with - for descending order (e.g. orderby=nodename,-app).
+	Orderby *InQueryOrderby `form:"orderby,omitempty" json:"orderby,omitempty"`
+
+	// Groupby Comma-separated list of properties to group the result by (e.g. groupby=app,svcname).
+	Groupby *InQueryGroupby `form:"groupby,omitempty" json:"groupby,omitempty"`
+}
+
+// GetUserParams defines parameters for GetUser.
+type GetUserParams struct {
+	// Props A list of properties to include in each data dictionnary.
+	Props *InQueryProps `form:"props,omitempty" json:"props,omitempty"`
+
+	// Limit The maximum number of entries to return. 0 means no limit.
+	Limit *InQueryLimit `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// Offset Skip the first entries of the data cursor.
+	Offset *InQueryOffset `form:"offset,omitempty" json:"offset,omitempty"`
+
+	// Meta Include metadata in the response. Enabled by default. Use false or 0 to omit the meta field.
+	Meta *InQueryMeta `form:"meta,omitempty" json:"meta,omitempty"`
+
+	// Stats Controls the inclusion in the returned dictionnary of a "stats" key, containing the selected properties distinct values counts.
+	Stats *InQueryStats `form:"stats,omitempty" json:"stats,omitempty"`
+
+	// Orderby Comma-separated list of properties to sort by. Prefix a property with - for descending order (e.g. orderby=nodename,-app).
+	Orderby *InQueryOrderby `form:"orderby,omitempty" json:"orderby,omitempty"`
+
+	// Groupby Comma-separated list of properties to group the result by (e.g. groupby=app,svcname).
+	Groupby *InQueryGroupby `form:"groupby,omitempty" json:"groupby,omitempty"`
+}
+
+// PostUserPrefsJSONBody defines parameters for PostUserPrefs.
+type PostUserPrefsJSONBody struct {
+	// Data The preferences object, stored verbatim.
+	Data map[string]interface{} `json:"data"`
+
+	// Uuid Opaque sender identifier echoed in the user_prefs_change
+	// event, so a client can ignore its own update.
+	Uuid *string `json:"uuid,omitempty"`
+}
+
 // PostActionsJSONRequestBody defines body for PostActions for application/json ContentType.
 type PostActionsJSONRequestBody PostActionsJSONBody
 
@@ -3524,6 +3635,9 @@ type PostTagNodeJSONRequestBody PostTagNodeJSONBody
 
 // PostTagServiceJSONRequestBody defines body for PostTagService for application/json ContentType.
 type PostTagServiceJSONRequestBody PostTagServiceJSONBody
+
+// PostUserPrefsJSONRequestBody defines body for PostUserPrefs for application/json ContentType.
+type PostUserPrefsJSONRequestBody PostUserPrefsJSONBody
 
 // AsAlertListResponseData0 returns the union data inside the AlertListResponse_Data as a AlertListResponseData0
 func (t AlertListResponse_Data) AsAlertListResponseData0() (AlertListResponseData0, error) {
@@ -4017,6 +4131,68 @@ func (t ServiceListResponse_Data) MarshalJSON() ([]byte, error) {
 }
 
 func (t *ServiceListResponse_Data) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsUserListResponseData0 returns the union data inside the UserListResponse_Data as a UserListResponseData0
+func (t UserListResponse_Data) AsUserListResponseData0() (UserListResponseData0, error) {
+	var body UserListResponseData0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromUserListResponseData0 overwrites any union data inside the UserListResponse_Data as the provided UserListResponseData0
+func (t *UserListResponse_Data) FromUserListResponseData0(v UserListResponseData0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeUserListResponseData0 performs a merge with any union data inside the UserListResponse_Data, using the provided UserListResponseData0
+func (t *UserListResponse_Data) MergeUserListResponseData0(v UserListResponseData0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsUserListResponseData1 returns the union data inside the UserListResponse_Data as a UserListResponseData1
+func (t UserListResponse_Data) AsUserListResponseData1() (UserListResponseData1, error) {
+	var body UserListResponseData1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromUserListResponseData1 overwrites any union data inside the UserListResponse_Data as the provided UserListResponseData1
+func (t *UserListResponse_Data) FromUserListResponseData1(v UserListResponseData1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeUserListResponseData1 performs a merge with any union data inside the UserListResponse_Data, using the provided UserListResponseData1
+func (t *UserListResponse_Data) MergeUserListResponseData1(v UserListResponseData1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t UserListResponse_Data) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *UserListResponse_Data) UnmarshalJSON(b []byte) error {
 	err := t.union.UnmarshalJSON(b)
 	return err
 }
