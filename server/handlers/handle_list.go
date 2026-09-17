@@ -24,6 +24,11 @@ type listEndpointParams struct {
 	stats   *server.InQueryStats
 	orderby *server.InQueryOrderby
 	groupby *server.InQueryGroupby
+
+	// withUserID asks for the authenticated user's id to be forwarded in
+	// cdb.ListParams. Set it only on the endpoints whose access control
+	// references the caller's identity and not just its groups.
+	withUserID bool
 }
 
 // handleList implements the common pipeline for all list endpoints:
@@ -78,6 +83,9 @@ func (a *Api) handleList(
 		OrderBy:     query.OrderBy,
 		GroupBy:     query.GroupBy,
 	}
+	if p.withUserID {
+		dbParams.UserID = authUserID(c)
+	}
 
 	items, err := fetch(c.Request().Context(), dbParams)
 	if err != nil {
@@ -125,6 +133,9 @@ func (a *Api) handleItem(
 		Offset:      query.Page.Offset,
 		Props:       query.Props,
 		SelectExprs: selectExprs,
+	}
+	if p.withUserID {
+		dbParams.UserID = authUserID(c)
 	}
 
 	items, err := fetch(c.Request().Context(), dbParams)

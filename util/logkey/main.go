@@ -22,4 +22,5 @@ const (
 	StatusCode = "status_code"
 	TagID      = "tag_id"
 	URI        = "uri"
+	UserID     = "user_id"
 )

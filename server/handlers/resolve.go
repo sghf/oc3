@@ -15,6 +15,21 @@ import (
 	"github.com/opensvc/oc3/xauth"
 )
 
+// authUserID returns the authenticated user's auth_user.id, or nil when the
+// request is not authenticated as a user (node credentials, public path) or the
+// id does not parse.
+func authUserID(c echo.Context) *int64 {
+	user := UserInfoFromContext(c)
+	if user == nil {
+		return nil
+	}
+	id, err := strconv.ParseInt(user.GetExtensions().Get(xauth.XUserID), 10, 64)
+	if err != nil {
+		return nil
+	}
+	return &id
+}
+
 // resolveUserGroupIDs returns the group ids the authenticated user belongs to.
 func (a *Api) resolveUserGroupIDs(c echo.Context, log *slog.Logger) ([]int64, error) {
 	ctx := c.Request().Context()
