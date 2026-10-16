@@ -45,6 +45,11 @@ const (
 
 	FeedSysreportQ = "oc3:q:feed_sysreport"
 
+	// SysreportPurgeQ queues the purges of files from the sysreport history, run
+	// by the scheduler; SysreportPurgePrefix keys their status, by purge id.
+	SysreportPurgeQ      = "oc3:q:sysreport_purge"
+	SysreportPurgePrefix = "oc3:sysreport_purge:"
+
 	FeedNodeChecksH        = "oc3:h:feed_node_checks"
 	FeedNodeChecksQ        = "oc3:q:feed_node_checks"
 	FeedNodeChecksPendingH = "oc3:h:feed_node_checks_pending"

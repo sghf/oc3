@@ -541,6 +541,48 @@ func (e SysreportFileStatKind) Valid() bool {
 	}
 }
 
+// Defines values for SysreportPurgeState.
+const (
+	Done    SysreportPurgeState = "done"
+	Failed  SysreportPurgeState = "failed"
+	Queued  SysreportPurgeState = "queued"
+	Running SysreportPurgeState = "running"
+)
+
+// Valid indicates whether the value is a known member of the SysreportPurgeState enum.
+func (e SysreportPurgeState) Valid() bool {
+	switch e {
+	case Done:
+		return true
+	case Failed:
+		return true
+	case Queued:
+		return true
+	case Running:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for SysreportPurgeFileKind.
+const (
+	Command SysreportPurgeFileKind = "command"
+	File    SysreportPurgeFileKind = "file"
+)
+
+// Valid indicates whether the value is a known member of the SysreportPurgeFileKind enum.
+func (e SysreportPurgeFileKind) Valid() bool {
+	switch e {
+	case Command:
+		return true
+	case File:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for WhoamiAuthSource.
 const (
 	WhoamiAuthSourceBasic   WhoamiAuthSource = "basic"
@@ -3857,6 +3899,70 @@ type SysreportFileStatKind string
 type SysreportPoint struct {
 	Cid  string `json:"cid"`
 	Date string `json:"date"`
+}
+
+// SysreportPurge defines model for SysreportPurge.
+type SysreportPurge struct {
+	Author   string               `json:"author"`
+	Error    *string              `json:"error,omitempty"`
+	Files    []SysreportPurgeFile `json:"files"`
+	Finished *string              `json:"finished,omitempty"`
+	Id       string               `json:"id"`
+
+	// NodeIds The nodes to purge; empty for every node
+	NodeIds []string `json:"node_ids"`
+
+	// Nodes The nodes the files were found on, as they are purged
+	Nodes     []SysreportPurgeNode `json:"nodes"`
+	Requested string               `json:"requested"`
+	Started   *string              `json:"started,omitempty"`
+	State     SysreportPurgeState  `json:"state"`
+}
+
+// SysreportPurgeState defines model for SysreportPurge.State.
+type SysreportPurgeState string
+
+// SysreportPurgeFile defines model for SysreportPurgeFile.
+type SysreportPurgeFile struct {
+	Kind SysreportPurgeFileKind `json:"kind"`
+
+	// Path The absolute path of a file, the command line of a command, as the sysreport routes show them
+	Path string `json:"path"`
+}
+
+// SysreportPurgeFileKind defines model for SysreportPurgeFile.Kind.
+type SysreportPurgeFileKind string
+
+// SysreportPurgeInput defines model for SysreportPurgeInput.
+type SysreportPurgeInput struct {
+	// AllNodes Purge the files from the sysreport of every node, not only this one
+	AllNodes *bool                `json:"all_nodes,omitempty"`
+	Files    []SysreportPurgeFile `json:"files"`
+}
+
+// SysreportPurgeNode defines model for SysreportPurgeNode.
+type SysreportPurgeNode struct {
+	// Dropped Revisions that held nothing else, gone
+	Dropped int     `json:"dropped"`
+	Error   *string `json:"error,omitempty"`
+
+	// Kept Contents still stored because another file of the node holds the same
+	Kept   int    `json:"kept"`
+	NodeId string `json:"node_id"`
+
+	// Paths The paths of the repository the files resolved to
+	Paths []string `json:"paths"`
+
+	// Removed Contents of the files destroyed
+	Removed int `json:"removed"`
+
+	// Rewritten Revisions recreated without the files
+	Rewritten int `json:"rewritten"`
+}
+
+// SysreportPurgeResponse defines model for SysreportPurgeResponse.
+type SysreportPurgeResponse struct {
+	Data SysreportPurge `json:"data"`
 }
 
 // SysreportTimediffResponse defines model for SysreportTimediffResponse.
@@ -12772,6 +12878,9 @@ type PostNodeJSONRequestBody PostNodeJSONBody
 
 // PostNodeSnoozeJSONRequestBody defines body for PostNodeSnooze for application/json ContentType.
 type PostNodeSnoozeJSONRequestBody PostNodeSnoozeJSONBody
+
+// PostNodeSysreportPurgeJSONRequestBody defines body for PostNodeSysreportPurge for application/json ContentType.
+type PostNodeSysreportPurgeJSONRequestBody = SysreportPurgeInput
 
 // DeleteObsolescenceSettingsJSONRequestBody defines body for DeleteObsolescenceSettings for application/json ContentType.
 type DeleteObsolescenceSettingsJSONRequestBody DeleteObsolescenceSettingsJSONBody

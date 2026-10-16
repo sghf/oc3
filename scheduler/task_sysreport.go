@@ -64,7 +64,11 @@ func taskSysreport(ctx context.Context, task *Task) error {
 
 			sysreportDir := viper.GetString("scheduler.directories.uploads")
 			nodeDir := filepath.Join(sysreportDir, "sysreport", data.NodeID)
-			if err := git.Commit(nodeDir); err != nil {
+			// Not while a purge rewrites the history of the node.
+			sysreportMu.Lock()
+			err = git.Commit(nodeDir)
+			sysreportMu.Unlock()
+			if err != nil {
 				return fmt.Errorf("git commit: %w", err)
 			}
 
