@@ -195,3 +195,8 @@ func (j *jobFeedInstanceResourceInfo) valueToFloat64(i any) (float64, error) {
 		return 0, ErrResInfoValue
 	}
 }
+
+// pushFromTableChanges announces the changes as concerning the instance whose resources the node posted.
+func (j *jobFeedInstanceResourceInfo) pushFromTableChanges(ctx context.Context) error {
+	return j.pushScopedTableChanges(ctx, []string{j.objectID}, []string{j.nodeID})
+}

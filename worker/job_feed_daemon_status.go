@@ -85,6 +85,15 @@ type (
 		resmonLogByResID      map[string]*cdb.DBResmonLog
 
 		heartbeats []heartbeatData
+
+		// purgedSvcIDs and purgedNodeIDs are the instances and the services the
+		// job purged, absent from the report: changed too.
+		purgedSvcIDs  []string
+		purgedNodeIDs []string
+
+		// updatedSvcIDs are the objects whose status the job updated, those the
+		// report says changed and those just created: the others are only pinged.
+		updatedSvcIDs []string
 	}
 )
 
@@ -142,6 +151,18 @@ func (d *jobFeedDaemonStatus) Operations() []operation {
 		{name: "cacheObjectsWithoutConfig", do: d.cacheObjectsWithoutConfig},
 		{name: "pushFromTableChanges", do: d.pushFromTableChanges},
 	}
+}
+
+// pushFromTableChanges announces the changes as concerning the nodes of the
+// cluster, the objects whose status the job updated, and those it purged: the
+// other objects of the report were only pinged, their status unchanged.
+func (d *jobFeedDaemonStatus) pushFromTableChanges(ctx context.Context) error {
+	svcIDs := append(append([]string{}, d.updatedSvcIDs...), d.purgedSvcIDs...)
+	nodeIDs := append([]string{d.nodeID}, d.purgedNodeIDs...)
+	for id := range d.byNodeID {
+		nodeIDs = append(nodeIDs, id)
+	}
+	return d.pushScopedTableChanges(ctx, svcIDs, nodeIDs)
 }
 
 func (d *jobFeedDaemonStatus) LogResult() {
@@ -550,6 +571,7 @@ func (d *jobFeedDaemonStatus) dbUpdateServices(ctx context.Context) error {
 		if !isChanged && obj.AvailStatus != "undef" {
 			objectIDPingM[objectID] = struct{}{}
 		} else {
+			d.updatedSvcIDs = append(d.updatedSvcIDs, objectID)
 			oStatus := d.data.objectStatus(objectName)
 			if oStatus != nil {
 				// refresh local cache
@@ -880,6 +902,8 @@ func (d *jobFeedDaemonStatus) dbPurgeInstances(ctx context.Context) error {
 		return fmt.Errorf("dbPurgeInstances: getOrphanInstances: %w", err)
 	}
 	for _, instanceID := range instanceIDs {
+		d.purgedSvcIDs = append(d.purgedSvcIDs, instanceID.SvcID())
+		d.purgedNodeIDs = append(d.purgedNodeIDs, instanceID.NodeID())
 		if err1 := d.oDb.PurgeInstance(ctx, instanceID); err1 != nil {
 			err = errors.Join(err, fmt.Errorf("purge instance %v: %w", instanceID, err1))
 		}
@@ -897,6 +921,7 @@ func (d *jobFeedDaemonStatus) dbPurgeServices(ctx context.Context) error {
 		return err
 	}
 	for _, objectID := range objectIDs {
+		d.purgedSvcIDs = append(d.purgedSvcIDs, objectID)
 		if err1 := d.oDb.PurgeTablesFromObjectID(ctx, objectID); err1 != nil {
 			err = errors.Join(err, fmt.Errorf("purge object %s: %w", objectID, err1))
 		}

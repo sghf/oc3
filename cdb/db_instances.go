@@ -148,6 +148,12 @@ type (
 	}
 )
 
+// SvcID is the id of the service of the instance.
+func (i InstanceID) SvcID() string { return i.svcID }
+
+// NodeID is the id of the node of the instance.
+func (i InstanceID) NodeID() string { return i.nodeID }
+
 func (i *InstanceID) String() string {
 	return fmt.Sprintf("instance{obj_id:%s, node_id:%s}", i.svcID, i.nodeID)
 }

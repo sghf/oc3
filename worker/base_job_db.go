@@ -83,3 +83,11 @@ func (j *JobDB) dbNow(ctx context.Context) (err error) {
 func (d *JobDB) pushFromTableChanges(ctx context.Context) error {
 	return d.oDb.Session.NotifyChanges(ctx)
 }
+
+// pushScopedTableChanges announces the changes of the job as concerning only the
+// services and the nodes it fed: a view showing another object needs not read it
+// again. Used by the jobs that know every object they write.
+func (d *JobDB) pushScopedTableChanges(ctx context.Context, svcIDs, nodeIDs []string) error {
+	d.oDb.Session.Scope(svcIDs, nodeIDs)
+	return d.oDb.Session.NotifyChanges(ctx)
+}

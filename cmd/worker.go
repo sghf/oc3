@@ -12,7 +12,6 @@ import (
 	"github.com/spf13/viper"
 
 	"github.com/opensvc/oc3/cachekeys"
-	"github.com/opensvc/oc3/cdb"
 	"github.com/opensvc/oc3/util/logkey"
 	"github.com/opensvc/oc3/worker"
 	"github.com/opensvc/oc3/xauth"
@@ -73,8 +72,6 @@ func (t *workerT) run() error {
 	}
 
 	ev := newEv()
-	odb := cdb.New(t.db)
-	odb.CreateSession(ev)
 
 	w := &worker.Worker{
 		DB:        t.db,
@@ -83,7 +80,6 @@ func (t *workerT) run() error {
 		Ev:        ev,
 		Runners:   t.runners,
 		SubSystem: t.Section(),
-		ODB:       odb,
 		UploadDir: t.uploadDir,
 	}
 	return w.Run()

@@ -224,3 +224,8 @@ func (d *jobFeedInstanceAction) updateDB(ctx context.Context) error {
 
 	return nil
 }
+
+// pushFromTableChanges announces the changes as concerning the instance of the action: its object and the node.
+func (d *jobFeedInstanceAction) pushFromTableChanges(ctx context.Context) error {
+	return d.pushScopedTableChanges(ctx, []string{d.objectID}, []string{d.nodeID})
+}

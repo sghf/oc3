@@ -21,8 +21,6 @@ type (
 		Redis *redis.Client
 		DB    *sql.DB
 
-		ODB *cdb.DB
-
 		Queues []string
 		Ev     EventPublisher
 
@@ -208,7 +206,13 @@ func (w *Worker) runJob(unqueuedJob []string) error {
 	}
 
 	if a, ok := j.(ODBSetter); ok {
-		if err := a.ODBSetter(w.ODB); err != nil {
+		// Each job its own database helper and session, never shared with the
+		// jobs the other runners run meanwhile: a job may install its transaction
+		// in the helper (CreateTx), and announces its own changes, scoped to the
+		// objects it fed.
+		odb := cdb.New(w.DB)
+		odb.CreateSession(w.Ev)
+		if err := a.ODBSetter(odb); err != nil {
 			jlog.Error("🔴ODBSetter failed", logkey.Error, err)
 			return fmt.Errorf("can't setup cdb for %s: %w", jName, err)
 		}

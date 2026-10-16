@@ -180,3 +180,16 @@ func (d *jobFeedDaemonPing) cacheObjectsWithoutConfig(ctx context.Context) error
 	}
 	return err
 }
+
+// pushFromTableChanges announces the changes as concerning the nodes and the objects of the cluster the ping described.
+func (d *jobFeedDaemonPing) pushFromTableChanges(ctx context.Context) error {
+	svcIDs := make([]string, 0, len(d.byObjectID))
+	for id := range d.byObjectID {
+		svcIDs = append(svcIDs, id)
+	}
+	nodeIDs := []string{d.nodeID}
+	for id := range d.byNodeID {
+		nodeIDs = append(nodeIDs, id)
+	}
+	return d.pushScopedTableChanges(ctx, svcIDs, nodeIDs)
+}

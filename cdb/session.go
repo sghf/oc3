@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"log/slog"
+	"sort"
 	"sync"
 )
 
@@ -13,6 +14,12 @@ type (
 		ev     eventPublisher
 		tables map[string]struct{}
 		mu     sync.RWMutex
+
+		// scoped is set once Scope named the objects the changes concern; svcIDs
+		// and nodeIDs are those objects.
+		scoped  bool
+		svcIDs  map[string]struct{}
+		nodeIDs map[string]struct{}
 	}
 
 	eventPublisher interface {
@@ -24,17 +31,49 @@ func NewSession(db execContexter, ev eventPublisher) *Session {
 	return &Session{db: db, ev: ev, tables: make(map[string]struct{})}
 }
 
+// Scope names the services and the nodes the changes of the session concern,
+// for the next NotifyChanges to announce them with every table: a view showing
+// another object needs not read it again. Only a session owned by a single job
+// may be scoped, a worker job feeding the data of a node for instance: the
+// changes of a shared session, as the api server's, concern any object. Empty
+// ids are ignored; the ids add up until NotifyChanges.
+func (t *Session) Scope(svcIDs, nodeIDs []string) {
+	t.mu.Lock()
+	defer t.mu.Unlock()
+	if t.svcIDs == nil {
+		t.svcIDs = make(map[string]struct{})
+		t.nodeIDs = make(map[string]struct{})
+	}
+	t.scoped = true
+	for _, id := range svcIDs {
+		if id != "" {
+			t.svcIDs[id] = struct{}{}
+		}
+	}
+	for _, id := range nodeIDs {
+		if id != "" {
+			t.nodeIDs[id] = struct{}{}
+		}
+	}
+}
+
 // NotifyChanges publishes a "<table>_change" event for each table changed since
 // the previous call, and forgets them: a session shared by many requests, as the
 // api server's, would otherwise announce again every table changed since it
-// started.
+// started. A scoped session (Scope) adds to each event the objects concerned,
+// as {"scope": {"svc_ids": [...], "node_ids": [...]}}: only those changed.
 func (t *Session) NotifyChanges(ctx context.Context) error {
 	slog.Debug("NotifyChanges")
 	if t.ev == nil {
 		return fmt.Errorf("NotifyChanges: eventPublisher is not configured")
 	}
-	for _, tableName := range t.takeChanges() {
-		if err := t.NotifyTableChangeWithData(ctx, tableName, nil); err != nil {
+	tables, scope := t.takeChanges()
+	for _, tableName := range tables {
+		var data map[string]any
+		if scope != nil {
+			data = map[string]any{"scope": scope}
+		}
+		if err := t.NotifyTableChangeWithData(ctx, tableName, data); err != nil {
 			return err
 		}
 	}
@@ -63,8 +102,9 @@ func (t *Session) SetChanges(s ...string) {
 	}
 }
 
-// takeChanges returns the changed tables and empties the list.
-func (t *Session) takeChanges() []string {
+// takeChanges returns the changed tables and their scope, nil when the session is
+// not scoped, and empties both.
+func (t *Session) takeChanges() ([]string, map[string]any) {
 	t.mu.Lock()
 	defer t.mu.Unlock()
 	r := make([]string, 0, len(t.tables))
@@ -72,5 +112,19 @@ func (t *Session) takeChanges() []string {
 		r = append(r, s)
 	}
 	t.tables = make(map[string]struct{})
-	return r
+	var scope map[string]any
+	if t.scoped {
+		scope = map[string]any{"svc_ids": sortedIDs(t.svcIDs), "node_ids": sortedIDs(t.nodeIDs)}
+	}
+	t.scoped, t.svcIDs, t.nodeIDs = false, nil, nil
+	return r, scope
+}
+
+func sortedIDs(m map[string]struct{}) []string {
+	keys := make([]string, 0, len(m))
+	for k := range m {
+		keys = append(keys, k)
+	}
+	sort.Strings(keys)
+	return keys
 }
