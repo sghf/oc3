@@ -101,20 +101,35 @@ func (d *jobFeedSystem) pkg(ctx context.Context) error {
 		Data: pkgList,
 	}
 
+	// changed tells whether the packages of the node, as the diffs compare them,
+	// changed: a package inserted counts one affected row, a package already
+	// known two, its pkg_updated always renewed; fewer than two per package means
+	// a new one. The timestamps alone do not change a diff. A count lower for
+	// another reason (a package listed twice) only costs a diff computed again.
+	changed := false
 	if count, err := request.ExecContextAndCountRowsAffected(ctx, d.db); err != nil {
 		return err
 	} else if count > 0 {
 		d.oDb.Session.SetChanges(request.Table)
+		changed = count < 2*int64(len(pkgList))
 	}
 
 	if count, err := d.oDb.ExecContextAndCountRowsAffected(ctx, "DELETE FROM packages WHERE node_id = ? AND pkg_updated < ?", nodeID, now); err != nil {
 		return err
 	} else if count > 0 {
 		d.oDb.Session.SetChanges(tableName)
+		changed = true
 	}
 
 	if err := d.oDb.DashboardUpdatePkgDiffForNode(ctx, nodeID); err != nil {
 		return err
+	}
+	// The packages diffs comparing this node are stale: a new generation, the
+	// writes above being committed (no job transaction).
+	if changed && d.redis != nil {
+		if err := d.redis.Incr(ctx, cachekeys.PkgDiffGenPrefix+nodeID).Err(); err != nil {
+			slog.Warn("cannot renew the packages diff generation", logkey.NodeID, nodeID, logkey.Error, err)
+		}
 	}
 	return nil
 }

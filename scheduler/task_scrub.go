@@ -10,6 +10,7 @@ import (
 
 	"github.com/spf13/viper"
 
+	"github.com/opensvc/oc3/cachekeys"
 	"github.com/opensvc/oc3/cdb"
 )
 
@@ -416,6 +417,12 @@ func taskScrubPackages(ctx context.Context, task *Task) error {
 	}
 	if err := odb.PurgePackagesOutdated(ctx, age); err != nil {
 		return err
+	}
+	// Every packages diff may have lost packages: a new generation for all.
+	if task.Redis != nil {
+		if err := task.Redis.Incr(ctx, cachekeys.PkgDiffGen).Err(); err != nil {
+			task.Errorf("cannot renew the packages diff generation: %s", err)
+		}
 	}
 	if err := odb.Session.NotifyChanges(ctx); err != nil {
 		return err

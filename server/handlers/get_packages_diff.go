@@ -2,6 +2,7 @@ package serverhandlers
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"strings"
 
@@ -53,7 +54,14 @@ func (a *Api) GetPackagesDiff(c echo.Context, params server.GetPackagesDiffParam
 		nodeIDs[i] = n.NodeID
 		resultNodes[i] = server.PackageDiffNode{NodeId: n.NodeID, Nodename: n.Nodename}
 	}
-	rows, err := a.ODB.PackagesDiff(ctx, nodeIDs)
+	// The diff may take longer than the other requests: its own time, and the
+	// computation goes on for the next request when this one stops waiting.
+	diffCtx, diffCancel := context.WithTimeout(c.Request().Context(), pkgDiffTimeout())
+	defer diffCancel()
+	rows, err := a.packagesDiff(diffCtx, log, nodeIDs)
+	if errors.Is(err, errPkgDiffBusy) {
+		return JSONProblemf(c, http.StatusServiceUnavailable, "the packages diff is being computed, try again")
+	}
 	if err != nil {
 		log.Error("cannot compare packages", logkey.Error, err)
 		return JSONProblemf(c, http.StatusInternalServerError, "cannot compare packages")

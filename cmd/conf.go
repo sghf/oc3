@@ -60,6 +60,10 @@ func setDefaultServerConfig() {
 	viper.SetDefault(s+".metrics.enable", false)
 	viper.SetDefault(s+".ui.enable", false)
 	viper.SetDefault(s+".sync.timeout", "2s")
+	// The packages diffs: computed at most this many at once, each given this
+	// long, and cached in redis until the packages of a compared node change.
+	viper.SetDefault(s+".packages_diff.concurrency", 2)
+	viper.SetDefault(s+".packages_diff.timeout", "30s")
 	viper.SetDefault(s+".allow_anon_register", false)
 	// A node may register a node joining its cluster, already registered.
 	viper.SetDefault(s+".allow_node_enroll", true)

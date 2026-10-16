@@ -50,6 +50,14 @@ const (
 	SysreportPurgeQ      = "oc3:q:sysreport_purge"
 	SysreportPurgePrefix = "oc3:sysreport_purge:"
 
+	// PkgDiffPrefix keys the packages diffs computed, by the nodes compared and
+	// their generations. PkgDiffGenPrefix keys the generation of the packages of a
+	// node, incremented when they change; PkgDiffGen the generation of all of
+	// them, incremented when old packages are scrubbed.
+	PkgDiffPrefix    = "oc3:pkgdiff:"
+	PkgDiffGenPrefix = "oc3:pkgdiff_gen:"
+	PkgDiffGen       = "oc3:pkgdiff_gen"
+
 	FeedNodeChecksH        = "oc3:h:feed_node_checks"
 	FeedNodeChecksQ        = "oc3:q:feed_node_checks"
 	FeedNodeChecksPendingH = "oc3:h:feed_node_checks_pending"
