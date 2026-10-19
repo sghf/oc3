@@ -157,6 +157,10 @@ func setDefaultDBConfig() {
 	viper.SetDefault("db.port", "3306")
 	viper.SetDefault("db.log.level", "warn")
 	viper.SetDefault("db.log.slow_query_threshold", "1s")
+	// enforce: the subsystems wait up to db.schema.wait for oc3 db migrate, then
+	// refuse to start on a schema missing a migration; warn: they log it and start.
+	viper.SetDefault("db.schema.check", "enforce")
+	viper.SetDefault("db.schema.wait", "5m")
 }
 
 func setDefaultRedisConfig() {

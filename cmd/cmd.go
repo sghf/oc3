@@ -192,6 +192,7 @@ func Root(args []string) *cobra.Command {
 		cmdRunner(),
 		cmdMessenger(),
 		cmdSafe(),
+		cmdDB(),
 	)
 	return cmd
 }
@@ -207,7 +208,13 @@ func setup(section string) error {
 	if logCaller {
 		logHandlerOptions.AddSource = true
 	}
-	logHandler := slog.NewJSONHandler(os.Stdout, &logHandlerOptions)
+	// The db commands print what they report, SQL or a status table, on stdout,
+	// to be read or piped: their logs go to stderr.
+	logOut := os.Stdout
+	if section == sectionDB {
+		logOut = os.Stderr
+	}
+	logHandler := slog.NewJSONHandler(logOut, &logHandlerOptions)
 	slog.SetDefault(slog.New(logHandler).With(slog.String(logkey.Section, section)))
 	slog.Debug(fmt.Sprintf("candidate config directories: %s", configCandidateDirs))
 

@@ -94,7 +94,7 @@ type (
 	     UNIQUE KEY `uk` (`node_id`,`svc_id`,`rid`)
 	   ) ENGINE=InnoDB AUTO_INCREMENT=40132 DEFAULT CHARSET=utf8
 
-	   idx1 (node_id, svc_id), a prefix of uk, dropped in migration.sql (2026-10-14).
+	   idx1 (node_id, svc_id), a prefix of uk, dropped by migration 0012_resmon_log_last_drop_idx1.
 	*/
 	DBResmonLog struct {
 		SvcID  string
