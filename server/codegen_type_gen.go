@@ -220,6 +220,60 @@ func (e AssistantStreamEventType) Valid() bool {
 	}
 }
 
+// Defines values for ComplianceAttachmentOutcomeObject.
+const (
+	ComplianceAttachmentOutcomeObjectModuleset ComplianceAttachmentOutcomeObject = "moduleset"
+	ComplianceAttachmentOutcomeObjectRuleset   ComplianceAttachmentOutcomeObject = "ruleset"
+)
+
+// Valid indicates whether the value is a known member of the ComplianceAttachmentOutcomeObject enum.
+func (e ComplianceAttachmentOutcomeObject) Valid() bool {
+	switch e {
+	case ComplianceAttachmentOutcomeObjectModuleset:
+		return true
+	case ComplianceAttachmentOutcomeObjectRuleset:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ComplianceAttachmentPairObject.
+const (
+	ComplianceAttachmentPairObjectModuleset ComplianceAttachmentPairObject = "moduleset"
+	ComplianceAttachmentPairObjectRuleset   ComplianceAttachmentPairObject = "ruleset"
+)
+
+// Valid indicates whether the value is a known member of the ComplianceAttachmentPairObject enum.
+func (e ComplianceAttachmentPairObject) Valid() bool {
+	switch e {
+	case ComplianceAttachmentPairObjectModuleset:
+		return true
+	case ComplianceAttachmentPairObjectRuleset:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ComplianceAttachmentsInputAction.
+const (
+	Attach ComplianceAttachmentsInputAction = "attach"
+	Detach ComplianceAttachmentsInputAction = "detach"
+)
+
+// Valid indicates whether the value is a known member of the ComplianceAttachmentsInputAction enum.
+func (e ComplianceAttachmentsInputAction) Valid() bool {
+	switch e {
+	case Attach:
+		return true
+	case Detach:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ComplianceVersionSource.
 const (
 	ComplianceVersionSourceDesigner  ComplianceVersionSource = "designer"
@@ -1743,11 +1797,423 @@ type CompModulesetExport struct {
 	Rulesets   *[]CompExportRuleset   `json:"rulesets,omitempty"`
 }
 
+// CompNodeModulesetListResponse defines model for CompNodeModulesetListResponse.
+type CompNodeModulesetListResponse struct {
+	Data CompNodeModulesetListResponse_Data `json:"data"`
+	Meta *ListMeta                          `json:"meta,omitempty"`
+}
+
+// CompNodeModulesetListResponseData0 defines model for .
+type CompNodeModulesetListResponseData0 = []CompNodeModulesetRow
+
+// CompNodeModulesetListResponseData1 defines model for .
+type CompNodeModulesetListResponseData1 map[string]map[string]int
+
+// CompNodeModulesetListResponse_Data defines model for CompNodeModulesetListResponse.Data.
+type CompNodeModulesetListResponse_Data struct {
+	union json.RawMessage
+}
+
+// CompNodeModulesetRow defines model for CompNodeModulesetRow.
+type CompNodeModulesetRow struct {
+	ActionType   *string `json:"action_type,omitempty"`
+	App          *string `json:"app,omitempty"`
+	AssetEnv     *string `json:"asset_env,omitempty"`
+	Assetname    *string `json:"assetname,omitempty"`
+	BiosVersion  *string `json:"bios_version,omitempty"`
+	BladeCabinet *string `json:"blade_cabinet,omitempty"`
+	ClusterId    *string `json:"cluster_id,omitempty"`
+
+	// ClustersClusterName Name of the node's cluster, from the joined clusters table.
+	ClustersClusterName *string `json:"clusters.cluster_name,omitempty"`
+	Collector           *string `json:"collector,omitempty"`
+	ConnectTo           *string `json:"connect_to,omitempty"`
+	CpuCores            *int    `json:"cpu_cores,omitempty"`
+	CpuDies             *int    `json:"cpu_dies,omitempty"`
+	CpuFreq             *string `json:"cpu_freq,omitempty"`
+	CpuModel            *string `json:"cpu_model,omitempty"`
+	CpuThreads          *int    `json:"cpu_threads,omitempty"`
+	CpuVendor           *string `json:"cpu_vendor,omitempty"`
+	Enclosure           *string `json:"enclosure,omitempty"`
+	Enclosureslot       *string `json:"enclosureslot,omitempty"`
+	Fqdn                *string `json:"fqdn,omitempty"`
+	Hv                  *string `json:"hv,omitempty"`
+	Hvpool              *string `json:"hvpool,omitempty"`
+	Hvvdc               *string `json:"hvvdc,omitempty"`
+	HwObsAlertDate      *string `json:"hw_obs_alert_date,omitempty"`
+	HwObsWarnDate       *string `json:"hw_obs_warn_date,omitempty"`
+	LastBoot            *string `json:"last_boot,omitempty"`
+	LastComm            *string `json:"last_comm,omitempty"`
+	ListenerPort        *int    `json:"listener_port,omitempty"`
+	LocAddr             *string `json:"loc_addr,omitempty"`
+	LocBuilding         *string `json:"loc_building,omitempty"`
+	LocCity             *string `json:"loc_city,omitempty"`
+	LocCountry          *string `json:"loc_country,omitempty"`
+	LocFloor            *string `json:"loc_floor,omitempty"`
+	LocRack             *string `json:"loc_rack,omitempty"`
+	LocRoom             *string `json:"loc_room,omitempty"`
+	LocZip              *string `json:"loc_zip,omitempty"`
+	MaintenanceEnd      *string `json:"maintenance_end,omitempty"`
+	Manufacturer        *string `json:"manufacturer,omitempty"`
+	MemBanks            *int    `json:"mem_banks,omitempty"`
+	MemBytes            *int    `json:"mem_bytes,omitempty"`
+	MemSlots            *int    `json:"mem_slots,omitempty"`
+	Model               *string `json:"model,omitempty"`
+	ModsetId            *int    `json:"modset_id,omitempty"`
+	ModsetName          *string `json:"modset_name,omitempty"`
+	NodeEnv             *string `json:"node_env,omitempty"`
+	NodeFrozen          *string `json:"node_frozen,omitempty"`
+	NodeFrozenAt        *string `json:"node_frozen_at,omitempty"`
+	NodeId              *string `json:"node_id,omitempty"`
+	Nodename            *string `json:"nodename,omitempty"`
+	Notifications       *string `json:"notifications,omitempty"`
+	OsArch              *string `json:"os_arch,omitempty"`
+	OsConcat            *string `json:"os_concat,omitempty"`
+	OsKernel            *string `json:"os_kernel,omitempty"`
+	OsName              *string `json:"os_name,omitempty"`
+	OsObsAlertDate      *string `json:"os_obs_alert_date,omitempty"`
+	OsObsWarnDate       *string `json:"os_obs_warn_date,omitempty"`
+	OsRelease           *string `json:"os_release,omitempty"`
+	OsSegment           *string `json:"os_segment,omitempty"`
+	OsUpdate            *string `json:"os_update,omitempty"`
+	OsVendor            *string `json:"os_vendor,omitempty"`
+	PowerBreaker1       *string `json:"power_breaker1,omitempty"`
+	PowerBreaker2       *string `json:"power_breaker2,omitempty"`
+	PowerCabinet1       *string `json:"power_cabinet1,omitempty"`
+	PowerCabinet2       *string `json:"power_cabinet2,omitempty"`
+	PowerProtect        *string `json:"power_protect,omitempty"`
+	PowerProtectBreaker *string `json:"power_protect_breaker,omitempty"`
+	PowerSupplyNb       *int    `json:"power_supply_nb,omitempty"`
+	Role                *string `json:"role,omitempty"`
+	SecZone             *string `json:"sec_zone,omitempty"`
+	Serial              *string `json:"serial,omitempty"`
+	SnoozeTill          *string `json:"snooze_till,omitempty"`
+	SpVersion           *string `json:"sp_version,omitempty"`
+	Status              *string `json:"status,omitempty"`
+	TeamInteg           *string `json:"team_integ,omitempty"`
+	TeamResponsible     *string `json:"team_responsible,omitempty"`
+	TeamSupport         *string `json:"team_support,omitempty"`
+	Type                *string `json:"type,omitempty"`
+	Tz                  *string `json:"tz,omitempty"`
+	Updated             *string `json:"updated,omitempty"`
+	Version             *string `json:"version,omitempty"`
+	WarrantyEnd         *string `json:"warranty_end,omitempty"`
+}
+
+// CompNodeRulesetListResponse defines model for CompNodeRulesetListResponse.
+type CompNodeRulesetListResponse struct {
+	Data CompNodeRulesetListResponse_Data `json:"data"`
+	Meta *ListMeta                        `json:"meta,omitempty"`
+}
+
+// CompNodeRulesetListResponseData0 defines model for .
+type CompNodeRulesetListResponseData0 = []CompNodeRulesetRow
+
+// CompNodeRulesetListResponseData1 defines model for .
+type CompNodeRulesetListResponseData1 map[string]map[string]int
+
+// CompNodeRulesetListResponse_Data defines model for CompNodeRulesetListResponse.Data.
+type CompNodeRulesetListResponse_Data struct {
+	union json.RawMessage
+}
+
+// CompNodeRulesetRow defines model for CompNodeRulesetRow.
+type CompNodeRulesetRow struct {
+	ActionType   *string `json:"action_type,omitempty"`
+	App          *string `json:"app,omitempty"`
+	AssetEnv     *string `json:"asset_env,omitempty"`
+	Assetname    *string `json:"assetname,omitempty"`
+	BiosVersion  *string `json:"bios_version,omitempty"`
+	BladeCabinet *string `json:"blade_cabinet,omitempty"`
+	ClusterId    *string `json:"cluster_id,omitempty"`
+
+	// ClustersClusterName Name of the node's cluster, from the joined clusters table.
+	ClustersClusterName *string `json:"clusters.cluster_name,omitempty"`
+	Collector           *string `json:"collector,omitempty"`
+	ConnectTo           *string `json:"connect_to,omitempty"`
+	CpuCores            *int    `json:"cpu_cores,omitempty"`
+	CpuDies             *int    `json:"cpu_dies,omitempty"`
+	CpuFreq             *string `json:"cpu_freq,omitempty"`
+	CpuModel            *string `json:"cpu_model,omitempty"`
+	CpuThreads          *int    `json:"cpu_threads,omitempty"`
+	CpuVendor           *string `json:"cpu_vendor,omitempty"`
+	Enclosure           *string `json:"enclosure,omitempty"`
+	Enclosureslot       *string `json:"enclosureslot,omitempty"`
+	Fqdn                *string `json:"fqdn,omitempty"`
+	Hv                  *string `json:"hv,omitempty"`
+	Hvpool              *string `json:"hvpool,omitempty"`
+	Hvvdc               *string `json:"hvvdc,omitempty"`
+	HwObsAlertDate      *string `json:"hw_obs_alert_date,omitempty"`
+	HwObsWarnDate       *string `json:"hw_obs_warn_date,omitempty"`
+	LastBoot            *string `json:"last_boot,omitempty"`
+	LastComm            *string `json:"last_comm,omitempty"`
+	ListenerPort        *int    `json:"listener_port,omitempty"`
+	LocAddr             *string `json:"loc_addr,omitempty"`
+	LocBuilding         *string `json:"loc_building,omitempty"`
+	LocCity             *string `json:"loc_city,omitempty"`
+	LocCountry          *string `json:"loc_country,omitempty"`
+	LocFloor            *string `json:"loc_floor,omitempty"`
+	LocRack             *string `json:"loc_rack,omitempty"`
+	LocRoom             *string `json:"loc_room,omitempty"`
+	LocZip              *string `json:"loc_zip,omitempty"`
+	MaintenanceEnd      *string `json:"maintenance_end,omitempty"`
+	Manufacturer        *string `json:"manufacturer,omitempty"`
+	MemBanks            *int    `json:"mem_banks,omitempty"`
+	MemBytes            *int    `json:"mem_bytes,omitempty"`
+	MemSlots            *int    `json:"mem_slots,omitempty"`
+	Model               *string `json:"model,omitempty"`
+	NodeEnv             *string `json:"node_env,omitempty"`
+	NodeFrozen          *string `json:"node_frozen,omitempty"`
+	NodeFrozenAt        *string `json:"node_frozen_at,omitempty"`
+	NodeId              *string `json:"node_id,omitempty"`
+	Nodename            *string `json:"nodename,omitempty"`
+	Notifications       *string `json:"notifications,omitempty"`
+	OsArch              *string `json:"os_arch,omitempty"`
+	OsConcat            *string `json:"os_concat,omitempty"`
+	OsKernel            *string `json:"os_kernel,omitempty"`
+	OsName              *string `json:"os_name,omitempty"`
+	OsObsAlertDate      *string `json:"os_obs_alert_date,omitempty"`
+	OsObsWarnDate       *string `json:"os_obs_warn_date,omitempty"`
+	OsRelease           *string `json:"os_release,omitempty"`
+	OsSegment           *string `json:"os_segment,omitempty"`
+	OsUpdate            *string `json:"os_update,omitempty"`
+	OsVendor            *string `json:"os_vendor,omitempty"`
+	PowerBreaker1       *string `json:"power_breaker1,omitempty"`
+	PowerBreaker2       *string `json:"power_breaker2,omitempty"`
+	PowerCabinet1       *string `json:"power_cabinet1,omitempty"`
+	PowerCabinet2       *string `json:"power_cabinet2,omitempty"`
+	PowerProtect        *string `json:"power_protect,omitempty"`
+	PowerProtectBreaker *string `json:"power_protect_breaker,omitempty"`
+	PowerSupplyNb       *int    `json:"power_supply_nb,omitempty"`
+	Role                *string `json:"role,omitempty"`
+	RulesetId           *int    `json:"ruleset_id,omitempty"`
+	RulesetName         *string `json:"ruleset_name,omitempty"`
+	SecZone             *string `json:"sec_zone,omitempty"`
+	Serial              *string `json:"serial,omitempty"`
+	SnoozeTill          *string `json:"snooze_till,omitempty"`
+	SpVersion           *string `json:"sp_version,omitempty"`
+	Status              *string `json:"status,omitempty"`
+	TeamInteg           *string `json:"team_integ,omitempty"`
+	TeamResponsible     *string `json:"team_responsible,omitempty"`
+	TeamSupport         *string `json:"team_support,omitempty"`
+	Type                *string `json:"type,omitempty"`
+	Tz                  *string `json:"tz,omitempty"`
+	Updated             *string `json:"updated,omitempty"`
+	Version             *string `json:"version,omitempty"`
+	WarrantyEnd         *string `json:"warranty_end,omitempty"`
+}
+
 // CompRulesetExport Rulesets with their descendants and the filtersets they use, in the format
 // POST /compliance/import reads.
 type CompRulesetExport struct {
 	Filtersets *[]FiltersetExportItem `json:"filtersets,omitempty"`
 	Rulesets   *[]CompExportRuleset   `json:"rulesets,omitempty"`
+}
+
+// CompServiceModulesetListResponse defines model for CompServiceModulesetListResponse.
+type CompServiceModulesetListResponse struct {
+	Data CompServiceModulesetListResponse_Data `json:"data"`
+	Meta *ListMeta                             `json:"meta,omitempty"`
+}
+
+// CompServiceModulesetListResponseData0 defines model for .
+type CompServiceModulesetListResponseData0 = []CompServiceModulesetRow
+
+// CompServiceModulesetListResponseData1 defines model for .
+type CompServiceModulesetListResponseData1 map[string]map[string]int
+
+// CompServiceModulesetListResponse_Data defines model for CompServiceModulesetListResponse.Data.
+type CompServiceModulesetListResponse_Data struct {
+	union json.RawMessage
+}
+
+// CompServiceModulesetRow defines model for CompServiceModulesetRow.
+type CompServiceModulesetRow struct {
+	ClusterId  *string `json:"cluster_id,omitempty"`
+	Id         *int    `json:"id,omitempty"`
+	ModsetId   *int    `json:"modset_id,omitempty"`
+	ModsetName *string `json:"modset_name,omitempty"`
+
+	// Slave "T": attached to the encapsulated part of the service
+	Slave        *string `json:"slave,omitempty"`
+	SvcApp       *string `json:"svc_app,omitempty"`
+	SvcAutostart *string `json:"svc_autostart,omitempty"`
+
+	// SvcAvailability The availability rate of the last 30 days, in percent, as the status
+	// history of the service computes it, stored by the scheduler every 10
+	// minutes and at once when a justification changes; sortable and
+	// filterable. Null without status recorded.
+	SvcAvailability *float64 `json:"svc_availability,omitempty"`
+
+	// SvcAvailabilityTrend The change of svc_availability over the last 7 days, in points: its
+	// value now minus its value 7 days ago, positive when the service is
+	// more available than it was. Null without status history 7 days ago.
+	SvcAvailabilityTrend *float64 `json:"svc_availability_trend,omitempty"`
+
+	// SvcAvailabilityUpdated When svc_availability was computed.
+	SvcAvailabilityUpdated  *string `json:"svc_availability_updated,omitempty"`
+	SvcAvailstatus          *string `json:"svc_availstatus,omitempty"`
+	SvcComment              *string `json:"svc_comment,omitempty"`
+	SvcConfig               *string `json:"svc_config,omitempty"`
+	SvcConfigUpdated        *string `json:"svc_config_updated,omitempty"`
+	SvcCreated              *string `json:"svc_created,omitempty"`
+	SvcDrnoaction           *string `json:"svc_drnoaction,omitempty"`
+	SvcDrpnode              *string `json:"svc_drpnode,omitempty"`
+	SvcDrpnodes             *string `json:"svc_drpnodes,omitempty"`
+	SvcDrptype              *string `json:"svc_drptype,omitempty"`
+	SvcEnv                  *string `json:"svc_env,omitempty"`
+	SvcFlexCpuHighThreshold *int    `json:"svc_flex_cpu_high_threshold,omitempty"`
+	SvcFlexCpuLowThreshold  *int    `json:"svc_flex_cpu_low_threshold,omitempty"`
+	SvcFlexMaxNodes         *int    `json:"svc_flex_max_nodes,omitempty"`
+	SvcFlexMinNodes         *int    `json:"svc_flex_min_nodes,omitempty"`
+	SvcFlexTarget           *int    `json:"svc_flex_target,omitempty"`
+	SvcFrozen               *string `json:"svc_frozen,omitempty"`
+	SvcHa                   *int    `json:"svc_ha,omitempty"`
+	SvcHostid               *string `json:"svc_hostid,omitempty"`
+	SvcId                   *string `json:"svc_id,omitempty"`
+	SvcMetrocluster         *string `json:"svc_metrocluster,omitempty"`
+	SvcNodes                *string `json:"svc_nodes,omitempty"`
+	SvcNotifications        *string `json:"svc_notifications,omitempty"`
+	SvcPlacement            *string `json:"svc_placement,omitempty"`
+	SvcProvisioned          *string `json:"svc_provisioned,omitempty"`
+
+	// SvcSla The availability target, in percent; null without SLA.
+	SvcSla           *float64 `json:"svc_sla,omitempty"`
+	SvcSnoozeTill    *string  `json:"svc_snooze_till,omitempty"`
+	SvcStatus        *string  `json:"svc_status,omitempty"`
+	SvcStatusUpdated *string  `json:"svc_status_updated,omitempty"`
+	SvcTopology      *string  `json:"svc_topology,omitempty"`
+	SvcWave          *int     `json:"svc_wave,omitempty"`
+	Svcname          *string  `json:"svcname,omitempty"`
+	Updated          *string  `json:"updated,omitempty"`
+}
+
+// CompServiceRulesetListResponse defines model for CompServiceRulesetListResponse.
+type CompServiceRulesetListResponse struct {
+	Data CompServiceRulesetListResponse_Data `json:"data"`
+	Meta *ListMeta                           `json:"meta,omitempty"`
+}
+
+// CompServiceRulesetListResponseData0 defines model for .
+type CompServiceRulesetListResponseData0 = []CompServiceRulesetRow
+
+// CompServiceRulesetListResponseData1 defines model for .
+type CompServiceRulesetListResponseData1 map[string]map[string]int
+
+// CompServiceRulesetListResponse_Data defines model for CompServiceRulesetListResponse.Data.
+type CompServiceRulesetListResponse_Data struct {
+	union json.RawMessage
+}
+
+// CompServiceRulesetRow defines model for CompServiceRulesetRow.
+type CompServiceRulesetRow struct {
+	ClusterId   *string `json:"cluster_id,omitempty"`
+	Id          *int    `json:"id,omitempty"`
+	RulesetId   *int    `json:"ruleset_id,omitempty"`
+	RulesetName *string `json:"ruleset_name,omitempty"`
+
+	// Slave "T": attached to the encapsulated part of the service
+	Slave        *string `json:"slave,omitempty"`
+	SvcApp       *string `json:"svc_app,omitempty"`
+	SvcAutostart *string `json:"svc_autostart,omitempty"`
+
+	// SvcAvailability The availability rate of the last 30 days, in percent, as the status
+	// history of the service computes it, stored by the scheduler every 10
+	// minutes and at once when a justification changes; sortable and
+	// filterable. Null without status recorded.
+	SvcAvailability *float64 `json:"svc_availability,omitempty"`
+
+	// SvcAvailabilityTrend The change of svc_availability over the last 7 days, in points: its
+	// value now minus its value 7 days ago, positive when the service is
+	// more available than it was. Null without status history 7 days ago.
+	SvcAvailabilityTrend *float64 `json:"svc_availability_trend,omitempty"`
+
+	// SvcAvailabilityUpdated When svc_availability was computed.
+	SvcAvailabilityUpdated  *string `json:"svc_availability_updated,omitempty"`
+	SvcAvailstatus          *string `json:"svc_availstatus,omitempty"`
+	SvcComment              *string `json:"svc_comment,omitempty"`
+	SvcConfig               *string `json:"svc_config,omitempty"`
+	SvcConfigUpdated        *string `json:"svc_config_updated,omitempty"`
+	SvcCreated              *string `json:"svc_created,omitempty"`
+	SvcDrnoaction           *string `json:"svc_drnoaction,omitempty"`
+	SvcDrpnode              *string `json:"svc_drpnode,omitempty"`
+	SvcDrpnodes             *string `json:"svc_drpnodes,omitempty"`
+	SvcDrptype              *string `json:"svc_drptype,omitempty"`
+	SvcEnv                  *string `json:"svc_env,omitempty"`
+	SvcFlexCpuHighThreshold *int    `json:"svc_flex_cpu_high_threshold,omitempty"`
+	SvcFlexCpuLowThreshold  *int    `json:"svc_flex_cpu_low_threshold,omitempty"`
+	SvcFlexMaxNodes         *int    `json:"svc_flex_max_nodes,omitempty"`
+	SvcFlexMinNodes         *int    `json:"svc_flex_min_nodes,omitempty"`
+	SvcFlexTarget           *int    `json:"svc_flex_target,omitempty"`
+	SvcFrozen               *string `json:"svc_frozen,omitempty"`
+	SvcHa                   *int    `json:"svc_ha,omitempty"`
+	SvcHostid               *string `json:"svc_hostid,omitempty"`
+	SvcId                   *string `json:"svc_id,omitempty"`
+	SvcMetrocluster         *string `json:"svc_metrocluster,omitempty"`
+	SvcNodes                *string `json:"svc_nodes,omitempty"`
+	SvcNotifications        *string `json:"svc_notifications,omitempty"`
+	SvcPlacement            *string `json:"svc_placement,omitempty"`
+	SvcProvisioned          *string `json:"svc_provisioned,omitempty"`
+
+	// SvcSla The availability target, in percent; null without SLA.
+	SvcSla           *float64 `json:"svc_sla,omitempty"`
+	SvcSnoozeTill    *string  `json:"svc_snooze_till,omitempty"`
+	SvcStatus        *string  `json:"svc_status,omitempty"`
+	SvcStatusUpdated *string  `json:"svc_status_updated,omitempty"`
+	SvcTopology      *string  `json:"svc_topology,omitempty"`
+	SvcWave          *int     `json:"svc_wave,omitempty"`
+	Svcname          *string  `json:"svcname,omitempty"`
+	Updated          *string  `json:"updated,omitempty"`
+}
+
+// ComplianceAttachmentOutcome defines model for ComplianceAttachmentOutcome.
+type ComplianceAttachmentOutcome struct {
+	// Info Its message, or why the pair was refused
+	Info     string                            `json:"info"`
+	NodeId   *string                           `json:"node_id,omitempty"`
+	Object   ComplianceAttachmentOutcomeObject `json:"object"`
+	ObjectId string                            `json:"object_id"`
+	Slave    *bool                             `json:"slave,omitempty"`
+
+	// Status The status the single route answers with, 202 when done
+	Status int     `json:"status"`
+	SvcId  *string `json:"svc_id,omitempty"`
+}
+
+// ComplianceAttachmentOutcomeObject defines model for ComplianceAttachmentOutcome.Object.
+type ComplianceAttachmentOutcomeObject string
+
+// ComplianceAttachmentPair A moduleset or a ruleset, and the node or the service to attach it to or detach it from
+type ComplianceAttachmentPair struct {
+	// NodeId The node; exactly one of node_id and svc_id
+	NodeId *string                        `json:"node_id,omitempty"`
+	Object ComplianceAttachmentPairObject `json:"object"`
+
+	// ObjectId Id of the moduleset or of the ruleset
+	ObjectId string `json:"object_id"`
+
+	// Slave For a service, its encapsulated part rather than the service itself
+	Slave *bool `json:"slave,omitempty"`
+
+	// SvcId The service; exactly one of node_id and svc_id
+	SvcId *string `json:"svc_id,omitempty"`
+}
+
+// ComplianceAttachmentPairObject defines model for ComplianceAttachmentPair.Object.
+type ComplianceAttachmentPairObject string
+
+// ComplianceAttachmentsInput defines model for ComplianceAttachmentsInput.
+type ComplianceAttachmentsInput struct {
+	Action ComplianceAttachmentsInputAction `json:"action"`
+	Pairs  []ComplianceAttachmentPair       `json:"pairs"`
+}
+
+// ComplianceAttachmentsInputAction defines model for ComplianceAttachmentsInput.Action.
+type ComplianceAttachmentsInputAction string
+
+// ComplianceAttachmentsResponse defines model for ComplianceAttachmentsResponse.
+type ComplianceAttachmentsResponse struct {
+	Data []ComplianceAttachmentOutcome `json:"data"`
 }
 
 // ComplianceExport The compliance export a version recorded, in the format of the import.
@@ -6060,6 +6526,62 @@ type DeleteComplianceModulesetsNodesJSONBody struct {
 	NodeId     string      `json:"node_id"`
 }
 
+// GetComplianceModulesetsNodesParams defines parameters for GetComplianceModulesetsNodes.
+type GetComplianceModulesetsNodesParams struct {
+	// Props A list of properties to include in each data dictionnary.
+	Props *InQueryProps `form:"props,omitempty" json:"props,omitempty"`
+
+	// Limit The maximum number of entries to return. 0 means no limit.
+	Limit *InQueryLimit `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// Offset Skip the first entries of the data cursor.
+	Offset *InQueryOffset `form:"offset,omitempty" json:"offset,omitempty"`
+
+	// Meta Include metadata in the response. Enabled by default. Use false or 0 to omit
+	// the meta field. The metadata of a list carries its total number of rows
+	// without pagination (total), as well as the rows returned (count), the offset
+	// and the limit.
+	Meta *InQueryMeta `form:"meta,omitempty" json:"meta,omitempty"`
+
+	// Stats With "1" or "true", the response counts the distinct values of each
+	// selected property instead of listing the rows: `data` maps each property
+	// to an object of value → number of rows ("empty" for a null or blank
+	// value), over the whole selection (access control, filters and session
+	// filterset applied, `offset` ignored). `limit`, when given, caps the
+	// number of values returned per property, the most frequent first; without
+	// it every value is returned. `meta.total` is the number of rows,
+	// `meta.distinct` the number of distinct values of each property, and
+	// `meta.other` the number of rows whose value was left out by the limit.
+	// A count taking longer than 5 seconds is refused with a 400, asking to
+	// narrow the selection.
+	Stats *InQueryStats `form:"stats,omitempty" json:"stats,omitempty"`
+
+	// Orderby Comma-separated list of properties to sort by. Prefix a property with - for descending order (e.g. orderby=nodename,-app).
+	Orderby *InQueryOrderby `form:"orderby,omitempty" json:"orderby,omitempty"`
+
+	// Filter Column filter, repeatable; several filters combine with AND. Each value is
+	// `prop:expr`, `prop` being a property of the list (joined ones included, as
+	// for orderby) and `expr` one of:
+	//   - text: case-insensitive match anywhere in the value;
+	//   - `~regex`: regular expression (RE2 syntax), case-insensitive;
+	//   - `in:a,b,c`: one of the listed values;
+	//   - `eq:v`, `ne:v`: equal, not equal;
+	//   - `gt:v`, `gte:v`, `lt:v`, `lte:v`: comparisons, for numbers and dates;
+	//     a date may be relative to now, `-` then a duration in weeks, days,
+	//     hours, minutes and seconds: `lt:-15m` keeps the dates older than 15
+	//     minutes, `gte:-1d12h` those of the last day and a half;
+	//   - `empty`: no value;
+	//   - `!expr`: the inverse of any of the above, that is the rows `expr` leaves
+	//     out, those without a value included: `!dev`, `!~^dev`, `!in:a,b`,
+	//     `!empty` (any value).
+	// An unknown property, a property without a column, or an invalid regular
+	// expression is answered with 400.
+	Filter *InQueryFilter `form:"filter,omitempty" json:"filter,omitempty"`
+
+	// Groupby Comma-separated list of properties to group the result by (e.g. groupby=app,svcname).
+	Groupby *InQueryGroupby `form:"groupby,omitempty" json:"groupby,omitempty"`
+}
+
 // PostComplianceModulesetsNodesJSONBody defines parameters for PostComplianceModulesetsNodes.
 type PostComplianceModulesetsNodesJSONBody struct {
 	// ModsetId Moduleset id or name
@@ -6113,6 +6635,62 @@ type DeleteComplianceModulesetsServicesJSONBody struct {
 	// Slave A boolean; true for the encapsulated service. encap is accepted as well.
 	Slave interface{} `json:"slave,omitempty"`
 	SvcId string      `json:"svc_id"`
+}
+
+// GetComplianceModulesetsServicesParams defines parameters for GetComplianceModulesetsServices.
+type GetComplianceModulesetsServicesParams struct {
+	// Props A list of properties to include in each data dictionnary.
+	Props *InQueryProps `form:"props,omitempty" json:"props,omitempty"`
+
+	// Limit The maximum number of entries to return. 0 means no limit.
+	Limit *InQueryLimit `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// Offset Skip the first entries of the data cursor.
+	Offset *InQueryOffset `form:"offset,omitempty" json:"offset,omitempty"`
+
+	// Meta Include metadata in the response. Enabled by default. Use false or 0 to omit
+	// the meta field. The metadata of a list carries its total number of rows
+	// without pagination (total), as well as the rows returned (count), the offset
+	// and the limit.
+	Meta *InQueryMeta `form:"meta,omitempty" json:"meta,omitempty"`
+
+	// Stats With "1" or "true", the response counts the distinct values of each
+	// selected property instead of listing the rows: `data` maps each property
+	// to an object of value → number of rows ("empty" for a null or blank
+	// value), over the whole selection (access control, filters and session
+	// filterset applied, `offset` ignored). `limit`, when given, caps the
+	// number of values returned per property, the most frequent first; without
+	// it every value is returned. `meta.total` is the number of rows,
+	// `meta.distinct` the number of distinct values of each property, and
+	// `meta.other` the number of rows whose value was left out by the limit.
+	// A count taking longer than 5 seconds is refused with a 400, asking to
+	// narrow the selection.
+	Stats *InQueryStats `form:"stats,omitempty" json:"stats,omitempty"`
+
+	// Orderby Comma-separated list of properties to sort by. Prefix a property with - for descending order (e.g. orderby=nodename,-app).
+	Orderby *InQueryOrderby `form:"orderby,omitempty" json:"orderby,omitempty"`
+
+	// Filter Column filter, repeatable; several filters combine with AND. Each value is
+	// `prop:expr`, `prop` being a property of the list (joined ones included, as
+	// for orderby) and `expr` one of:
+	//   - text: case-insensitive match anywhere in the value;
+	//   - `~regex`: regular expression (RE2 syntax), case-insensitive;
+	//   - `in:a,b,c`: one of the listed values;
+	//   - `eq:v`, `ne:v`: equal, not equal;
+	//   - `gt:v`, `gte:v`, `lt:v`, `lte:v`: comparisons, for numbers and dates;
+	//     a date may be relative to now, `-` then a duration in weeks, days,
+	//     hours, minutes and seconds: `lt:-15m` keeps the dates older than 15
+	//     minutes, `gte:-1d12h` those of the last day and a half;
+	//   - `empty`: no value;
+	//   - `!expr`: the inverse of any of the above, that is the rows `expr` leaves
+	//     out, those without a value included: `!dev`, `!~^dev`, `!in:a,b`,
+	//     `!empty` (any value).
+	// An unknown property, a property without a column, or an invalid regular
+	// expression is answered with 400.
+	Filter *InQueryFilter `form:"filter,omitempty" json:"filter,omitempty"`
+
+	// Groupby Comma-separated list of properties to group the result by (e.g. groupby=app,svcname).
+	Groupby *InQueryGroupby `form:"groupby,omitempty" json:"groupby,omitempty"`
 }
 
 // PostComplianceModulesetsServicesJSONBody defines parameters for PostComplianceModulesetsServices.
@@ -6670,6 +7248,62 @@ type DeleteComplianceRulesetsNodesJSONBody struct {
 	RulesetName *string     `json:"ruleset_name,omitempty"`
 }
 
+// GetComplianceRulesetsNodesParams defines parameters for GetComplianceRulesetsNodes.
+type GetComplianceRulesetsNodesParams struct {
+	// Props A list of properties to include in each data dictionnary.
+	Props *InQueryProps `form:"props,omitempty" json:"props,omitempty"`
+
+	// Limit The maximum number of entries to return. 0 means no limit.
+	Limit *InQueryLimit `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// Offset Skip the first entries of the data cursor.
+	Offset *InQueryOffset `form:"offset,omitempty" json:"offset,omitempty"`
+
+	// Meta Include metadata in the response. Enabled by default. Use false or 0 to omit
+	// the meta field. The metadata of a list carries its total number of rows
+	// without pagination (total), as well as the rows returned (count), the offset
+	// and the limit.
+	Meta *InQueryMeta `form:"meta,omitempty" json:"meta,omitempty"`
+
+	// Stats With "1" or "true", the response counts the distinct values of each
+	// selected property instead of listing the rows: `data` maps each property
+	// to an object of value → number of rows ("empty" for a null or blank
+	// value), over the whole selection (access control, filters and session
+	// filterset applied, `offset` ignored). `limit`, when given, caps the
+	// number of values returned per property, the most frequent first; without
+	// it every value is returned. `meta.total` is the number of rows,
+	// `meta.distinct` the number of distinct values of each property, and
+	// `meta.other` the number of rows whose value was left out by the limit.
+	// A count taking longer than 5 seconds is refused with a 400, asking to
+	// narrow the selection.
+	Stats *InQueryStats `form:"stats,omitempty" json:"stats,omitempty"`
+
+	// Orderby Comma-separated list of properties to sort by. Prefix a property with - for descending order (e.g. orderby=nodename,-app).
+	Orderby *InQueryOrderby `form:"orderby,omitempty" json:"orderby,omitempty"`
+
+	// Filter Column filter, repeatable; several filters combine with AND. Each value is
+	// `prop:expr`, `prop` being a property of the list (joined ones included, as
+	// for orderby) and `expr` one of:
+	//   - text: case-insensitive match anywhere in the value;
+	//   - `~regex`: regular expression (RE2 syntax), case-insensitive;
+	//   - `in:a,b,c`: one of the listed values;
+	//   - `eq:v`, `ne:v`: equal, not equal;
+	//   - `gt:v`, `gte:v`, `lt:v`, `lte:v`: comparisons, for numbers and dates;
+	//     a date may be relative to now, `-` then a duration in weeks, days,
+	//     hours, minutes and seconds: `lt:-15m` keeps the dates older than 15
+	//     minutes, `gte:-1d12h` those of the last day and a half;
+	//   - `empty`: no value;
+	//   - `!expr`: the inverse of any of the above, that is the rows `expr` leaves
+	//     out, those without a value included: `!dev`, `!~^dev`, `!in:a,b`,
+	//     `!empty` (any value).
+	// An unknown property, a property without a column, or an invalid regular
+	// expression is answered with 400.
+	Filter *InQueryFilter `form:"filter,omitempty" json:"filter,omitempty"`
+
+	// Groupby Comma-separated list of properties to group the result by (e.g. groupby=app,svcname).
+	Groupby *InQueryGroupby `form:"groupby,omitempty" json:"groupby,omitempty"`
+}
+
 // PostComplianceRulesetsNodesJSONBody defines parameters for PostComplianceRulesetsNodes.
 type PostComplianceRulesetsNodesJSONBody struct {
 	NodeId string `json:"node_id"`
@@ -6724,6 +7358,62 @@ type DeleteComplianceRulesetsServicesJSONBody struct {
 	// Slave A boolean; true for the encapsulated service. encap is accepted as well.
 	Slave interface{} `json:"slave,omitempty"`
 	SvcId string      `json:"svc_id"`
+}
+
+// GetComplianceRulesetsServicesParams defines parameters for GetComplianceRulesetsServices.
+type GetComplianceRulesetsServicesParams struct {
+	// Props A list of properties to include in each data dictionnary.
+	Props *InQueryProps `form:"props,omitempty" json:"props,omitempty"`
+
+	// Limit The maximum number of entries to return. 0 means no limit.
+	Limit *InQueryLimit `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// Offset Skip the first entries of the data cursor.
+	Offset *InQueryOffset `form:"offset,omitempty" json:"offset,omitempty"`
+
+	// Meta Include metadata in the response. Enabled by default. Use false or 0 to omit
+	// the meta field. The metadata of a list carries its total number of rows
+	// without pagination (total), as well as the rows returned (count), the offset
+	// and the limit.
+	Meta *InQueryMeta `form:"meta,omitempty" json:"meta,omitempty"`
+
+	// Stats With "1" or "true", the response counts the distinct values of each
+	// selected property instead of listing the rows: `data` maps each property
+	// to an object of value → number of rows ("empty" for a null or blank
+	// value), over the whole selection (access control, filters and session
+	// filterset applied, `offset` ignored). `limit`, when given, caps the
+	// number of values returned per property, the most frequent first; without
+	// it every value is returned. `meta.total` is the number of rows,
+	// `meta.distinct` the number of distinct values of each property, and
+	// `meta.other` the number of rows whose value was left out by the limit.
+	// A count taking longer than 5 seconds is refused with a 400, asking to
+	// narrow the selection.
+	Stats *InQueryStats `form:"stats,omitempty" json:"stats,omitempty"`
+
+	// Orderby Comma-separated list of properties to sort by. Prefix a property with - for descending order (e.g. orderby=nodename,-app).
+	Orderby *InQueryOrderby `form:"orderby,omitempty" json:"orderby,omitempty"`
+
+	// Filter Column filter, repeatable; several filters combine with AND. Each value is
+	// `prop:expr`, `prop` being a property of the list (joined ones included, as
+	// for orderby) and `expr` one of:
+	//   - text: case-insensitive match anywhere in the value;
+	//   - `~regex`: regular expression (RE2 syntax), case-insensitive;
+	//   - `in:a,b,c`: one of the listed values;
+	//   - `eq:v`, `ne:v`: equal, not equal;
+	//   - `gt:v`, `gte:v`, `lt:v`, `lte:v`: comparisons, for numbers and dates;
+	//     a date may be relative to now, `-` then a duration in weeks, days,
+	//     hours, minutes and seconds: `lt:-15m` keeps the dates older than 15
+	//     minutes, `gte:-1d12h` those of the last day and a half;
+	//   - `empty`: no value;
+	//   - `!expr`: the inverse of any of the above, that is the rows `expr` leaves
+	//     out, those without a value included: `!dev`, `!~^dev`, `!in:a,b`,
+	//     `!empty` (any value).
+	// An unknown property, a property without a column, or an invalid regular
+	// expression is answered with 400.
+	Filter *InQueryFilter `form:"filter,omitempty" json:"filter,omitempty"`
+
+	// Groupby Comma-separated list of properties to group the result by (e.g. groupby=app,svcname).
+	Groupby *InQueryGroupby `form:"groupby,omitempty" json:"groupby,omitempty"`
 }
 
 // PostComplianceRulesetsServicesJSONBody defines parameters for PostComplianceRulesetsServices.
@@ -12663,6 +13353,9 @@ type DeleteChecksSettingsJSONRequestBody = CheckKey
 // PostChecksSettingsJSONRequestBody defines body for PostChecksSettings for application/json ContentType.
 type PostChecksSettingsJSONRequestBody = CheckSettingsRequest
 
+// PostComplianceAttachmentsJSONRequestBody defines body for PostComplianceAttachments for application/json ContentType.
+type PostComplianceAttachmentsJSONRequestBody = ComplianceAttachmentsInput
+
 // PostComplianceHistoryJSONRequestBody defines body for PostComplianceHistory for application/json ContentType.
 type PostComplianceHistoryJSONRequestBody PostComplianceHistoryJSONBody
 
@@ -13467,6 +14160,254 @@ func (t ClusterListResponse_Data) MarshalJSON() ([]byte, error) {
 }
 
 func (t *ClusterListResponse_Data) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsCompNodeModulesetListResponseData0 returns the union data inside the CompNodeModulesetListResponse_Data as a CompNodeModulesetListResponseData0
+func (t CompNodeModulesetListResponse_Data) AsCompNodeModulesetListResponseData0() (CompNodeModulesetListResponseData0, error) {
+	var body CompNodeModulesetListResponseData0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromCompNodeModulesetListResponseData0 overwrites any union data inside the CompNodeModulesetListResponse_Data as the provided CompNodeModulesetListResponseData0
+func (t *CompNodeModulesetListResponse_Data) FromCompNodeModulesetListResponseData0(v CompNodeModulesetListResponseData0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeCompNodeModulesetListResponseData0 performs a merge with any union data inside the CompNodeModulesetListResponse_Data, using the provided CompNodeModulesetListResponseData0
+func (t *CompNodeModulesetListResponse_Data) MergeCompNodeModulesetListResponseData0(v CompNodeModulesetListResponseData0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsCompNodeModulesetListResponseData1 returns the union data inside the CompNodeModulesetListResponse_Data as a CompNodeModulesetListResponseData1
+func (t CompNodeModulesetListResponse_Data) AsCompNodeModulesetListResponseData1() (CompNodeModulesetListResponseData1, error) {
+	var body CompNodeModulesetListResponseData1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromCompNodeModulesetListResponseData1 overwrites any union data inside the CompNodeModulesetListResponse_Data as the provided CompNodeModulesetListResponseData1
+func (t *CompNodeModulesetListResponse_Data) FromCompNodeModulesetListResponseData1(v CompNodeModulesetListResponseData1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeCompNodeModulesetListResponseData1 performs a merge with any union data inside the CompNodeModulesetListResponse_Data, using the provided CompNodeModulesetListResponseData1
+func (t *CompNodeModulesetListResponse_Data) MergeCompNodeModulesetListResponseData1(v CompNodeModulesetListResponseData1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t CompNodeModulesetListResponse_Data) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *CompNodeModulesetListResponse_Data) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsCompNodeRulesetListResponseData0 returns the union data inside the CompNodeRulesetListResponse_Data as a CompNodeRulesetListResponseData0
+func (t CompNodeRulesetListResponse_Data) AsCompNodeRulesetListResponseData0() (CompNodeRulesetListResponseData0, error) {
+	var body CompNodeRulesetListResponseData0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromCompNodeRulesetListResponseData0 overwrites any union data inside the CompNodeRulesetListResponse_Data as the provided CompNodeRulesetListResponseData0
+func (t *CompNodeRulesetListResponse_Data) FromCompNodeRulesetListResponseData0(v CompNodeRulesetListResponseData0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeCompNodeRulesetListResponseData0 performs a merge with any union data inside the CompNodeRulesetListResponse_Data, using the provided CompNodeRulesetListResponseData0
+func (t *CompNodeRulesetListResponse_Data) MergeCompNodeRulesetListResponseData0(v CompNodeRulesetListResponseData0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsCompNodeRulesetListResponseData1 returns the union data inside the CompNodeRulesetListResponse_Data as a CompNodeRulesetListResponseData1
+func (t CompNodeRulesetListResponse_Data) AsCompNodeRulesetListResponseData1() (CompNodeRulesetListResponseData1, error) {
+	var body CompNodeRulesetListResponseData1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromCompNodeRulesetListResponseData1 overwrites any union data inside the CompNodeRulesetListResponse_Data as the provided CompNodeRulesetListResponseData1
+func (t *CompNodeRulesetListResponse_Data) FromCompNodeRulesetListResponseData1(v CompNodeRulesetListResponseData1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeCompNodeRulesetListResponseData1 performs a merge with any union data inside the CompNodeRulesetListResponse_Data, using the provided CompNodeRulesetListResponseData1
+func (t *CompNodeRulesetListResponse_Data) MergeCompNodeRulesetListResponseData1(v CompNodeRulesetListResponseData1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t CompNodeRulesetListResponse_Data) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *CompNodeRulesetListResponse_Data) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsCompServiceModulesetListResponseData0 returns the union data inside the CompServiceModulesetListResponse_Data as a CompServiceModulesetListResponseData0
+func (t CompServiceModulesetListResponse_Data) AsCompServiceModulesetListResponseData0() (CompServiceModulesetListResponseData0, error) {
+	var body CompServiceModulesetListResponseData0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromCompServiceModulesetListResponseData0 overwrites any union data inside the CompServiceModulesetListResponse_Data as the provided CompServiceModulesetListResponseData0
+func (t *CompServiceModulesetListResponse_Data) FromCompServiceModulesetListResponseData0(v CompServiceModulesetListResponseData0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeCompServiceModulesetListResponseData0 performs a merge with any union data inside the CompServiceModulesetListResponse_Data, using the provided CompServiceModulesetListResponseData0
+func (t *CompServiceModulesetListResponse_Data) MergeCompServiceModulesetListResponseData0(v CompServiceModulesetListResponseData0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsCompServiceModulesetListResponseData1 returns the union data inside the CompServiceModulesetListResponse_Data as a CompServiceModulesetListResponseData1
+func (t CompServiceModulesetListResponse_Data) AsCompServiceModulesetListResponseData1() (CompServiceModulesetListResponseData1, error) {
+	var body CompServiceModulesetListResponseData1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromCompServiceModulesetListResponseData1 overwrites any union data inside the CompServiceModulesetListResponse_Data as the provided CompServiceModulesetListResponseData1
+func (t *CompServiceModulesetListResponse_Data) FromCompServiceModulesetListResponseData1(v CompServiceModulesetListResponseData1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeCompServiceModulesetListResponseData1 performs a merge with any union data inside the CompServiceModulesetListResponse_Data, using the provided CompServiceModulesetListResponseData1
+func (t *CompServiceModulesetListResponse_Data) MergeCompServiceModulesetListResponseData1(v CompServiceModulesetListResponseData1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t CompServiceModulesetListResponse_Data) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *CompServiceModulesetListResponse_Data) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsCompServiceRulesetListResponseData0 returns the union data inside the CompServiceRulesetListResponse_Data as a CompServiceRulesetListResponseData0
+func (t CompServiceRulesetListResponse_Data) AsCompServiceRulesetListResponseData0() (CompServiceRulesetListResponseData0, error) {
+	var body CompServiceRulesetListResponseData0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromCompServiceRulesetListResponseData0 overwrites any union data inside the CompServiceRulesetListResponse_Data as the provided CompServiceRulesetListResponseData0
+func (t *CompServiceRulesetListResponse_Data) FromCompServiceRulesetListResponseData0(v CompServiceRulesetListResponseData0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeCompServiceRulesetListResponseData0 performs a merge with any union data inside the CompServiceRulesetListResponse_Data, using the provided CompServiceRulesetListResponseData0
+func (t *CompServiceRulesetListResponse_Data) MergeCompServiceRulesetListResponseData0(v CompServiceRulesetListResponseData0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsCompServiceRulesetListResponseData1 returns the union data inside the CompServiceRulesetListResponse_Data as a CompServiceRulesetListResponseData1
+func (t CompServiceRulesetListResponse_Data) AsCompServiceRulesetListResponseData1() (CompServiceRulesetListResponseData1, error) {
+	var body CompServiceRulesetListResponseData1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromCompServiceRulesetListResponseData1 overwrites any union data inside the CompServiceRulesetListResponse_Data as the provided CompServiceRulesetListResponseData1
+func (t *CompServiceRulesetListResponse_Data) FromCompServiceRulesetListResponseData1(v CompServiceRulesetListResponseData1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeCompServiceRulesetListResponseData1 performs a merge with any union data inside the CompServiceRulesetListResponse_Data, using the provided CompServiceRulesetListResponseData1
+func (t *CompServiceRulesetListResponse_Data) MergeCompServiceRulesetListResponseData1(v CompServiceRulesetListResponseData1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t CompServiceRulesetListResponse_Data) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *CompServiceRulesetListResponse_Data) UnmarshalJSON(b []byte) error {
 	err := t.union.UnmarshalJSON(b)
 	return err
 }

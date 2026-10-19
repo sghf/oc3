@@ -13978,6 +13978,44 @@ paths:
         - basicAuth: [ ]
         - bearerAuth: [ ]
 
+  /compliance/attachments:
+    post:
+      operationId: PostComplianceAttachments
+      description: |
+        Attach or detach modulesets and rulesets on nodes and services in bulk.
+        Each pair goes through the checks of its single route (POST and DELETE
+        /nodes/{node_id}/compliance/modulesets/{mset_id}, and the like for the
+        rulesets and the services): the caller's responsibility for the node or
+        the service, the moduleset or ruleset, whether it is attached already or
+        still, and, to attach, whether it may be attached there. A pair refused
+        does not stop the others: the response gives the outcome of each, in the
+        order of the request, with the status and the message its single route
+        answers with. At most 1000 pairs.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ComplianceAttachmentsInput'
+      tags:
+        - collector
+      responses:
+        200:
+          description: The outcome of each pair
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComplianceAttachmentsResponse'
+        400:
+          $ref: '#/components/responses/400'
+        401:
+          $ref: '#/components/responses/401'
+        500:
+          $ref: '#/components/responses/500'
+      security:
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
+
   /compliance/logs:
     get:
       operationId: GetComplianceLogs
@@ -15771,6 +15809,42 @@ paths:
         - bearerAuth: [ ]
 
   /compliance/rulesets_nodes:
+    get:
+      operationId: GetComplianceRulesetsNodes
+      description: |
+        List the nodes the caller may see with the rulesets attached to them: one row per node
+        and ruleset, and one with no ruleset for a node that has none, as the
+        historical collector's "node rulesets" table (comp_rulesets_nodes). The props are those of the nodes
+        list, plus the id and the name of the ruleset;
+        filter on its name with "empty" to find the nodes without any. The
+        session filterset applies.
+      parameters:
+        - $ref: '#/components/parameters/inQueryProps'
+        - $ref: '#/components/parameters/inQueryLimit'
+        - $ref: '#/components/parameters/inQueryOffset'
+        - $ref: '#/components/parameters/inQueryMeta'
+        - $ref: '#/components/parameters/inQueryStats'
+        - $ref: '#/components/parameters/inQueryOrderby'
+        - $ref: '#/components/parameters/inQueryFilter'
+        - $ref: '#/components/parameters/inQueryGroupby'
+      tags:
+        - collector
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CompNodeRulesetListResponse'
+        400:
+          $ref: '#/components/responses/400'
+        401:
+          $ref: '#/components/responses/401'
+        500:
+          $ref: '#/components/responses/500'
+      security:
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
     post:
       operationId: PostComplianceRulesetsNodes
       description: |
@@ -15861,6 +15935,42 @@ paths:
         - bearerAuth: [ ]
 
   /compliance/rulesets_services:
+    get:
+      operationId: GetComplianceRulesetsServices
+      description: |
+        List the services the caller may see with the rulesets attached to them or to their encapsulated part (slave): one row per service
+        and ruleset, and one with no ruleset for a service that has none, as the
+        historical collector's "service rulesets" table (comp_rulesets_services). The props are those of the services
+        list, plus the id and the name of the ruleset, and slave;
+        filter on its name with "empty" to find the services without any. The
+        session filterset applies.
+      parameters:
+        - $ref: '#/components/parameters/inQueryProps'
+        - $ref: '#/components/parameters/inQueryLimit'
+        - $ref: '#/components/parameters/inQueryOffset'
+        - $ref: '#/components/parameters/inQueryMeta'
+        - $ref: '#/components/parameters/inQueryStats'
+        - $ref: '#/components/parameters/inQueryOrderby'
+        - $ref: '#/components/parameters/inQueryFilter'
+        - $ref: '#/components/parameters/inQueryGroupby'
+      tags:
+        - collector
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CompServiceRulesetListResponse'
+        400:
+          $ref: '#/components/responses/400'
+        401:
+          $ref: '#/components/responses/401'
+        500:
+          $ref: '#/components/responses/500'
+      security:
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
     post:
       operationId: PostComplianceRulesetsServices
       description: |
@@ -17370,6 +17480,42 @@ paths:
         - bearerAuth: [ ]
 
   /compliance/modulesets_nodes:
+    get:
+      operationId: GetComplianceModulesetsNodes
+      description: |
+        List the nodes the caller may see with the modulesets attached to them: one row per node
+        and moduleset, and one with no moduleset for a node that has none, as the
+        historical collector's "node modulesets" table (comp_modulesets_nodes). The props are those of the nodes
+        list, plus the id and the name of the moduleset;
+        filter on its name with "empty" to find the nodes without any. The
+        session filterset applies.
+      parameters:
+        - $ref: '#/components/parameters/inQueryProps'
+        - $ref: '#/components/parameters/inQueryLimit'
+        - $ref: '#/components/parameters/inQueryOffset'
+        - $ref: '#/components/parameters/inQueryMeta'
+        - $ref: '#/components/parameters/inQueryStats'
+        - $ref: '#/components/parameters/inQueryOrderby'
+        - $ref: '#/components/parameters/inQueryFilter'
+        - $ref: '#/components/parameters/inQueryGroupby'
+      tags:
+        - collector
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CompNodeModulesetListResponse'
+        400:
+          $ref: '#/components/responses/400'
+        401:
+          $ref: '#/components/responses/401'
+        500:
+          $ref: '#/components/responses/500'
+      security:
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
     post:
       operationId: PostComplianceModulesetsNodes
       description: |
@@ -17460,6 +17606,42 @@ paths:
         - bearerAuth: [ ]
 
   /compliance/modulesets_services:
+    get:
+      operationId: GetComplianceModulesetsServices
+      description: |
+        List the services the caller may see with the modulesets attached to them or to their encapsulated part (slave): one row per service
+        and moduleset, and one with no moduleset for a service that has none, as the
+        historical collector's "service modulesets" table (comp_modulesets_services). The props are those of the services
+        list, plus the id and the name of the moduleset, and slave;
+        filter on its name with "empty" to find the services without any. The
+        session filterset applies.
+      parameters:
+        - $ref: '#/components/parameters/inQueryProps'
+        - $ref: '#/components/parameters/inQueryLimit'
+        - $ref: '#/components/parameters/inQueryOffset'
+        - $ref: '#/components/parameters/inQueryMeta'
+        - $ref: '#/components/parameters/inQueryStats'
+        - $ref: '#/components/parameters/inQueryOrderby'
+        - $ref: '#/components/parameters/inQueryFilter'
+        - $ref: '#/components/parameters/inQueryGroupby'
+      tags:
+        - collector
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/CompServiceModulesetListResponse'
+        400:
+          $ref: '#/components/responses/400'
+        401:
+          $ref: '#/components/responses/401'
+        500:
+          $ref: '#/components/responses/500'
+      security:
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
     post:
       operationId: PostComplianceModulesetsServices
       description: |
@@ -18668,6 +18850,204 @@ components:
               type: array
               items:
                 $ref: '#/components/schemas/PackageDiffNode'
+
+    CompNodeModulesetRow:
+      description: A node and a moduleset attached to it; no moduleset on the row of a node that has none
+      allOf:
+        - $ref: '#/components/schemas/NodeRow'
+        - type: object
+          properties:
+            modset_id:
+              type: integer
+              nullable: true
+            modset_name:
+              type: string
+              nullable: true
+
+    CompNodeRulesetRow:
+      description: A node and a ruleset attached to it; no ruleset on the row of a node that has none
+      allOf:
+        - $ref: '#/components/schemas/NodeRow'
+        - type: object
+          properties:
+            ruleset_id:
+              type: integer
+              nullable: true
+            ruleset_name:
+              type: string
+              nullable: true
+
+    CompServiceModulesetRow:
+      description: A service and a moduleset attached to it, or to its encapsulated part when slave is "T"
+      allOf:
+        - $ref: '#/components/schemas/ServiceRow'
+        - type: object
+          properties:
+            modset_id:
+              type: integer
+              nullable: true
+            modset_name:
+              type: string
+              nullable: true
+            slave:
+              type: string
+              nullable: true
+              description: '"T": attached to the encapsulated part of the service'
+
+    CompServiceRulesetRow:
+      description: A service and a ruleset attached to it, or to its encapsulated part when slave is "T"
+      allOf:
+        - $ref: '#/components/schemas/ServiceRow'
+        - type: object
+          properties:
+            ruleset_id:
+              type: integer
+              nullable: true
+            ruleset_name:
+              type: string
+              nullable: true
+            slave:
+              type: string
+              nullable: true
+              description: '"T": attached to the encapsulated part of the service'
+
+    CompNodeModulesetListResponse:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          oneOf:
+            - type: array
+              items:
+                $ref: '#/components/schemas/CompNodeModulesetRow'
+            - type: object
+              additionalProperties:
+                type: object
+                additionalProperties:
+                  type: integer
+        meta:
+          $ref: '#/components/schemas/ListMeta'
+
+    CompNodeRulesetListResponse:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          oneOf:
+            - type: array
+              items:
+                $ref: '#/components/schemas/CompNodeRulesetRow'
+            - type: object
+              additionalProperties:
+                type: object
+                additionalProperties:
+                  type: integer
+        meta:
+          $ref: '#/components/schemas/ListMeta'
+
+    CompServiceModulesetListResponse:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          oneOf:
+            - type: array
+              items:
+                $ref: '#/components/schemas/CompServiceModulesetRow'
+            - type: object
+              additionalProperties:
+                type: object
+                additionalProperties:
+                  type: integer
+        meta:
+          $ref: '#/components/schemas/ListMeta'
+
+    CompServiceRulesetListResponse:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          oneOf:
+            - type: array
+              items:
+                $ref: '#/components/schemas/CompServiceRulesetRow'
+            - type: object
+              additionalProperties:
+                type: object
+                additionalProperties:
+                  type: integer
+        meta:
+          $ref: '#/components/schemas/ListMeta'
+
+    ComplianceAttachmentPair:
+      type: object
+      description: A moduleset or a ruleset, and the node or the service to attach it to or detach it from
+      required: [object, object_id]
+      properties:
+        object:
+          type: string
+          enum: [moduleset, ruleset]
+        object_id:
+          type: string
+          description: Id of the moduleset or of the ruleset
+        node_id:
+          type: string
+          description: The node; exactly one of node_id and svc_id
+        svc_id:
+          type: string
+          description: The service; exactly one of node_id and svc_id
+        slave:
+          type: boolean
+          description: For a service, its encapsulated part rather than the service itself
+
+    ComplianceAttachmentsInput:
+      type: object
+      required: [action, pairs]
+      properties:
+        action:
+          type: string
+          enum: [attach, detach]
+        pairs:
+          type: array
+          minItems: 1
+          maxItems: 1000
+          items:
+            $ref: '#/components/schemas/ComplianceAttachmentPair'
+
+    ComplianceAttachmentOutcome:
+      type: object
+      required: [object, object_id, status, info]
+      properties:
+        object:
+          type: string
+          enum: [moduleset, ruleset]
+        object_id:
+          type: string
+        node_id:
+          type: string
+        svc_id:
+          type: string
+        slave:
+          type: boolean
+        status:
+          type: integer
+          description: The status the single route answers with, 202 when done
+        info:
+          type: string
+          description: Its message, or why the pair was refused
+
+    ComplianceAttachmentsResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/ComplianceAttachmentOutcome'
 
     ComplianceStatusRow:
       type: object

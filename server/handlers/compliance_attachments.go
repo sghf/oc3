@@ -261,3 +261,27 @@ func (a *Api) PostComplianceModulesetsServices(c echo.Context) error {
 func (a *Api) DeleteComplianceModulesetsServices(c echo.Context) error {
 	return a.modulesetsServices(c, false)
 }
+
+// compOutcome is the result of attaching or detaching one compliance object: the
+// status the single routes answer with, and their message.
+type compOutcome struct {
+	status int
+	text   string
+}
+
+func compFailf(code int, format string, args ...any) compOutcome {
+	return compOutcome{status: code, text: fmt.Sprintf(format, args...)}
+}
+
+func compDone(text string) compOutcome {
+	return compOutcome{status: http.StatusAccepted, text: text}
+}
+
+// writeCompOutcome answers a single route with an outcome: a problem, or the
+// message of the change.
+func writeCompOutcome(c echo.Context, o compOutcome) error {
+	if o.status >= http.StatusBadRequest {
+		return JSONProblem(c, o.status, o.text)
+	}
+	return c.JSON(o.status, map[string]string{"info": o.text})
+}
