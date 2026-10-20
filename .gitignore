@@ -12,6 +12,7 @@
 !.gitignore
 !Makefile
 !migrate/sql/*.sql
+!tools/seed-testdata/*
 .idea
 core/version/version.go
 .trash
