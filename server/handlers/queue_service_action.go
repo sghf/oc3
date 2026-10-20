@@ -9,7 +9,6 @@ import (
 	"strings"
 
 	"github.com/google/uuid"
-	"github.com/labstack/echo/v4"
 
 	"github.com/opensvc/oc3/cdb"
 	"github.com/opensvc/oc3/util/logkey"
@@ -109,7 +108,7 @@ func serviceActionCommand(action, svcname, actionType, connectTo, agentVersion, 
 // the command for the target node and post it to the queue, as enqueue_svc_action()
 // does, then write the audit log entry.
 func (a *Api) enqueueServiceCommand(
-	c echo.Context, log *slog.Logger, ctx context.Context,
+	act actionActor, log *slog.Logger, ctx context.Context,
 	svc *cdb.DBService, target *cdb.NodeActionTarget, agentVersion, action, rid string, local bool,
 ) (*queuedAction, error) {
 	odb := a.ODB
@@ -130,7 +129,12 @@ func (a *Api) enqueueServiceCommand(
 	actionType := actionTypeOf(target)
 	command := serviceActionCommand(action, svc.Svcname, actionType, connectTo, agentVersion, rid, local)
 
-	id, err := odb.EnqueueServiceAction(ctx, target.NodeID, svc.SvcID, actionType, command, connectTo, authUserID(c))
+	// A dry run stops here, every check passed.
+	if act.dryRun {
+		return &queuedAction{Command: command, NodeID: target.NodeID}, nil
+	}
+
+	id, err := odb.EnqueueServiceAction(ctx, target.NodeID, svc.SvcID, actionType, command, connectTo, act.userID)
 	if err != nil {
 		log.Error("cannot queue the action", logkey.Error, err)
 		return nil, refuseAction(http.StatusInternalServerError, "cannot queue action %s", action)
@@ -142,7 +146,7 @@ func (a *Api) enqueueServiceCommand(
 		log.Debug("cannot notify changes", logkey.Error, err)
 	}
 
-	userEmail, _ := c.Get(XUserEmail).(string)
+	userEmail := act.email
 	logEntry := cdb.LogEntry{
 		Action: "service.action",
 		User:   userEmail,
@@ -176,15 +180,15 @@ func (a *Api) enqueueServiceCommand(
 // checkServiceAction validates the action, among those allowed, and the caller
 // rights shared by service and instance actions: NodeExec privilege (CompExec
 // for a compliance run) and responsibility for the service.
-func (a *Api) checkServiceAction(c echo.Context, log *slog.Logger, ctx context.Context, svcID, action string, allowed map[string]bool) (*cdb.DBService, error) {
+func (a *Api) checkServiceAction(act actionActor, log *slog.Logger, ctx context.Context, svcID, action string, allowed map[string]bool) (*cdb.DBService, error) {
 	if !allowed[action] {
 		return nil, refuseAction(http.StatusBadRequest, "unsupported action %q", action)
 	}
 	if isCompAction(action) {
-		if !IsManager(c) && !HasGroup(c, "CompExec") {
+		if !act.manager() && !act.has("CompExec") {
 			return nil, refuseAction(http.StatusForbidden, "user has no CompExec privilege")
 		}
-	} else if !IsManager(c) && !HasGroup(c, "NodeExec") {
+	} else if !act.manager() && !act.has("NodeExec") {
 		return nil, refuseAction(http.StatusForbidden, "user has no NodeExec privilege")
 	}
 	if svcID == "" {
@@ -200,7 +204,7 @@ func (a *Api) checkServiceAction(c echo.Context, log *slog.Logger, ctx context.C
 		return nil, refuseAction(http.StatusNotFound, "service %s not found", svcID)
 	}
 
-	responsible, err := a.ODB.ServiceResponsible(ctx, svc.SvcID, UserGroupsFromContext(c), IsManager(c))
+	responsible, err := a.ODB.ServiceResponsible(ctx, svc.SvcID, act.groups, act.manager())
 	if err != nil {
 		log.Error("cannot check service responsibility", logkey.Error, err)
 		return nil, refuseAction(http.StatusInternalServerError, "cannot check service responsibility")
@@ -214,8 +218,8 @@ func (a *Api) checkServiceAction(c echo.Context, log *slog.Logger, ctx context.C
 // queueServiceAction queues an action on a whole service, as do_svc_action()
 // does: posted for a node of the service seen alive in the last 15 minutes,
 // without --local.
-func (a *Api) queueServiceAction(c echo.Context, log *slog.Logger, ctx context.Context, svcID, action string) (*queuedAction, error) {
-	svc, err := a.checkServiceAction(c, log, ctx, svcID, action, serviceActions)
+func (a *Api) queueServiceAction(act actionActor, log *slog.Logger, ctx context.Context, svcID, action string) (*queuedAction, error) {
+	svc, err := a.checkServiceAction(act, log, ctx, svcID, action, serviceActions)
 	if err != nil {
 		return nil, err
 	}
@@ -230,18 +234,18 @@ func (a *Api) queueServiceAction(c echo.Context, log *slog.Logger, ctx context.C
 			"no node of service %s has been seen in the last 15 minutes", svc.Svcname)
 	}
 
-	return a.enqueueServiceCommand(c, log, ctx, svc, target, agentVersion, action, "", false)
+	return a.enqueueServiceCommand(act, log, ctx, svc, target, agentVersion, action, "", false)
 }
 
 // queueInstanceAction queues an action on the instance of a service on one node,
 // as do_instance_action() does: NodeExec privilege and responsibility for the
 // service; the node only has to exist. The action acts on that instance only
 // (--local), or on the given resources (--rid).
-func (a *Api) queueInstanceAction(c echo.Context, log *slog.Logger, ctx context.Context, nodeID, svcID, action, rid string) (*queuedAction, error) {
+func (a *Api) queueInstanceAction(act actionActor, log *slog.Logger, ctx context.Context, nodeID, svcID, action, rid string) (*queuedAction, error) {
 	if rid != "" && !ridPattern.MatchString(rid) {
 		return nil, refuseAction(http.StatusBadRequest, "invalid rid %q", rid)
 	}
-	svc, err := a.checkServiceAction(c, log, ctx, svcID, action, instanceActions)
+	svc, err := a.checkServiceAction(act, log, ctx, svcID, action, instanceActions)
 	if err != nil {
 		return nil, err
 	}
@@ -270,5 +274,5 @@ func (a *Api) queueInstanceAction(c echo.Context, log *slog.Logger, ctx context.
 		return nil, refuseAction(http.StatusInternalServerError, "cannot read node %s", nodeID)
 	}
 
-	return a.enqueueServiceCommand(c, log, ctx, svc, target, agentVersion, action, rid, true)
+	return a.enqueueServiceCommand(act, log, ctx, svc, target, agentVersion, action, rid, true)
 }

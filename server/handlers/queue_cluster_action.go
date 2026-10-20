@@ -6,7 +6,6 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
-	"github.com/labstack/echo/v4"
 
 	"github.com/opensvc/oc3/cdb"
 	"github.com/opensvc/oc3/util/logkey"
@@ -37,12 +36,12 @@ func clusterActionCommand(action string) string {
 // responsibility for every node of the cluster the collector knows, as the action
 // acts on all of them. It is posted for a node of the cluster seen alive in the
 // last 15 minutes and running the om3 agent, the only one with a node selector.
-func (a *Api) queueClusterAction(c echo.Context, log *slog.Logger, ctx context.Context, clusterID, action string) (*queuedAction, error) {
+func (a *Api) queueClusterAction(act actionActor, log *slog.Logger, ctx context.Context, clusterID, action string) (*queuedAction, error) {
 	odb := a.ODB
 	if _, ok := clusterActionWords[action]; !ok {
 		return nil, refuseAction(http.StatusBadRequest, "unsupported action %q", action)
 	}
-	if !IsManager(c) && !HasGroup(c, "NodeExec") {
+	if !act.manager() && !act.has("NodeExec") {
 		return nil, refuseAction(http.StatusForbidden, "user has no NodeExec privilege")
 	}
 
@@ -55,7 +54,7 @@ func (a *Api) queueClusterAction(c echo.Context, log *slog.Logger, ctx context.C
 		return nil, refuseAction(http.StatusNotFound, "cluster %s not found", clusterID)
 	}
 
-	nodes, notResponsible, err := odb.ClusterNodesResponsibility(ctx, clusterID, UserGroupsFromContext(c), IsManager(c))
+	nodes, notResponsible, err := odb.ClusterNodesResponsibility(ctx, clusterID, act.groups, act.manager())
 	if err != nil {
 		log.Error("cannot check cluster responsibility", logkey.Error, err)
 		return nil, refuseAction(http.StatusInternalServerError, "cannot check cluster responsibility")
@@ -91,7 +90,12 @@ func (a *Api) queueClusterAction(c echo.Context, log *slog.Logger, ctx context.C
 	actionType := actionTypeOf(target)
 	command := clusterActionCommand(action)
 
-	id, err := odb.EnqueueNodeAction(ctx, target.NodeID, actionType, command, connectTo, authUserID(c))
+	// A dry run stops here, every check passed.
+	if act.dryRun {
+		return &queuedAction{Command: command, NodeID: target.NodeID}, nil
+	}
+
+	id, err := odb.EnqueueNodeAction(ctx, target.NodeID, actionType, command, connectTo, act.userID)
 	if err != nil {
 		log.Error("cannot queue the action", logkey.Error, err)
 		return nil, refuseAction(http.StatusInternalServerError, "cannot queue action %s", action)
@@ -103,7 +107,7 @@ func (a *Api) queueClusterAction(c echo.Context, log *slog.Logger, ctx context.C
 		log.Debug("cannot notify changes", logkey.Error, err)
 	}
 
-	userEmail, _ := c.Get(XUserEmail).(string)
+	userEmail := act.email
 	logEntry := cdb.LogEntry{
 		Action: "cluster.action",
 		User:   userEmail,

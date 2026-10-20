@@ -59,7 +59,7 @@ func (e *actionEntry) UnmarshalJSON(data []byte) error {
 // service make an instance action, a service alone a service action, a node alone
 // a node action, a cluster alone a cluster action. vmname names the node in
 // place of node_id.
-func (a *Api) queueActionEntry(c echo.Context, log *slog.Logger, ctx context.Context, e actionEntry) (*queuedAction, error) {
+func (a *Api) queueActionEntry(act actionActor, log *slog.Logger, ctx context.Context, e actionEntry) (*queuedAction, error) {
 	if len(e.unsupported) > 0 {
 		return nil, refuseAction(http.StatusBadRequest, "unsupported keys: %s", strings.Join(e.unsupported, ", "))
 	}
@@ -76,17 +76,17 @@ func (a *Api) queueActionEntry(c echo.Context, log *slog.Logger, ctx context.Con
 		if nodeID != "" || e.SvcID != "" || e.Rid != "" {
 			return nil, refuseAction(http.StatusBadRequest, "cluster_id excludes node_id, vmname, svc_id and rid")
 		}
-		return a.queueClusterAction(c, log, ctx, e.ClusterID, e.Action)
+		return a.queueClusterAction(act, log, ctx, e.ClusterID, e.Action)
 	}
 	switch {
 	case e.SvcID != "" && nodeID != "":
-		return a.queueInstanceAction(c, log, ctx, nodeID, e.SvcID, e.Action, e.Rid)
+		return a.queueInstanceAction(act, log, ctx, nodeID, e.SvcID, e.Action, e.Rid)
 	case e.Rid != "":
 		return nil, refuseAction(http.StatusBadRequest, "rid requires both node_id and svc_id")
 	case nodeID != "":
-		return a.queueNodeAction(c, log, ctx, nodeID, e.Action)
+		return a.queueNodeAction(act, log, ctx, nodeID, e.Action)
 	case e.SvcID != "":
-		return a.queueServiceAction(c, log, ctx, e.SvcID, e.Action)
+		return a.queueServiceAction(act, log, ctx, e.SvcID, e.Action)
 	}
 	return nil, refuseAction(http.StatusBadRequest, "node_id, svc_id or cluster_id must be specified")
 }
@@ -177,7 +177,7 @@ func (a *Api) PutActions(c echo.Context) error {
 		var ids []int64
 		refusals := []string{}
 		for _, e := range factorizeActionEntries(entries) {
-			queued, err := a.queueActionEntry(c, log, ctx, e)
+			queued, err := a.queueActionEntry(actorOf(c), log, ctx, e)
 			if err != nil {
 				refusals = append(refusals, describeRefusal(e, err))
 				continue
@@ -205,7 +205,7 @@ func (a *Api) PutActions(c echo.Context) error {
 	if err := json.Unmarshal(raw, &entry); err != nil {
 		return JSONProblem(c, http.StatusBadRequest, err.Error())
 	}
-	queued, err := a.queueActionEntry(c, log, ctx, entry)
+	queued, err := a.queueActionEntry(actorOf(c), log, ctx, entry)
 	if err != nil {
 		return actionProblem(c, err)
 	}

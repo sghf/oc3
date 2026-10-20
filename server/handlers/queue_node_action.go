@@ -129,16 +129,16 @@ func actionTypeOf(target *cdb.NodeActionTarget) string {
 // queueNodeAction queues an agent action on a node, as do_node_action() does:
 // NodeExec privilege (CompExec for a compliance run), responsibility for the
 // node, and a command run by nodemgr.
-func (a *Api) queueNodeAction(c echo.Context, log *slog.Logger, ctx context.Context, nodeID, action string) (*queuedAction, error) {
+func (a *Api) queueNodeAction(act actionActor, log *slog.Logger, ctx context.Context, nodeID, action string) (*queuedAction, error) {
 	odb := a.ODB
 	if !nodeActions[action] {
 		return nil, refuseAction(http.StatusBadRequest, "unsupported action %q", action)
 	}
 	if isCompAction(action) {
-		if !IsManager(c) && !HasGroup(c, "CompExec") {
+		if !act.manager() && !act.has("CompExec") {
 			return nil, refuseAction(http.StatusForbidden, "user has no CompExec privilege")
 		}
-	} else if !IsManager(c) && !HasGroup(c, "NodeExec") {
+	} else if !act.manager() && !act.has("NodeExec") {
 		return nil, refuseAction(http.StatusForbidden, "user has no NodeExec privilege")
 	}
 
@@ -151,7 +151,7 @@ func (a *Api) queueNodeAction(c echo.Context, log *slog.Logger, ctx context.Cont
 		return nil, refuseAction(http.StatusNotFound, "node %s not found", nodeID)
 	}
 
-	responsible, err := odb.NodeResponsible(ctx, node.NodeID, UserGroupsFromContext(c), IsManager(c))
+	responsible, err := odb.NodeResponsible(ctx, node.NodeID, act.groups, act.manager())
 	if err != nil {
 		log.Error("cannot check node responsibility", logkey.Error, err)
 		return nil, refuseAction(http.StatusInternalServerError, "cannot check node responsibility")
@@ -184,8 +184,13 @@ func (a *Api) queueNodeAction(c echo.Context, log *slog.Logger, ctx context.Cont
 	actionType := actionTypeOf(target)
 	command := nodeActionCommand(action, actionType, connectTo)
 
+	// A dry run stops here, every check passed.
+	if act.dryRun {
+		return &queuedAction{Command: command, NodeID: node.NodeID}, nil
+	}
+
 	// Who asked, as the python collector records it: the queue keeps the caller.
-	id, err := odb.EnqueueNodeAction(ctx, node.NodeID, actionType, command, connectTo, authUserID(c))
+	id, err := odb.EnqueueNodeAction(ctx, node.NodeID, actionType, command, connectTo, act.userID)
 	if err != nil {
 		log.Error("cannot queue the action", logkey.Error, err)
 		return nil, refuseAction(http.StatusInternalServerError, "cannot queue action %s", action)
@@ -197,7 +202,7 @@ func (a *Api) queueNodeAction(c echo.Context, log *slog.Logger, ctx context.Cont
 		log.Debug("cannot notify changes", logkey.Error, err)
 	}
 
-	userEmail, _ := c.Get(XUserEmail).(string)
+	userEmail := act.email
 	logEntry := cdb.LogEntry{
 		Action: "node.action",
 		User:   userEmail,
