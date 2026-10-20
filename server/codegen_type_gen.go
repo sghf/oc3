@@ -430,6 +430,165 @@ func (e ObsolescenceSettingRowObsType) Valid() bool {
 	}
 }
 
+// Defines values for OrchestrationRunStatus.
+const (
+	OrchestrationRunStatusFailed    OrchestrationRunStatus = "failed"
+	OrchestrationRunStatusRunning   OrchestrationRunStatus = "running"
+	OrchestrationRunStatusStopped   OrchestrationRunStatus = "stopped"
+	OrchestrationRunStatusSucceeded OrchestrationRunStatus = "succeeded"
+)
+
+// Valid indicates whether the value is a known member of the OrchestrationRunStatus enum.
+func (e OrchestrationRunStatus) Valid() bool {
+	switch e {
+	case OrchestrationRunStatusFailed:
+		return true
+	case OrchestrationRunStatusRunning:
+		return true
+	case OrchestrationRunStatusStopped:
+		return true
+	case OrchestrationRunStatusSucceeded:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for OrchestrationRunStepStatus.
+const (
+	OrchestrationRunStepStatusFailed    OrchestrationRunStepStatus = "failed"
+	OrchestrationRunStepStatusNotRun    OrchestrationRunStepStatus = "not_run"
+	OrchestrationRunStepStatusRunning   OrchestrationRunStepStatus = "running"
+	OrchestrationRunStepStatusStopped   OrchestrationRunStepStatus = "stopped"
+	OrchestrationRunStepStatusSucceeded OrchestrationRunStepStatus = "succeeded"
+	OrchestrationRunStepStatusWaiting   OrchestrationRunStepStatus = "waiting"
+)
+
+// Valid indicates whether the value is a known member of the OrchestrationRunStepStatus enum.
+func (e OrchestrationRunStepStatus) Valid() bool {
+	switch e {
+	case OrchestrationRunStepStatusFailed:
+		return true
+	case OrchestrationRunStepStatusNotRun:
+		return true
+	case OrchestrationRunStepStatusRunning:
+		return true
+	case OrchestrationRunStepStatusStopped:
+		return true
+	case OrchestrationRunStepStatusSucceeded:
+		return true
+	case OrchestrationRunStepStatusWaiting:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for OrchestrationRunTargetStatus.
+const (
+	OrchestrationRunTargetStatusCancelled OrchestrationRunTargetStatus = "cancelled"
+	OrchestrationRunTargetStatusFailed    OrchestrationRunTargetStatus = "failed"
+	OrchestrationRunTargetStatusNotRun    OrchestrationRunTargetStatus = "not_run"
+	OrchestrationRunTargetStatusOk        OrchestrationRunTargetStatus = "ok"
+	OrchestrationRunTargetStatusQueued    OrchestrationRunTargetStatus = "queued"
+	OrchestrationRunTargetStatusRefused   OrchestrationRunTargetStatus = "refused"
+	OrchestrationRunTargetStatusRunning   OrchestrationRunTargetStatus = "running"
+	OrchestrationRunTargetStatusTimedOut  OrchestrationRunTargetStatus = "timed_out"
+	OrchestrationRunTargetStatusWaiting   OrchestrationRunTargetStatus = "waiting"
+)
+
+// Valid indicates whether the value is a known member of the OrchestrationRunTargetStatus enum.
+func (e OrchestrationRunTargetStatus) Valid() bool {
+	switch e {
+	case OrchestrationRunTargetStatusCancelled:
+		return true
+	case OrchestrationRunTargetStatusFailed:
+		return true
+	case OrchestrationRunTargetStatusNotRun:
+		return true
+	case OrchestrationRunTargetStatusOk:
+		return true
+	case OrchestrationRunTargetStatusQueued:
+		return true
+	case OrchestrationRunTargetStatusRefused:
+		return true
+	case OrchestrationRunTargetStatusRunning:
+		return true
+	case OrchestrationRunTargetStatusTimedOut:
+		return true
+	case OrchestrationRunTargetStatusWaiting:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for OrchestrationStepPace.
+const (
+	All   OrchestrationStepPace = "all"
+	Batch OrchestrationStepPace = "batch"
+	One   OrchestrationStepPace = "one"
+)
+
+// Valid indicates whether the value is a known member of the OrchestrationStepPace enum.
+func (e OrchestrationStepPace) Valid() bool {
+	switch e {
+	case All:
+		return true
+	case Batch:
+		return true
+	case One:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for OrchestrationTargetKind.
+const (
+	OrchestrationTargetKindCluster  OrchestrationTargetKind = "cluster"
+	OrchestrationTargetKindInstance OrchestrationTargetKind = "instance"
+	OrchestrationTargetKindNode     OrchestrationTargetKind = "node"
+	OrchestrationTargetKindService  OrchestrationTargetKind = "service"
+)
+
+// Valid indicates whether the value is a known member of the OrchestrationTargetKind enum.
+func (e OrchestrationTargetKind) Valid() bool {
+	switch e {
+	case OrchestrationTargetKindCluster:
+		return true
+	case OrchestrationTargetKindInstance:
+		return true
+	case OrchestrationTargetKindNode:
+		return true
+	case OrchestrationTargetKindService:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for OrchestrationTargetsMode.
+const (
+	Filterset OrchestrationTargetsMode = "filterset"
+	Pick      OrchestrationTargetsMode = "pick"
+	SameAs    OrchestrationTargetsMode = "same_as"
+)
+
+// Valid indicates whether the value is a known member of the OrchestrationTargetsMode enum.
+func (e OrchestrationTargetsMode) Valid() bool {
+	switch e {
+	case Filterset:
+		return true
+	case Pick:
+		return true
+	case SameAs:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for SanTopologyNodeKind.
 const (
 	Array  SanTopologyNodeKind = "array"
@@ -597,22 +756,22 @@ func (e SysreportFileStatKind) Valid() bool {
 
 // Defines values for SysreportPurgeState.
 const (
-	Done    SysreportPurgeState = "done"
-	Failed  SysreportPurgeState = "failed"
-	Queued  SysreportPurgeState = "queued"
-	Running SysreportPurgeState = "running"
+	SysreportPurgeStateDone    SysreportPurgeState = "done"
+	SysreportPurgeStateFailed  SysreportPurgeState = "failed"
+	SysreportPurgeStateQueued  SysreportPurgeState = "queued"
+	SysreportPurgeStateRunning SysreportPurgeState = "running"
 )
 
 // Valid indicates whether the value is a known member of the SysreportPurgeState enum.
 func (e SysreportPurgeState) Valid() bool {
 	switch e {
-	case Done:
+	case SysreportPurgeStateDone:
 		return true
-	case Failed:
+	case SysreportPurgeStateFailed:
 		return true
-	case Queued:
+	case SysreportPurgeStateQueued:
 		return true
-	case Running:
+	case SysreportPurgeStateRunning:
 		return true
 	default:
 		return false
@@ -765,19 +924,19 @@ func (e PutComplianceRulesetVariableJSONBodyAction) Valid() bool {
 
 // Defines values for GetComplianceStatusSummaryParamsBy.
 const (
-	Module  GetComplianceStatusSummaryParamsBy = "module"
-	Node    GetComplianceStatusSummaryParamsBy = "node"
-	Service GetComplianceStatusSummaryParamsBy = "service"
+	GetComplianceStatusSummaryParamsByModule  GetComplianceStatusSummaryParamsBy = "module"
+	GetComplianceStatusSummaryParamsByNode    GetComplianceStatusSummaryParamsBy = "node"
+	GetComplianceStatusSummaryParamsByService GetComplianceStatusSummaryParamsBy = "service"
 )
 
 // Valid indicates whether the value is a known member of the GetComplianceStatusSummaryParamsBy enum.
 func (e GetComplianceStatusSummaryParamsBy) Valid() bool {
 	switch e {
-	case Module:
+	case GetComplianceStatusSummaryParamsByModule:
 		return true
-	case Node:
+	case GetComplianceStatusSummaryParamsByNode:
 		return true
-	case Service:
+	case GetComplianceStatusSummaryParamsByService:
 		return true
 	default:
 		return false
@@ -3544,6 +3703,193 @@ type OidcMappingRow struct {
 	Value *string `json:"value,omitempty"`
 }
 
+// Orchestration defines model for Orchestration.
+type Orchestration struct {
+	Created     string              `json:"created"`
+	Description string              `json:"description"`
+	Id          int                 `json:"id"`
+	Name        string              `json:"name"`
+	Steps       []OrchestrationStep `json:"steps"`
+	Updated     string              `json:"updated"`
+
+	// UpdatedBy Email of the author of the last change
+	UpdatedBy string `json:"updated_by"`
+}
+
+// OrchestrationCheckResponse defines model for OrchestrationCheckResponse.
+type OrchestrationCheckResponse struct {
+	Data []OrchestrationCheckStep `json:"data"`
+}
+
+// OrchestrationCheckStep defines model for OrchestrationCheckStep.
+type OrchestrationCheckStep struct {
+	// Message What makes the step itself invalid, empty when it is valid
+	Message string                     `json:"message"`
+	Step    int                        `json:"step"`
+	Targets []OrchestrationCheckTarget `json:"targets"`
+}
+
+// OrchestrationCheckTarget defines model for OrchestrationCheckTarget.
+type OrchestrationCheckTarget struct {
+	ClusterId *string `json:"cluster_id,omitempty"`
+
+	// Label The name of the target, as the run shows it
+	Label string `json:"label"`
+
+	// Message Why the action queue would refuse the target, empty when ok
+	Message string  `json:"message"`
+	NodeId  *string `json:"node_id,omitempty"`
+	Ok      bool    `json:"ok"`
+	SvcId   *string `json:"svc_id,omitempty"`
+}
+
+// OrchestrationInput defines model for OrchestrationInput.
+type OrchestrationInput struct {
+	Description *string             `json:"description,omitempty"`
+	Name        string              `json:"name"`
+	Steps       []OrchestrationStep `json:"steps"`
+}
+
+// OrchestrationListResponse defines model for OrchestrationListResponse.
+type OrchestrationListResponse struct {
+	Data []Orchestration `json:"data"`
+}
+
+// OrchestrationRun defines model for OrchestrationRun.
+type OrchestrationRun struct {
+	CurrentStep int     `json:"current_step"`
+	Ended       *string `json:"ended,omitempty"`
+	Id          int     `json:"id"`
+
+	// Message Why the run failed or was stopped
+	Message string `json:"message"`
+	Name    string `json:"name"`
+
+	// OrchestrationId Null once the orchestration is deleted
+	OrchestrationId *int `json:"orchestration_id,omitempty"`
+
+	// Plan The steps of the orchestration when the run started
+	Plan      []OrchestrationStep    `json:"plan"`
+	Started   string                 `json:"started"`
+	StartedBy string                 `json:"started_by"`
+	Status    OrchestrationRunStatus `json:"status"`
+	Steps     []OrchestrationRunStep `json:"steps"`
+}
+
+// OrchestrationRunListResponse defines model for OrchestrationRunListResponse.
+type OrchestrationRunListResponse struct {
+	Data []OrchestrationRun `json:"data"`
+}
+
+// OrchestrationRunStatus defines model for OrchestrationRunStatus.
+type OrchestrationRunStatus string
+
+// OrchestrationRunStep defines model for OrchestrationRunStep.
+type OrchestrationRunStep struct {
+	// Counts The number of targets by status
+	Counts  map[string]int `json:"counts"`
+	Ended   *string        `json:"ended,omitempty"`
+	Started *string        `json:"started,omitempty"`
+
+	// Status stopped: the run was stopped during the step; not_run: the run failed or
+	// was stopped before it.
+	Status OrchestrationRunStepStatus `json:"status"`
+	Step   int                        `json:"step"`
+
+	// Targets Absent from the list of runs
+	Targets *[]OrchestrationRunTarget `json:"targets,omitempty"`
+}
+
+// OrchestrationRunStepStatus stopped: the run was stopped during the step; not_run: the run failed or
+// was stopped before it.
+type OrchestrationRunStepStatus string
+
+// OrchestrationRunTarget defines model for OrchestrationRunTarget.
+type OrchestrationRunTarget struct {
+	ActionId  *int    `json:"action_id,omitempty"`
+	ClusterId string  `json:"cluster_id"`
+	Command   *string `json:"command,omitempty"`
+	Ended     *string `json:"ended,omitempty"`
+	Id        int     `json:"id"`
+	Label     string  `json:"label"`
+
+	// Message Why it did not succeed, when the action queue or the run says so
+	Message  string  `json:"message"`
+	NodeId   string  `json:"node_id"`
+	Position int     `json:"position"`
+	Queued   *string `json:"queued,omitempty"`
+	Ret      *int    `json:"ret,omitempty"`
+	Started  *string `json:"started,omitempty"`
+
+	// Status waiting: not started; queued: its action waits in the queue; running: an
+	// agent runs it; ok: it returned 0; failed: it returned non-zero; refused:
+	// the queue refused it; timed_out: it outlived the time limit of the step;
+	// cancelled: its action was cancelled or deleted; not_run: the run stopped
+	// before it.
+	Status OrchestrationRunTargetStatus `json:"status"`
+	Stderr *string                      `json:"stderr,omitempty"`
+	Stdout *string                      `json:"stdout,omitempty"`
+	Step   int                          `json:"step"`
+	SvcId  string                       `json:"svc_id"`
+}
+
+// OrchestrationRunTargetStatus waiting: not started; queued: its action waits in the queue; running: an
+// agent runs it; ok: it returned 0; failed: it returned non-zero; refused:
+// the queue refused it; timed_out: it outlived the time limit of the step;
+// cancelled: its action was cancelled or deleted; not_run: the run stopped
+// before it.
+type OrchestrationRunTargetStatus string
+
+// OrchestrationStep One action on a set of targets. The action must be one the action queue
+// accepts for the kind of target (see PUT /actions); rid, the resources of
+// an instance, applies to instances only. pace says how many targets run at
+// a time: all, one (one after the other) or batch (batch_size at a time).
+// timeout, in seconds, fails a target whose action has not finished by
+// then; 0 means no limit.
+type OrchestrationStep struct {
+	Action    string `json:"action"`
+	BatchSize *int   `json:"batch_size,omitempty"`
+
+	// Kind What the action of a step acts on: a service as a whole, the instance of a
+	// service on a node, a node, or a cluster.
+	Kind OrchestrationTargetKind `json:"kind"`
+	Name string                  `json:"name"`
+	Pace OrchestrationStepPace   `json:"pace"`
+	Rid  *string                 `json:"rid,omitempty"`
+
+	// Targets How a step names its targets. pick: the ids, svc_id for a service,
+	// "svc_id@node_id" for an instance, node_id for a node, cluster_id for a
+	// cluster. filterset: the services, the nodes, the instances of the services
+	// on the nodes, or the clusters of the nodes, the filterset matches when the
+	// run starts. same_as: the targets of an earlier step, of the same kind.
+	Targets OrchestrationTargets `json:"targets"`
+	Timeout *int                 `json:"timeout,omitempty"`
+}
+
+// OrchestrationStepPace defines model for OrchestrationStep.Pace.
+type OrchestrationStepPace string
+
+// OrchestrationTargetKind What the action of a step acts on: a service as a whole, the instance of a
+// service on a node, a node, or a cluster.
+type OrchestrationTargetKind string
+
+// OrchestrationTargets How a step names its targets. pick: the ids, svc_id for a service,
+// "svc_id@node_id" for an instance, node_id for a node, cluster_id for a
+// cluster. filterset: the services, the nodes, the instances of the services
+// on the nodes, or the clusters of the nodes, the filterset matches when the
+// run starts. same_as: the targets of an earlier step, of the same kind.
+type OrchestrationTargets struct {
+	FiltersetId *int                     `json:"filterset_id,omitempty"`
+	Ids         *[]string                `json:"ids,omitempty"`
+	Mode        OrchestrationTargetsMode `json:"mode"`
+
+	// Step For same_as, the index of the earlier step, from 0
+	Step *int `json:"step,omitempty"`
+}
+
+// OrchestrationTargetsMode defines model for OrchestrationTargets.Mode.
+type OrchestrationTargetsMode string
+
 // PackageDiffNode defines model for PackageDiffNode.
 type PackageDiffNode struct {
 	NodeId   string `json:"node_id"`
@@ -4616,6 +4962,12 @@ type InPathMsetId = string
 
 // InPathNodeId defines model for inPathNodeId.
 type InPathNodeId = string
+
+// InPathOrchestrationId defines model for inPathOrchestrationId.
+type InPathOrchestrationId = int
+
+// InPathOrchestrationRunId defines model for inPathOrchestrationRunId.
+type InPathOrchestrationRunId = int
 
 // InPathRsetId defines model for inPathRsetId.
 type InPathRsetId = string
@@ -10950,6 +11302,15 @@ type GetOidcMappingParams struct {
 	Props *InQueryProps `form:"props,omitempty" json:"props,omitempty"`
 }
 
+// GetOrchestrationRunsParams defines parameters for GetOrchestrationRuns.
+type GetOrchestrationRunsParams struct {
+	// OrchestrationId The runs of this orchestration only
+	OrchestrationId *int `form:"orchestration_id,omitempty" json:"orchestration_id,omitempty"`
+
+	// Limit The maximum number of entries to return. 0 means no limit.
+	Limit *InQueryLimit `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
 // GetPackagesParams defines parameters for GetPackages.
 type GetPackagesParams struct {
 	// Props A list of properties to include in each data dictionnary.
@@ -13589,6 +13950,15 @@ type PostOidcMappingsJSONRequestBody = OidcMappingInput
 
 // PostOidcMappingJSONRequestBody defines body for PostOidcMapping for application/json ContentType.
 type PostOidcMappingJSONRequestBody = OidcMappingInput
+
+// PostOrchestrationJSONRequestBody defines body for PostOrchestration for application/json ContentType.
+type PostOrchestrationJSONRequestBody = OrchestrationInput
+
+// PostOrchestrationCheckJSONRequestBody defines body for PostOrchestrationCheck for application/json ContentType.
+type PostOrchestrationCheckJSONRequestBody = OrchestrationInput
+
+// PutOrchestrationJSONRequestBody defines body for PutOrchestration for application/json ContentType.
+type PutOrchestrationJSONRequestBody = OrchestrationInput
 
 // PostReportsJSONRequestBody defines body for PostReports for application/json ContentType.
 type PostReportsJSONRequestBody PostReportsJSONBody

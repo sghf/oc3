@@ -85,6 +85,9 @@ func (t *server) apiRegister(e *echo.Echo) {
 		odb.CreateSession(nil)
 	}
 	api.RegisterHandlersWithBaseURL(e, handler, pathApi)
+	// The orchestration runs are advanced by the api server, for as long as it
+	// runs: a named lock lets one server do it when there are several.
+	go handler.RunOrchestrationEngine(context.Background())
 }
 
 func (t *server) docMiddleware() echo.MiddlewareFunc {

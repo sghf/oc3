@@ -10,6 +10,8 @@ var validMenuEntries = map[string]struct{}{
 	"view-dashboard": {},
 	// Views of oc3 the historical collector did not have.
 	"view-ai":                      {},
+	"orch-workflows":               {},
+	"orch-runs":                    {},
 	"view-clusters":                {},
 	"adm-groups":                   {},
 	"adm-claim-mappings":           {},

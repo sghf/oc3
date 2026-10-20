@@ -18052,6 +18052,348 @@ paths:
         - basicAuth: [ ]
         - bearerAuth: [ ]
 
+  /orchestrations:
+    get:
+      operationId: GetOrchestrations
+      description: |
+        The orchestrations, by name, each with its steps. Manager only.
+      tags:
+        - collector
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrchestrationListResponse'
+        401:
+          $ref: '#/components/responses/401'
+        403:
+          $ref: '#/components/responses/403'
+        500:
+          $ref: '#/components/responses/500'
+      security:
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
+    post:
+      operationId: PostOrchestration
+      description: |
+        Create an orchestration: an ordered list of steps, each one agent action on a
+        set of targets. The steps are checked as a whole (see OrchestrationStep):
+        400 names the first one that is not valid. 409 when the name is taken.
+        Manager only.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrchestrationInput'
+      tags:
+        - collector
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Orchestration'
+        400:
+          $ref: '#/components/responses/400'
+        401:
+          $ref: '#/components/responses/401'
+        403:
+          $ref: '#/components/responses/403'
+        409:
+          $ref: '#/components/responses/409'
+        500:
+          $ref: '#/components/responses/500'
+      security:
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
+
+  /orchestrations/check:
+    post:
+      operationId: PostOrchestrationCheck
+      description: |
+        Resolve the targets of each step of an orchestration, saved or not, as a run
+        starting now would, and check each one as the action queue would: the
+        action is accepted for the kind of target, the target exists and an agent
+        can be reached for it. What the check finds is not stored. Manager only.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrchestrationInput'
+      tags:
+        - collector
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrchestrationCheckResponse'
+        400:
+          $ref: '#/components/responses/400'
+        401:
+          $ref: '#/components/responses/401'
+        403:
+          $ref: '#/components/responses/403'
+        500:
+          $ref: '#/components/responses/500'
+      security:
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
+
+  /orchestrations/{orchestration_id}:
+    parameters:
+      - $ref: '#/components/parameters/inPathOrchestrationId'
+    get:
+      operationId: GetOrchestration
+      description: An orchestration and its steps. Manager only.
+      tags:
+        - collector
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Orchestration'
+        401:
+          $ref: '#/components/responses/401'
+        403:
+          $ref: '#/components/responses/403'
+        404:
+          $ref: '#/components/responses/404'
+        500:
+          $ref: '#/components/responses/500'
+      security:
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
+    put:
+      operationId: PutOrchestration
+      description: |
+        Replace an orchestration, its name, description and steps, checked as on
+        creation. Its past and running runs keep the plan they started with.
+        Manager only.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrchestrationInput'
+      tags:
+        - collector
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Orchestration'
+        400:
+          $ref: '#/components/responses/400'
+        401:
+          $ref: '#/components/responses/401'
+        403:
+          $ref: '#/components/responses/403'
+        404:
+          $ref: '#/components/responses/404'
+        409:
+          $ref: '#/components/responses/409'
+        500:
+          $ref: '#/components/responses/500'
+      security:
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
+    delete:
+      operationId: DeleteOrchestration
+      description: |
+        Delete an orchestration. Its runs stay, with the plan they ran; a running run
+        goes on. Manager only.
+      tags:
+        - collector
+      responses:
+        200:
+          $ref: '#/components/responses/200'
+        401:
+          $ref: '#/components/responses/401'
+        403:
+          $ref: '#/components/responses/403'
+        404:
+          $ref: '#/components/responses/404'
+        500:
+          $ref: '#/components/responses/500'
+      security:
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
+
+  /orchestrations/{orchestration_id}/runs:
+    parameters:
+      - $ref: '#/components/parameters/inPathOrchestrationId'
+    post:
+      operationId: PostOrchestrationRun
+      description: |
+        Start a run of the orchestration: its steps are frozen in the run, the
+        filtersets resolved now, and the first step starts at once. The steps
+        then run one after the other, the next starting when every target of
+        the previous one succeeded. A target fails when its action returns
+        non-zero, is refused by the action queue, is cancelled or outlives the
+        time limit of its step; the run then stops: the targets not started and
+        the next steps do not run. 400 when a step matches no target. Manager
+        only.
+      tags:
+        - collector
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrchestrationRun'
+        400:
+          $ref: '#/components/responses/400'
+        401:
+          $ref: '#/components/responses/401'
+        403:
+          $ref: '#/components/responses/403'
+        404:
+          $ref: '#/components/responses/404'
+        500:
+          $ref: '#/components/responses/500'
+      security:
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
+
+  /orchestration_runs:
+    get:
+      operationId: GetOrchestrationRuns
+      description: |
+        The runs of the orchestrations, the latest first, with the summary of their
+        steps but not their targets. Manager only.
+      parameters:
+        - in: query
+          name: orchestration_id
+          description: The runs of this orchestration only
+          schema:
+            type: integer
+        - $ref: '#/components/parameters/inQueryLimit'
+      tags:
+        - collector
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrchestrationRunListResponse'
+        401:
+          $ref: '#/components/responses/401'
+        403:
+          $ref: '#/components/responses/403'
+        500:
+          $ref: '#/components/responses/500'
+      security:
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
+
+  /orchestration_runs/{run_id}:
+    parameters:
+      - $ref: '#/components/parameters/inPathOrchestrationRunId'
+    get:
+      operationId: GetOrchestrationRun
+      description: |
+        A run, its steps and the targets of each step, with the status, the
+        return code and the output of the action of each target. Manager only.
+      tags:
+        - collector
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrchestrationRun'
+        401:
+          $ref: '#/components/responses/401'
+        403:
+          $ref: '#/components/responses/403'
+        404:
+          $ref: '#/components/responses/404'
+        500:
+          $ref: '#/components/responses/500'
+      security:
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
+
+  /orchestration_runs/{run_id}/stop:
+    parameters:
+      - $ref: '#/components/parameters/inPathOrchestrationRunId'
+    post:
+      operationId: PostOrchestrationRunStop
+      description: |
+        Stop a running run: the targets not started yet do not run, nor the next
+        steps, and the actions still waiting in the queue are cancelled. An action
+        an agent already runs cannot be interrupted: it goes on and its result is
+        recorded. 409 when the run is not running. Manager only.
+      tags:
+        - collector
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrchestrationRun'
+        401:
+          $ref: '#/components/responses/401'
+        403:
+          $ref: '#/components/responses/403'
+        404:
+          $ref: '#/components/responses/404'
+        409:
+          $ref: '#/components/responses/409'
+        500:
+          $ref: '#/components/responses/500'
+      security:
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
+
+  /orchestration_runs/{run_id}/resume:
+    parameters:
+      - $ref: '#/components/parameters/inPathOrchestrationRunId'
+    post:
+      operationId: PostOrchestrationRunResume
+      description: |
+        Resume a failed or stopped run from the step it stopped at: the targets of
+        that step that did not succeed run again, then the next steps, with the
+        targets resolved when the run started. 409 when the run is not failed or
+        stopped, or an action of it still runs. Manager only.
+      tags:
+        - collector
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrchestrationRun'
+        401:
+          $ref: '#/components/responses/401'
+        403:
+          $ref: '#/components/responses/403'
+        404:
+          $ref: '#/components/responses/404'
+        409:
+          $ref: '#/components/responses/409'
+        500:
+          $ref: '#/components/responses/500'
+      security:
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
+
 components:
 
   responses:
@@ -22929,7 +23271,306 @@ components:
             The API documentation (Swagger UI) is served, at the root of the API
             path (`<ui.enable>` of the component's configuration).
 
+    OrchestrationTargetKind:
+      type: string
+      description: |
+        What the action of a step acts on: a service as a whole, the instance of a
+        service on a node, a node, or a cluster.
+      enum: [service, instance, node, cluster]
+
+    OrchestrationTargets:
+      type: object
+      description: |
+        How a step names its targets. pick: the ids, svc_id for a service,
+        "svc_id@node_id" for an instance, node_id for a node, cluster_id for a
+        cluster. filterset: the services, the nodes, the instances of the services
+        on the nodes, or the clusters of the nodes, the filterset matches when the
+        run starts. same_as: the targets of an earlier step, of the same kind.
+      required: [mode]
+      properties:
+        mode:
+          type: string
+          enum: [pick, filterset, same_as]
+        ids:
+          type: array
+          items:
+            type: string
+        filterset_id:
+          type: integer
+        step:
+          type: integer
+          description: For same_as, the index of the earlier step, from 0
+
+    OrchestrationStep:
+      type: object
+      description: |
+        One action on a set of targets. The action must be one the action queue
+        accepts for the kind of target (see PUT /actions); rid, the resources of
+        an instance, applies to instances only. pace says how many targets run at
+        a time: all, one (one after the other) or batch (batch_size at a time).
+        timeout, in seconds, fails a target whose action has not finished by
+        then; 0 means no limit.
+      required: [name, action, kind, targets, pace]
+      properties:
+        name:
+          type: string
+        action:
+          type: string
+        kind:
+          $ref: '#/components/schemas/OrchestrationTargetKind'
+        targets:
+          $ref: '#/components/schemas/OrchestrationTargets'
+        rid:
+          type: string
+        pace:
+          type: string
+          enum: [all, one, batch]
+        batch_size:
+          type: integer
+          minimum: 1
+        timeout:
+          type: integer
+          minimum: 0
+
+    OrchestrationInput:
+      type: object
+      required: [name, steps]
+      properties:
+        name:
+          type: string
+        description:
+          type: string
+        steps:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrchestrationStep'
+
+    Orchestration:
+      type: object
+      required: [id, name, description, steps, created, updated, updated_by]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+        steps:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrchestrationStep'
+        created:
+          type: string
+        updated:
+          type: string
+        updated_by:
+          type: string
+          description: Email of the author of the last change
+
+    OrchestrationListResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/Orchestration'
+
+    OrchestrationCheckTarget:
+      type: object
+      required: [label, ok, message]
+      properties:
+        node_id:
+          type: string
+        svc_id:
+          type: string
+        cluster_id:
+          type: string
+        label:
+          type: string
+          description: The name of the target, as the run shows it
+        ok:
+          type: boolean
+        message:
+          type: string
+          description: Why the action queue would refuse the target, empty when ok
+
+    OrchestrationCheckStep:
+      type: object
+      required: [step, targets, message]
+      properties:
+        step:
+          type: integer
+        targets:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrchestrationCheckTarget'
+        message:
+          type: string
+          description: What makes the step itself invalid, empty when it is valid
+
+    OrchestrationCheckResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrchestrationCheckStep'
+
+    OrchestrationRunStatus:
+      type: string
+      enum: [running, succeeded, failed, stopped]
+
+    OrchestrationRunStepStatus:
+      type: string
+      description: |
+        stopped: the run was stopped during the step; not_run: the run failed or
+        was stopped before it.
+      enum: [waiting, running, succeeded, failed, stopped, not_run]
+
+    OrchestrationRunTargetStatus:
+      type: string
+      description: |
+        waiting: not started; queued: its action waits in the queue; running: an
+        agent runs it; ok: it returned 0; failed: it returned non-zero; refused:
+        the queue refused it; timed_out: it outlived the time limit of the step;
+        cancelled: its action was cancelled or deleted; not_run: the run stopped
+        before it.
+      enum: [waiting, queued, running, ok, failed, refused, timed_out, cancelled, not_run]
+
+    OrchestrationRunTarget:
+      type: object
+      required: [id, step, position, node_id, svc_id, cluster_id, label, status, message]
+      properties:
+        id:
+          type: integer
+        step:
+          type: integer
+        position:
+          type: integer
+        node_id:
+          type: string
+        svc_id:
+          type: string
+        cluster_id:
+          type: string
+        label:
+          type: string
+        status:
+          $ref: '#/components/schemas/OrchestrationRunTargetStatus'
+        action_id:
+          type: integer
+          nullable: true
+        ret:
+          type: integer
+          nullable: true
+        stdout:
+          type: string
+        stderr:
+          type: string
+        command:
+          type: string
+        message:
+          type: string
+          description: Why it did not succeed, when the action queue or the run says so
+        queued:
+          type: string
+          nullable: true
+        started:
+          type: string
+          nullable: true
+        ended:
+          type: string
+          nullable: true
+
+    OrchestrationRunStep:
+      type: object
+      required: [step, status, counts]
+      properties:
+        step:
+          type: integer
+        status:
+          $ref: '#/components/schemas/OrchestrationRunStepStatus'
+        started:
+          type: string
+          nullable: true
+        ended:
+          type: string
+          nullable: true
+        counts:
+          type: object
+          description: The number of targets by status
+          additionalProperties:
+            type: integer
+        targets:
+          type: array
+          description: Absent from the list of runs
+          items:
+            $ref: '#/components/schemas/OrchestrationRunTarget'
+
+    OrchestrationRun:
+      type: object
+      required: [id, name, plan, status, current_step, started, started_by, message, steps]
+      properties:
+        id:
+          type: integer
+        orchestration_id:
+          type: integer
+          nullable: true
+          description: Null once the orchestration is deleted
+        name:
+          type: string
+        plan:
+          type: array
+          description: The steps of the orchestration when the run started
+          items:
+            $ref: '#/components/schemas/OrchestrationStep'
+        status:
+          $ref: '#/components/schemas/OrchestrationRunStatus'
+        current_step:
+          type: integer
+        started:
+          type: string
+        ended:
+          type: string
+          nullable: true
+        started_by:
+          type: string
+        message:
+          type: string
+          description: Why the run failed or was stopped
+        steps:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrchestrationRunStep'
+
+    OrchestrationRunListResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/OrchestrationRun'
+
   parameters:
+    inPathOrchestrationId:
+      in: path
+      name: orchestration_id
+      required: true
+      description: ID of the orchestration
+      schema:
+        type: integer
+
+    inPathOrchestrationRunId:
+      in: path
+      name: run_id
+      required: true
+      description: ID of the orchestration run
+      schema:
+        type: integer
+
     ObjectPathHeader:
       name: OC3-ObjectPath
       in: header
