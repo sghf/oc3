@@ -1696,3 +1696,47 @@ func (oDb *DB) GetAlertEventsOf(ctx context.Context, id string, groups []string,
 	}
 	return events, true, truncated, nil
 }
+
+// DashboardUpdateServicesBelowSLA raises the "service availability below SLA"
+// alert of each service whose availability rate of the last 30 days is under
+// its target, critical in production, a warning elsewhere, its message naming
+// both, and clears it once the rate is back over the target, or the target or
+// the rate gone. The rate is that the task services_availability stores.
+func (oDb *DB) DashboardUpdateServicesBelowSLA(ctx context.Context) error {
+	const below = "svc_sla IS NOT NULL AND svc_availability IS NOT NULL AND svc_availability < svc_sla"
+	// "99.500" reads "99.5", "97.210000" "97.21": the percents as written.
+	const percent = "CONCAT(TRIM(TRAILING '.' FROM TRIM(TRAILING '0' FROM CAST(%s AS CHAR))), '%%')"
+	availability := fmt.Sprintf(percent, "ROUND(svc_availability, 2)")
+	sla := fmt.Sprintf(percent, "svc_sla")
+	request := `
+		INSERT INTO dashboard
+		  (svc_id, node_id, dash_type, dash_severity, dash_fmt, dash_dict, dash_created, dash_updated, dash_env, dash_instance)
+		SELECT
+		  svc_id, '', 'service availability below SLA', IF(svc_env = 'PRD', 3, 2),
+		  'availability %(availability)s below the SLA of %(sla)s',
+		  JSON_OBJECT('availability', ` + availability + `, 'sla', ` + sla + `),
+		  NOW(), NOW(), svc_env, ''
+		FROM services
+		WHERE ` + below + `
+		ON DUPLICATE KEY UPDATE
+		  dash_severity = VALUES(dash_severity),
+		  dash_fmt = VALUES(dash_fmt),
+		  dash_dict = VALUES(dash_dict),
+		  dash_env = VALUES(dash_env),
+		  dash_updated = NOW()`
+	if count, err := oDb.execCountContext(ctx, request); err != nil {
+		return err
+	} else if count > 0 {
+		oDb.SetChange("dashboard")
+	}
+	request = `
+		DELETE FROM dashboard
+		WHERE dash_type = 'service availability below SLA'
+		  AND svc_id NOT IN (SELECT svc_id FROM services WHERE ` + below + `)`
+	if count, err := oDb.execCountContext(ctx, request); err != nil {
+		return err
+	} else if count > 0 {
+		oDb.SetChange("dashboard")
+	}
+	return nil
+}
