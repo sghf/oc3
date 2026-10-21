@@ -18402,6 +18402,51 @@ paths:
         - basicAuth: [ ]
         - bearerAuth: [ ]
 
+  /orchestration_runs/{run_id}/continue:
+    parameters:
+      - $ref: '#/components/parameters/inPathOrchestrationRunId'
+    post:
+      operationId: PostOrchestrationRunContinue
+      description: |
+        Acknowledge the failed or stopped step of a failed or stopped run and
+        go on with the next step: the step becomes acknowledged, with the comment, which is
+        required, the author and the date; its targets keep their outcome. The
+        next steps run with the targets resolved when the run started; when the
+        failed step was the last, the run ends as succeeded. 400 without a
+        comment; 409 when the run is neither failed nor stopped, or an action of
+        it still runs.
+        Manager only.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/OrchestrationRunContinueInput'
+      tags:
+        - collector
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OrchestrationRun'
+        400:
+          $ref: '#/components/responses/400'
+        401:
+          $ref: '#/components/responses/401'
+        403:
+          $ref: '#/components/responses/403'
+        404:
+          $ref: '#/components/responses/404'
+        409:
+          $ref: '#/components/responses/409'
+        500:
+          $ref: '#/components/responses/500'
+      security:
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
+
   /orchestration_runs/{run_id}/resume:
     parameters:
       - $ref: '#/components/parameters/inPathOrchestrationRunId'
@@ -23784,8 +23829,9 @@ components:
       type: string
       description: |
         stopped: the run was stopped during the step; not_run: the run failed or
-        was stopped before it.
-      enum: [waiting, running, succeeded, failed, stopped, not_run]
+        was stopped before it; acknowledged: the step failed or was stopped, and
+        its outcome was accepted for the run to go on (see POST /orchestration_runs/{run_id}/continue).
+      enum: [waiting, running, succeeded, failed, acknowledged, stopped, not_run]
 
     OrchestrationRunTargetStatus:
       type: string
@@ -23856,6 +23902,15 @@ components:
         ended:
           type: string
           nullable: true
+        acked_by:
+          type: string
+          description: Who acknowledged the failure of the step, empty when none did
+        acked_at:
+          type: string
+          nullable: true
+        ack_comment:
+          type: string
+          description: Why the failure was acknowledged
         counts:
           type: object
           description: The number of targets by status
@@ -23902,6 +23957,14 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/OrchestrationRunStep'
+
+    OrchestrationRunContinueInput:
+      type: object
+      required: [comment]
+      properties:
+        comment:
+          type: string
+          description: Why the failure of the step is accepted
 
     OrchestrationRunListResponse:
       type: object

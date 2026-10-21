@@ -477,17 +477,20 @@ func (e OrchestrationRunStatus) Valid() bool {
 
 // Defines values for OrchestrationRunStepStatus.
 const (
-	OrchestrationRunStepStatusFailed    OrchestrationRunStepStatus = "failed"
-	OrchestrationRunStepStatusNotRun    OrchestrationRunStepStatus = "not_run"
-	OrchestrationRunStepStatusRunning   OrchestrationRunStepStatus = "running"
-	OrchestrationRunStepStatusStopped   OrchestrationRunStepStatus = "stopped"
-	OrchestrationRunStepStatusSucceeded OrchestrationRunStepStatus = "succeeded"
-	OrchestrationRunStepStatusWaiting   OrchestrationRunStepStatus = "waiting"
+	OrchestrationRunStepStatusAcknowledged OrchestrationRunStepStatus = "acknowledged"
+	OrchestrationRunStepStatusFailed       OrchestrationRunStepStatus = "failed"
+	OrchestrationRunStepStatusNotRun       OrchestrationRunStepStatus = "not_run"
+	OrchestrationRunStepStatusRunning      OrchestrationRunStepStatus = "running"
+	OrchestrationRunStepStatusStopped      OrchestrationRunStepStatus = "stopped"
+	OrchestrationRunStepStatusSucceeded    OrchestrationRunStepStatus = "succeeded"
+	OrchestrationRunStepStatusWaiting      OrchestrationRunStepStatus = "waiting"
 )
 
 // Valid indicates whether the value is a known member of the OrchestrationRunStepStatus enum.
 func (e OrchestrationRunStepStatus) Valid() bool {
 	switch e {
+	case OrchestrationRunStepStatusAcknowledged:
+		return true
 	case OrchestrationRunStepStatusFailed:
 		return true
 	case OrchestrationRunStepStatusNotRun:
@@ -3867,6 +3870,12 @@ type OrchestrationRun struct {
 	Steps     []OrchestrationRunStep `json:"steps"`
 }
 
+// OrchestrationRunContinueInput defines model for OrchestrationRunContinueInput.
+type OrchestrationRunContinueInput struct {
+	// Comment Why the failure of the step is accepted
+	Comment string `json:"comment"`
+}
+
 // OrchestrationRunListResponse defines model for OrchestrationRunListResponse.
 type OrchestrationRunListResponse struct {
 	Data []OrchestrationRun `json:"data"`
@@ -3877,13 +3886,21 @@ type OrchestrationRunStatus string
 
 // OrchestrationRunStep defines model for OrchestrationRunStep.
 type OrchestrationRunStep struct {
+	// AckComment Why the failure was acknowledged
+	AckComment *string `json:"ack_comment,omitempty"`
+	AckedAt    *string `json:"acked_at,omitempty"`
+
+	// AckedBy Who acknowledged the failure of the step, empty when none did
+	AckedBy *string `json:"acked_by,omitempty"`
+
 	// Counts The number of targets by status
 	Counts  map[string]int `json:"counts"`
 	Ended   *string        `json:"ended,omitempty"`
 	Started *string        `json:"started,omitempty"`
 
 	// Status stopped: the run was stopped during the step; not_run: the run failed or
-	// was stopped before it.
+	// was stopped before it; acknowledged: the step failed or was stopped, and
+	// its outcome was accepted for the run to go on (see POST /orchestration_runs/{run_id}/continue).
 	Status OrchestrationRunStepStatus `json:"status"`
 	Step   int                        `json:"step"`
 
@@ -3892,7 +3909,8 @@ type OrchestrationRunStep struct {
 }
 
 // OrchestrationRunStepStatus stopped: the run was stopped during the step; not_run: the run failed or
-// was stopped before it.
+// was stopped before it; acknowledged: the step failed or was stopped, and
+// its outcome was accepted for the run to go on (see POST /orchestration_runs/{run_id}/continue).
 type OrchestrationRunStepStatus string
 
 // OrchestrationRunTarget defines model for OrchestrationRunTarget.
@@ -14055,6 +14073,9 @@ type PostOidcMappingsJSONRequestBody = OidcMappingInput
 
 // PostOidcMappingJSONRequestBody defines body for PostOidcMapping for application/json ContentType.
 type PostOidcMappingJSONRequestBody = OidcMappingInput
+
+// PostOrchestrationRunContinueJSONRequestBody defines body for PostOrchestrationRunContinue for application/json ContentType.
+type PostOrchestrationRunContinueJSONRequestBody = OrchestrationRunContinueInput
 
 // PostOrchestrationJSONRequestBody defines body for PostOrchestration for application/json ContentType.
 type PostOrchestrationJSONRequestBody = OrchestrationInput

@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"log/slog"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/labstack/echo/v4"
@@ -94,6 +95,10 @@ func toOrchestrationRun(r cdb.OrchestrationRun, steps []cdb.OrchestrationRunStep
 		step := server.OrchestrationRunStep{
 			Step: s.Step, Status: server.OrchestrationRunStepStatus(s.Status),
 			Started: formatTime(s.Started), Ended: formatTime(s.Ended), Counts: map[string]int{},
+		}
+		if s.AckedBy != "" {
+			by, comment := s.AckedBy, s.AckComment
+			step.AckedBy, step.AckComment, step.AckedAt = &by, &comment, formatTime(s.AckedAt)
 		}
 		for status, n := range counts[s.Step] {
 			step.Counts[status] = n
@@ -318,6 +323,90 @@ func (a *Api) PostOrchestrationRunResume(c echo.Context, id server.InPathOrchest
 	}); err != nil {
 		log.Error("cannot write audit log", logkey.Error, err)
 	}
+	a.wakeOrchestrationEngine()
+	if err := odb.Session.NotifyChanges(ctx); err != nil {
+		log.Debug("cannot notify changes", logkey.Error, err)
+	}
+	return a.writeOrchestrationRun(c, log, id)
+}
+
+// PostOrchestrationRunContinue handles POST /orchestration_runs/{run_id}/continue:
+// the failed step acknowledged, with its comment, and the run going on with
+// the next step, or ending as succeeded after the last.
+func (a *Api) PostOrchestrationRunContinue(c echo.Context, id server.InPathOrchestrationRunId) error {
+	log := echolog.GetLogHandler(c, "PostOrchestrationRunContinue")
+	if err := requireManager(c); err != nil {
+		return err
+	}
+	var body server.OrchestrationRunContinueInput
+	if err := c.Bind(&body); err != nil {
+		return JSONProblem(c, http.StatusBadRequest, err.Error())
+	}
+	comment := strings.TrimSpace(body.Comment)
+	if comment == "" {
+		return JSONProblemf(c, http.StatusBadRequest, "a comment is required to acknowledge the failure")
+	}
+	ctx, cancel := context.WithTimeout(c.Request().Context(), a.SyncTimeout)
+	defer cancel()
+	odb := a.ODB
+	run, err := odb.OrchestrationRunByID(ctx, id)
+	if err != nil {
+		log.Error("cannot read the run", "run_id", id, logkey.Error, err)
+		return JSONProblemf(c, http.StatusInternalServerError, "cannot read run %d", id)
+	}
+	if run == nil {
+		return JSONProblemf(c, http.StatusNotFound, "run %d not found", id)
+	}
+	if run.Status != "failed" && run.Status != "stopped" {
+		return JSONProblemf(c, http.StatusConflict, "run %d is %s: only a failed or stopped run goes on past its step", id, run.Status)
+	}
+	targets, err := odb.OrchestrationRunTargets(ctx, id, -1)
+	if err != nil {
+		log.Error("cannot read the targets of the run", "run_id", id, logkey.Error, err)
+		return JSONProblemf(c, http.StatusInternalServerError, "cannot read run %d", id)
+	}
+	for _, t := range targets {
+		if targetInFlight(t.Status) {
+			return JSONProblemf(c, http.StatusConflict, "an action of run %d still runs on %s: wait for its end", id, t.Label)
+		}
+	}
+	steps, err := odb.OrchestrationRunSteps(ctx, []int{id})
+	if err != nil {
+		log.Error("cannot read the steps of the run", "run_id", id, logkey.Error, err)
+		return JSONProblemf(c, http.StatusInternalServerError, "cannot read run %d", id)
+	}
+	cur, last := run.CurrentStep, len(steps)-1
+	author, _ := c.Get(XUserEmail).(string)
+	if err := a.inTx(ctx, log, func(tx *cdb.DB) error {
+		if err := tx.AckOrchestrationRunStep(ctx, id, cur, author, comment); err != nil {
+			return err
+		}
+		if cur >= last {
+			return tx.SetOrchestrationRun(ctx, id, "succeeded", cur, "")
+		}
+		// The next steps run as planned: what the failure left not run waits again.
+		if err := tx.SetOrchestrationTargetsStatus(ctx, id, -1, cur+1, []string{"not_run"}, "waiting", ""); err != nil {
+			return err
+		}
+		if err := tx.SetOrchestrationRunStepsFrom(ctx, id, cur+1, "waiting"); err != nil {
+			return err
+		}
+		if err := tx.SetOrchestrationRunStep(ctx, id, cur+1, "running"); err != nil {
+			return err
+		}
+		return tx.SetOrchestrationRun(ctx, id, "running", cur+1, "")
+	}); err != nil {
+		log.Error("cannot go on with the run", "run_id", id, logkey.Error, err)
+		return JSONProblemf(c, http.StatusInternalServerError, "cannot go on with run %d", id)
+	}
+	if err := odb.Log(ctx, cdb.LogEntry{
+		Action: "orchestration.continue", User: author,
+		Fmt:  "acknowledged the failure of step %(step)s of run %(run_id)s of orchestration %(name)s: %(comment)s",
+		Dict: map[string]any{"name": run.Name, "run_id": id, "step": cur + 1, "comment": comment}, Level: "info",
+	}); err != nil {
+		log.Error("cannot write audit log", logkey.Error, err)
+	}
+	log.Info("orchestration run failure acknowledged", "run_id", id, "step", cur)
 	a.wakeOrchestrationEngine()
 	if err := odb.Session.NotifyChanges(ctx); err != nil {
 		log.Debug("cannot notify changes", logkey.Error, err)

@@ -45,6 +45,10 @@ type (
 		Status  string
 		Started *time.Time
 		Ended   *time.Time
+		// An acknowledged step: who accepted its failure, when, and why.
+		AckedBy    string
+		AckedAt    *time.Time
+		AckComment string
 	}
 
 	// OrchestrationRunTarget is a row of orchestration_run_targets: a target of
@@ -329,7 +333,7 @@ func (oDb *DB) OrchestrationRunSteps(ctx context.Context, runIDs []int) ([]Orche
 	}
 	placeholders, args := getPlaceholdersAndArgs(runIDs)
 	rows, err := oDb.DB.QueryContext(ctx, fmt.Sprintf(
-		"SELECT run_id, step, status, started, ended FROM orchestration_run_steps WHERE run_id IN (%s) ORDER BY run_id, step",
+		"SELECT run_id, step, status, started, ended, acked_by, acked_at, ack_comment FROM orchestration_run_steps WHERE run_id IN (%s) ORDER BY run_id, step",
 		strings.Join(placeholders, ",")), args...)
 	if err != nil {
 		return nil, err
@@ -340,8 +344,10 @@ func (oDb *DB) OrchestrationRunSteps(ctx context.Context, runIDs []int) ([]Orche
 		var (
 			s              OrchestrationRunStep
 			started, ended sql.NullTime
+			ackedAt        sql.NullTime
+			ackComment     sql.NullString
 		)
-		if err := rows.Scan(&s.RunID, &s.Step, &s.Status, &started, &ended); err != nil {
+		if err := rows.Scan(&s.RunID, &s.Step, &s.Status, &started, &ended, &s.AckedBy, &ackedAt, &ackComment); err != nil {
 			return nil, err
 		}
 		if started.Valid {
@@ -350,6 +356,10 @@ func (oDb *DB) OrchestrationRunSteps(ctx context.Context, runIDs []int) ([]Orche
 		if ended.Valid {
 			s.Ended = &ended.Time
 		}
+		if ackedAt.Valid {
+			s.AckedAt = &ackedAt.Time
+		}
+		s.AckComment = ackComment.String
 		l = append(l, s)
 	}
 	return l, rows.Err()
@@ -371,6 +381,17 @@ func (oDb *DB) SetOrchestrationRunStep(ctx context.Context, runID, step int, sta
 	_, err := oDb.DB.ExecContext(ctx,
 		"UPDATE orchestration_run_steps SET status = ?, "+dates+" WHERE run_id = ? AND step = ?",
 		status, runID, step)
+	if err == nil {
+		oDb.SetChange("orchestration_runs")
+	}
+	return err
+}
+
+// AckOrchestrationRunStep acknowledges the failed or stopped step of a run: its
+// outcome accepted, by whom and why, for the run to go on.
+func (oDb *DB) AckOrchestrationRunStep(ctx context.Context, runID, step int, by, comment string) error {
+	_, err := oDb.DB.ExecContext(ctx, `UPDATE orchestration_run_steps SET status = 'acknowledged', acked_by = ?,
+		acked_at = NOW(), ack_comment = ? WHERE run_id = ? AND step = ? AND status IN ('failed', 'stopped')`, by, comment, runID, step)
 	if err == nil {
 		oDb.SetChange("orchestration_runs")
 	}
