@@ -5014,6 +5014,47 @@ type Whoami struct {
 // WhoamiAuthSource How the request, or the impersonator, signed in.
 type WhoamiAuthSource string
 
+// WikiPage defines model for WikiPage.
+type WikiPage struct {
+	// Revision The latest revision, with its body; null when none was saved
+	Revision *WikiRevision `json:"revision"`
+
+	// Revisions The revisions, the latest first, without their body
+	Revisions []WikiRevision `json:"revisions"`
+
+	// Total How many revisions the page has in all
+	Total int `json:"total"`
+
+	// Writable Whether the caller may save a revision
+	Writable bool `json:"writable"`
+}
+
+// WikiRevision defines model for WikiRevision.
+type WikiRevision struct {
+	// Author The email of the user who saved it, empty when unknown
+	Author string `json:"author"`
+
+	// Body The notes, in Markdown; absent from a list of revisions
+	Body *string `json:"body,omitempty"`
+
+	// ChangeNote What the revision changed, in a few words; may be empty
+	ChangeNote string    `json:"change_note"`
+	Id         int64     `json:"id"`
+	SavedOn    time.Time `json:"saved_on"`
+}
+
+// WikiRevisionInput defines model for WikiRevisionInput.
+type WikiRevisionInput struct {
+	// BaseId The revision edited, 0 when the page has none
+	BaseId int64 `json:"base_id"`
+
+	// Body The notes, in Markdown, at most 60000 bytes
+	Body string `json:"body"`
+
+	// ChangeNote What the revision changes, at most 200 characters
+	ChangeNote *string `json:"change_note,omitempty"`
+}
+
 // WorkflowListResponse defines model for WorkflowListResponse.
 type WorkflowListResponse struct {
 	Data WorkflowListResponse_Data `json:"data"`
@@ -11234,6 +11275,12 @@ type GetNodeTargetsParams struct {
 	Filter *InQueryFilter `form:"filter,omitempty" json:"filter,omitempty"`
 }
 
+// GetNodeWikiParams defines parameters for GetNodeWiki.
+type GetNodeWikiParams struct {
+	// Limit At most this many revisions in the list (default 20, at most 200)
+	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
 // DeleteObsolescenceSettingsJSONBody defines parameters for DeleteObsolescenceSettings.
 type DeleteObsolescenceSettingsJSONBody struct {
 	// Id Obsolescence setting record id
@@ -12888,6 +12935,12 @@ type GetServiceTagsParams struct {
 	Groupby *InQueryGroupby `form:"groupby,omitempty" json:"groupby,omitempty"`
 }
 
+// GetServiceWikiParams defines parameters for GetServiceWiki.
+type GetServiceWikiParams struct {
+	// Limit At most this many revisions in the list (default 20, at most 200)
+	Limit *int `form:"limit,omitempty" json:"limit,omitempty"`
+}
+
 // GetServicesActionsParams defines parameters for GetServicesActions.
 type GetServicesActionsParams struct {
 	// Props A list of properties to include in each data dictionnary.
@@ -14059,6 +14112,9 @@ type PostNodeSnoozeJSONRequestBody PostNodeSnoozeJSONBody
 // PostNodeSysreportPurgeJSONRequestBody defines body for PostNodeSysreportPurge for application/json ContentType.
 type PostNodeSysreportPurgeJSONRequestBody = SysreportPurgeInput
 
+// PostNodeWikiJSONRequestBody defines body for PostNodeWiki for application/json ContentType.
+type PostNodeWikiJSONRequestBody = WikiRevisionInput
+
 // DeleteObsolescenceSettingsJSONRequestBody defines body for DeleteObsolescenceSettings for application/json ContentType.
 type DeleteObsolescenceSettingsJSONRequestBody DeleteObsolescenceSettingsJSONBody
 
@@ -14115,6 +14171,9 @@ type PostServiceJSONRequestBody PostServiceJSONBody
 
 // PutServiceStatusLogAckJSONRequestBody defines body for PutServiceStatusLogAck for application/json ContentType.
 type PutServiceStatusLogAckJSONRequestBody PutServiceStatusLogAckJSONBody
+
+// PostServiceWikiJSONRequestBody defines body for PostServiceWiki for application/json ContentType.
+type PostServiceWikiJSONRequestBody = WikiRevisionInput
 
 // PostServicesActionsJSONRequestBody defines body for PostServicesActions for application/json ContentType.
 type PostServicesActionsJSONRequestBody PostServicesActionsJSONBody

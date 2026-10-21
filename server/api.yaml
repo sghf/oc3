@@ -9835,6 +9835,127 @@ paths:
       tags:
         - collector
 
+  /nodes/{node_id}/wiki:
+    parameters:
+      - in: path
+        name: node_id
+        required: true
+        description: Node identifier (node_id UUID or nodename)
+        schema:
+          type: string
+    get:
+      operationId: GetNodeWiki
+      description: |
+        The notes of the node, a wiki page in Markdown: its latest revision
+        with its body, null when none was saved, and the list of its
+        revisions, the latest first, without their body. writable tells
+        whether the caller may save a revision: a Manager, or a user
+        responsible for the node.
+      parameters:
+        - in: query
+          name: limit
+          description: At most this many revisions in the list (default 20, at most 200)
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+      tags:
+        - collector
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WikiPage'
+        401:
+          $ref: '#/components/responses/401'
+        403:
+          $ref: '#/components/responses/403'
+        404:
+          $ref: '#/components/responses/404'
+        500:
+          $ref: '#/components/responses/500'
+      security:
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
+    post:
+      operationId: PostNodeWiki
+      description: |
+        Save a revision of the notes of the node, over the revision base_id,
+        0 when the page has none yet. 409 when base_id is not the latest
+        revision any more: someone saved meanwhile, and nothing is saved.
+        400 when the body is larger than 60000 bytes. A Manager, or a user
+        responsible for the node.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WikiRevisionInput'
+      tags:
+        - collector
+      responses:
+        201:
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WikiRevision'
+        400:
+          $ref: '#/components/responses/400'
+        401:
+          $ref: '#/components/responses/401'
+        403:
+          $ref: '#/components/responses/403'
+        404:
+          $ref: '#/components/responses/404'
+        409:
+          $ref: '#/components/responses/409'
+        500:
+          $ref: '#/components/responses/500'
+      security:
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
+
+  /nodes/{node_id}/wiki/{revision_id}:
+    parameters:
+      - in: path
+        name: node_id
+        required: true
+        description: Node identifier (node_id UUID or nodename)
+        schema:
+          type: string
+      - in: path
+        name: revision_id
+        required: true
+        schema:
+          type: integer
+          format: int64
+    get:
+      operationId: GetNodeWikiRevision
+      description: A revision of the notes of the node, with its body.
+      tags:
+        - collector
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WikiRevision'
+        401:
+          $ref: '#/components/responses/401'
+        403:
+          $ref: '#/components/responses/403'
+        404:
+          $ref: '#/components/responses/404'
+        500:
+          $ref: '#/components/responses/500'
+      security:
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
+
   /nodes/{node_id}/am_i_responsible:
     get:
       operationId: GetNodeAmIResponsible
@@ -10997,6 +11118,127 @@ paths:
             application/json:
               schema:
                 type: object
+        401:
+          $ref: '#/components/responses/401'
+        403:
+          $ref: '#/components/responses/403'
+        404:
+          $ref: '#/components/responses/404'
+        500:
+          $ref: '#/components/responses/500'
+      security:
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
+
+  /services/{svc_id}/wiki:
+    parameters:
+      - in: path
+        name: svc_id
+        required: true
+        description: Service identifier (svc_id UUID or svcname)
+        schema:
+          type: string
+    get:
+      operationId: GetServiceWiki
+      description: |
+        The notes of the service, a wiki page in Markdown: its latest revision
+        with its body, null when none was saved, and the list of its
+        revisions, the latest first, without their body. writable tells
+        whether the caller may save a revision: a Manager, or a user
+        responsible for the service.
+      parameters:
+        - in: query
+          name: limit
+          description: At most this many revisions in the list (default 20, at most 200)
+          schema:
+            type: integer
+            minimum: 1
+            maximum: 200
+      tags:
+        - collector
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WikiPage'
+        401:
+          $ref: '#/components/responses/401'
+        403:
+          $ref: '#/components/responses/403'
+        404:
+          $ref: '#/components/responses/404'
+        500:
+          $ref: '#/components/responses/500'
+      security:
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
+    post:
+      operationId: PostServiceWiki
+      description: |
+        Save a revision of the notes of the service, over the revision base_id,
+        0 when the page has none yet. 409 when base_id is not the latest
+        revision any more: someone saved meanwhile, and nothing is saved.
+        400 when the body is larger than 60000 bytes. A Manager, or a user
+        responsible for the service.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WikiRevisionInput'
+      tags:
+        - collector
+      responses:
+        201:
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WikiRevision'
+        400:
+          $ref: '#/components/responses/400'
+        401:
+          $ref: '#/components/responses/401'
+        403:
+          $ref: '#/components/responses/403'
+        404:
+          $ref: '#/components/responses/404'
+        409:
+          $ref: '#/components/responses/409'
+        500:
+          $ref: '#/components/responses/500'
+      security:
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
+
+  /services/{svc_id}/wiki/{revision_id}:
+    parameters:
+      - in: path
+        name: svc_id
+        required: true
+        description: Service identifier (svc_id UUID or svcname)
+        schema:
+          type: string
+      - in: path
+        name: revision_id
+        required: true
+        schema:
+          type: integer
+          format: int64
+    get:
+      operationId: GetServiceWikiRevision
+      description: A revision of the notes of the service, with its body.
+      tags:
+        - collector
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/WikiRevision'
         401:
           $ref: '#/components/responses/401'
         403:
@@ -23957,6 +24199,62 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/OrchestrationRunStep'
+
+    WikiRevision:
+      type: object
+      required: [id, saved_on, author, change_note]
+      properties:
+        id:
+          type: integer
+          format: int64
+        saved_on:
+          type: string
+          format: date-time
+        author:
+          type: string
+          description: The email of the user who saved it, empty when unknown
+        change_note:
+          type: string
+          description: What the revision changed, in a few words; may be empty
+        body:
+          type: string
+          description: The notes, in Markdown; absent from a list of revisions
+
+    WikiPage:
+      type: object
+      required: [revision, revisions, total, writable]
+      properties:
+        revision:
+          description: The latest revision, with its body; null when none was saved
+          nullable: true
+          allOf:
+            - $ref: '#/components/schemas/WikiRevision'
+        revisions:
+          type: array
+          description: The revisions, the latest first, without their body
+          items:
+            $ref: '#/components/schemas/WikiRevision'
+        total:
+          type: integer
+          description: How many revisions the page has in all
+        writable:
+          type: boolean
+          description: Whether the caller may save a revision
+
+    WikiRevisionInput:
+      type: object
+      required: [body, base_id]
+      properties:
+        body:
+          type: string
+          description: The notes, in Markdown, at most 60000 bytes
+        change_note:
+          type: string
+          description: What the revision changes, at most 200 characters
+        base_id:
+          type: integer
+          format: int64
+          description: The revision edited, 0 when the page has none
 
     OrchestrationRunContinueInput:
       type: object
