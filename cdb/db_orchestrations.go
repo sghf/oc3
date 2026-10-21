@@ -102,24 +102,6 @@ func scanOrchestration(scan func(...any) error) (*Orchestration, error) {
 	return &o, nil
 }
 
-// Orchestrations returns every orchestration, by name.
-func (oDb *DB) Orchestrations(ctx context.Context) ([]Orchestration, error) {
-	rows, err := oDb.DB.QueryContext(ctx, "SELECT "+orchestrationColumns+" FROM orchestrations ORDER BY name")
-	if err != nil {
-		return nil, err
-	}
-	defer func() { _ = rows.Close() }()
-	l := []Orchestration{}
-	for rows.Next() {
-		o, err := scanOrchestration(rows.Scan)
-		if err != nil {
-			return nil, err
-		}
-		l = append(l, *o)
-	}
-	return l, rows.Err()
-}
-
 // OrchestrationByID returns the orchestration, nil when there is none.
 func (oDb *DB) OrchestrationByID(ctx context.Context, id int) (*Orchestration, error) {
 	row := oDb.DB.QueryRowContext(ctx, "SELECT "+orchestrationColumns+" FROM orchestrations WHERE id = ?", id)
@@ -258,35 +240,6 @@ func (oDb *DB) OrchestrationRunByID(ctx context.Context, id int) (*Orchestration
 		return nil, nil
 	}
 	return r, err
-}
-
-// OrchestrationRuns returns the runs, the latest first, of an orchestration
-// when orchestrationID is set; limit 0 means no limit.
-func (oDb *DB) OrchestrationRuns(ctx context.Context, orchestrationID *int, limit int) ([]OrchestrationRun, error) {
-	query := "SELECT " + orchestrationRunColumns + " FROM orchestration_runs"
-	var args []any
-	if orchestrationID != nil {
-		query += " WHERE orchestration_id = ?"
-		args = append(args, *orchestrationID)
-	}
-	query += " ORDER BY id DESC"
-	if limit > 0 {
-		query += fmt.Sprintf(" LIMIT %d", limit)
-	}
-	rows, err := oDb.DB.QueryContext(ctx, query, args...)
-	if err != nil {
-		return nil, err
-	}
-	defer func() { _ = rows.Close() }()
-	l := []OrchestrationRun{}
-	for rows.Next() {
-		r, err := scanOrchestrationRun(rows.Scan)
-		if err != nil {
-			return nil, err
-		}
-		l = append(l, *r)
-	}
-	return l, rows.Err()
 }
 
 // OrchestrationRunIDsToAdvance returns the runs the engine has work on: those
@@ -472,40 +425,6 @@ func (oDb *DB) OrchestrationRunTargets(ctx context.Context, runID, step int) ([]
 		l = append(l, t)
 	}
 	return l, rows.Err()
-}
-
-// OrchestrationRunTargetCounts returns, per run and step, the number of targets
-// by status.
-func (oDb *DB) OrchestrationRunTargetCounts(ctx context.Context, runIDs []int) (map[int]map[int]map[string]int, error) {
-	m := map[int]map[int]map[string]int{}
-	if len(runIDs) == 0 {
-		return m, nil
-	}
-	placeholders, args := getPlaceholdersAndArgs(runIDs)
-	rows, err := oDb.DB.QueryContext(ctx, fmt.Sprintf(
-		"SELECT run_id, step, status, COUNT(*) FROM orchestration_run_targets WHERE run_id IN (%s) GROUP BY run_id, step, status",
-		strings.Join(placeholders, ",")), args...)
-	if err != nil {
-		return nil, err
-	}
-	defer func() { _ = rows.Close() }()
-	for rows.Next() {
-		var (
-			runID, step, n int
-			status         string
-		)
-		if err := rows.Scan(&runID, &step, &status, &n); err != nil {
-			return nil, err
-		}
-		if m[runID] == nil {
-			m[runID] = map[int]map[string]int{}
-		}
-		if m[runID][step] == nil {
-			m[runID][step] = map[string]int{}
-		}
-		m[runID][step][status] = n
-	}
-	return m, rows.Err()
 }
 
 // SetOrchestrationTargetQueued records the action queued for a target, and its

@@ -306,26 +306,17 @@ func toOrchestration(o cdb.Orchestration) (server.Orchestration, error) {
 }
 
 // GetOrchestrations handles GET /orchestrations.
-func (a *Api) GetOrchestrations(c echo.Context) error {
-	log := echolog.GetLogHandler(c, "GetOrchestrations")
+func (a *Api) GetOrchestrations(c echo.Context, params server.GetOrchestrationsParams) error {
 	if err := requireManager(c); err != nil {
 		return err
 	}
-	rows, err := a.ODB.Orchestrations(c.Request().Context())
-	if err != nil {
-		log.Error("cannot list the orchestrations", logkey.Error, err)
-		return JSONProblemf(c, http.StatusInternalServerError, "cannot list the orchestrations")
-	}
-	data := []server.Orchestration{}
-	for _, row := range rows {
-		o, err := toOrchestration(row)
-		if err != nil {
-			log.Error("cannot read the steps of an orchestration", "orchestration_id", row.ID, logkey.Error, err)
-			return JSONProblemf(c, http.StatusInternalServerError, "cannot read orchestration %d", row.ID)
-		}
-		data = append(data, o)
-	}
-	return c.JSON(http.StatusOK, server.OrchestrationListResponse{Data: data})
+	return a.handleList(c, "GetOrchestrations", "orchestrationList", listEndpointParams{
+		props: params.Props, limit: params.Limit, offset: params.Offset,
+		meta: params.Meta, stats: params.Stats, orderby: params.Orderby, groupby: params.Groupby,
+		filter: params.Filter,
+	}, func(ctx context.Context, p cdb.ListParams) ([]map[string]any, error) {
+		return a.ODB.GetOrchestrationsList(ctx, p)
+	})
 }
 
 // GetOrchestration handles GET /orchestrations/{orchestration_id}.

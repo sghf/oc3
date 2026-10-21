@@ -151,43 +151,16 @@ func (a *Api) writeOrchestrationRun(c echo.Context, log *slog.Logger, id int) er
 
 // GetOrchestrationRuns handles GET /orchestration_runs.
 func (a *Api) GetOrchestrationRuns(c echo.Context, params server.GetOrchestrationRunsParams) error {
-	log := echolog.GetLogHandler(c, "GetOrchestrationRuns")
 	if err := requireManager(c); err != nil {
 		return err
 	}
-	ctx := c.Request().Context()
-	limit := 50
-	if params.Limit != nil {
-		limit = *params.Limit
-	}
-	runs, err := a.ODB.OrchestrationRuns(ctx, params.OrchestrationId, limit)
-	if err != nil {
-		log.Error("cannot list the runs", logkey.Error, err)
-		return JSONProblemf(c, http.StatusInternalServerError, "cannot list the runs")
-	}
-	ids := make([]int, len(runs))
-	for i, r := range runs {
-		ids[i] = r.ID
-	}
-	steps, err := a.ODB.OrchestrationRunSteps(ctx, ids)
-	if err != nil {
-		log.Error("cannot read the steps of the runs", logkey.Error, err)
-		return JSONProblemf(c, http.StatusInternalServerError, "cannot list the runs")
-	}
-	counts, err := a.ODB.OrchestrationRunTargetCounts(ctx, ids)
-	if err != nil {
-		log.Error("cannot count the targets of the runs", logkey.Error, err)
-		return JSONProblemf(c, http.StatusInternalServerError, "cannot list the runs")
-	}
-	stepsOf := map[int][]cdb.OrchestrationRunStep{}
-	for _, s := range steps {
-		stepsOf[s.RunID] = append(stepsOf[s.RunID], s)
-	}
-	data := []server.OrchestrationRun{}
-	for _, r := range runs {
-		data = append(data, toOrchestrationRun(r, stepsOf[r.ID], counts[r.ID], nil))
-	}
-	return c.JSON(http.StatusOK, server.OrchestrationRunListResponse{Data: data})
+	return a.handleList(c, "GetOrchestrationRuns", "orchestrationRunList", listEndpointParams{
+		props: params.Props, limit: params.Limit, offset: params.Offset,
+		meta: params.Meta, stats: params.Stats, orderby: params.Orderby, groupby: params.Groupby,
+		filter: params.Filter,
+	}, func(ctx context.Context, p cdb.ListParams) ([]map[string]any, error) {
+		return a.ODB.GetOrchestrationRunsList(ctx, p)
+	})
 }
 
 // GetOrchestrationRun handles GET /orchestration_runs/{run_id}.

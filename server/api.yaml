@@ -18339,7 +18339,19 @@ paths:
     get:
       operationId: GetOrchestrations
       description: |
-        The orchestrations, by name, each with its steps. Manager only.
+        The orchestrations, by name unless sorted otherwise, as a collector list:
+        props, filters, sort, pagination and stats. Each with the JSON of its
+        steps (a filter on steps reads the actions of the steps) and its last
+        run. Manager only.
+      parameters:
+        - $ref: '#/components/parameters/inQueryProps'
+        - $ref: '#/components/parameters/inQueryLimit'
+        - $ref: '#/components/parameters/inQueryOffset'
+        - $ref: '#/components/parameters/inQueryMeta'
+        - $ref: '#/components/parameters/inQueryStats'
+        - $ref: '#/components/parameters/inQueryOrderby'
+        - $ref: '#/components/parameters/inQueryFilter'
+        - $ref: '#/components/parameters/inQueryGroupby'
       tags:
         - collector
       responses:
@@ -18349,6 +18361,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/OrchestrationListResponse'
+        400:
+          $ref: '#/components/responses/400'
         401:
           $ref: '#/components/responses/401'
         403:
@@ -18554,15 +18568,21 @@ paths:
     get:
       operationId: GetOrchestrationRuns
       description: |
-        The runs of the orchestrations, the latest first, with the summary of their
-        steps but not their targets. Manager only.
+        The runs of the orchestrations, the latest first unless sorted otherwise,
+        as a collector list: props, filters, sort, pagination and stats. Each with
+        the count of its steps and of those done, and its duration; the runs of
+        one orchestration with the filter orchestration_id:eq:<id>. The steps and
+        targets of a run are read by GET /orchestration_runs/{run_id}. Manager
+        only.
       parameters:
-        - in: query
-          name: orchestration_id
-          description: The runs of this orchestration only
-          schema:
-            type: integer
+        - $ref: '#/components/parameters/inQueryProps'
         - $ref: '#/components/parameters/inQueryLimit'
+        - $ref: '#/components/parameters/inQueryOffset'
+        - $ref: '#/components/parameters/inQueryMeta'
+        - $ref: '#/components/parameters/inQueryStats'
+        - $ref: '#/components/parameters/inQueryOrderby'
+        - $ref: '#/components/parameters/inQueryFilter'
+        - $ref: '#/components/parameters/inQueryGroupby'
       tags:
         - collector
       responses:
@@ -18572,6 +18592,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/OrchestrationRunListResponse'
+        400:
+          $ref: '#/components/responses/400'
         401:
           $ref: '#/components/responses/401'
         403:
@@ -24012,14 +24034,58 @@ components:
           type: string
           description: Email of the author of the last change
 
+    OrchestrationRow:
+      type: object
+      description: |
+        An orchestration, as listed. Every property is optional: the `props` query
+        parameter selects which columns the server returns.
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+        description:
+          type: string
+        steps:
+          type: string
+          description: The steps, as JSON (an array of OrchestrationStep).
+        step_count:
+          type: integer
+        created:
+          type: string
+        updated:
+          type: string
+        updated_by:
+          type: string
+        run_count:
+          type: integer
+        last_run_id:
+          type: integer
+          nullable: true
+        last_run_status:
+          type: string
+          nullable: true
+          description: The status of its last run, null when never run.
+        last_run_started:
+          type: string
+          nullable: true
+
     OrchestrationListResponse:
       type: object
       required: [data]
       properties:
         data:
-          type: array
-          items:
-            $ref: '#/components/schemas/Orchestration'
+          oneOf:
+            - type: array
+              items:
+                $ref: '#/components/schemas/OrchestrationRow'
+            - type: object
+              additionalProperties:
+                type: object
+                additionalProperties:
+                  type: integer
+        meta:
+          $ref: '#/components/schemas/ListMeta'
 
     OrchestrationCheckTarget:
       type: object
@@ -24264,14 +24330,58 @@ components:
           type: string
           description: Why the failure of the step is accepted
 
+    OrchestrationRunRow:
+      type: object
+      description: |
+        A run, as listed. Every property is optional: the `props` query parameter
+        selects which columns the server returns.
+      properties:
+        id:
+          type: integer
+        orchestration_id:
+          type: integer
+          nullable: true
+        name:
+          type: string
+        status:
+          type: string
+          description: running, succeeded, failed or stopped.
+        current_step:
+          type: integer
+        message:
+          type: string
+        started:
+          type: string
+        ended:
+          type: string
+          nullable: true
+        started_by:
+          type: string
+        step_count:
+          type: integer
+        steps_done:
+          type: integer
+          description: Its steps succeeded, or failed and acknowledged.
+        duration:
+          type: integer
+          description: Seconds from its start to its end, or to now while it runs.
+
     OrchestrationRunListResponse:
       type: object
       required: [data]
       properties:
         data:
-          type: array
-          items:
-            $ref: '#/components/schemas/OrchestrationRun'
+          oneOf:
+            - type: array
+              items:
+                $ref: '#/components/schemas/OrchestrationRunRow'
+            - type: object
+              additionalProperties:
+                type: object
+                additionalProperties:
+                  type: integer
+        meta:
+          $ref: '#/components/schemas/ListMeta'
 
   parameters:
     inPathOrchestrationId:

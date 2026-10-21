@@ -3846,7 +3846,40 @@ type OrchestrationInput struct {
 
 // OrchestrationListResponse defines model for OrchestrationListResponse.
 type OrchestrationListResponse struct {
-	Data []Orchestration `json:"data"`
+	Data OrchestrationListResponse_Data `json:"data"`
+	Meta *ListMeta                      `json:"meta,omitempty"`
+}
+
+// OrchestrationListResponseData0 defines model for .
+type OrchestrationListResponseData0 = []OrchestrationRow
+
+// OrchestrationListResponseData1 defines model for .
+type OrchestrationListResponseData1 map[string]map[string]int
+
+// OrchestrationListResponse_Data defines model for OrchestrationListResponse.Data.
+type OrchestrationListResponse_Data struct {
+	union json.RawMessage
+}
+
+// OrchestrationRow An orchestration, as listed. Every property is optional: the `props` query
+// parameter selects which columns the server returns.
+type OrchestrationRow struct {
+	Created        *string `json:"created,omitempty"`
+	Description    *string `json:"description,omitempty"`
+	Id             *int    `json:"id,omitempty"`
+	LastRunId      *int    `json:"last_run_id,omitempty"`
+	LastRunStarted *string `json:"last_run_started,omitempty"`
+
+	// LastRunStatus The status of its last run, null when never run.
+	LastRunStatus *string `json:"last_run_status,omitempty"`
+	Name          *string `json:"name,omitempty"`
+	RunCount      *int    `json:"run_count,omitempty"`
+	StepCount     *int    `json:"step_count,omitempty"`
+
+	// Steps The steps, as JSON (an array of OrchestrationStep).
+	Steps     *string `json:"steps,omitempty"`
+	Updated   *string `json:"updated,omitempty"`
+	UpdatedBy *string `json:"updated_by,omitempty"`
 }
 
 // OrchestrationRun defines model for OrchestrationRun.
@@ -3878,7 +3911,42 @@ type OrchestrationRunContinueInput struct {
 
 // OrchestrationRunListResponse defines model for OrchestrationRunListResponse.
 type OrchestrationRunListResponse struct {
-	Data []OrchestrationRun `json:"data"`
+	Data OrchestrationRunListResponse_Data `json:"data"`
+	Meta *ListMeta                         `json:"meta,omitempty"`
+}
+
+// OrchestrationRunListResponseData0 defines model for .
+type OrchestrationRunListResponseData0 = []OrchestrationRunRow
+
+// OrchestrationRunListResponseData1 defines model for .
+type OrchestrationRunListResponseData1 map[string]map[string]int
+
+// OrchestrationRunListResponse_Data defines model for OrchestrationRunListResponse.Data.
+type OrchestrationRunListResponse_Data struct {
+	union json.RawMessage
+}
+
+// OrchestrationRunRow A run, as listed. Every property is optional: the `props` query parameter
+// selects which columns the server returns.
+type OrchestrationRunRow struct {
+	CurrentStep *int `json:"current_step,omitempty"`
+
+	// Duration Seconds from its start to its end, or to now while it runs.
+	Duration        *int    `json:"duration,omitempty"`
+	Ended           *string `json:"ended,omitempty"`
+	Id              *int    `json:"id,omitempty"`
+	Message         *string `json:"message,omitempty"`
+	Name            *string `json:"name,omitempty"`
+	OrchestrationId *int    `json:"orchestration_id,omitempty"`
+	Started         *string `json:"started,omitempty"`
+	StartedBy       *string `json:"started_by,omitempty"`
+
+	// Status running, succeeded, failed or stopped.
+	Status    *string `json:"status,omitempty"`
+	StepCount *int    `json:"step_count,omitempty"`
+
+	// StepsDone Its steps succeeded, or failed and acknowledged.
+	StepsDone *int `json:"steps_done,omitempty"`
 }
 
 // OrchestrationRunStatus defines model for OrchestrationRunStatus.
@@ -11465,11 +11533,114 @@ type GetOidcMappingParams struct {
 
 // GetOrchestrationRunsParams defines parameters for GetOrchestrationRuns.
 type GetOrchestrationRunsParams struct {
-	// OrchestrationId The runs of this orchestration only
-	OrchestrationId *int `form:"orchestration_id,omitempty" json:"orchestration_id,omitempty"`
+	// Props A list of properties to include in each data dictionnary.
+	Props *InQueryProps `form:"props,omitempty" json:"props,omitempty"`
 
 	// Limit The maximum number of entries to return. 0 means no limit.
 	Limit *InQueryLimit `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// Offset Skip the first entries of the data cursor.
+	Offset *InQueryOffset `form:"offset,omitempty" json:"offset,omitempty"`
+
+	// Meta Include metadata in the response. Enabled by default. Use false or 0 to omit
+	// the meta field. The metadata of a list carries its total number of rows
+	// without pagination (total), as well as the rows returned (count), the offset
+	// and the limit.
+	Meta *InQueryMeta `form:"meta,omitempty" json:"meta,omitempty"`
+
+	// Stats With "1" or "true", the response counts the distinct values of each
+	// selected property instead of listing the rows: `data` maps each property
+	// to an object of value → number of rows ("empty" for a null or blank
+	// value), over the whole selection (access control, filters and session
+	// filterset applied, `offset` ignored). `limit`, when given, caps the
+	// number of values returned per property, the most frequent first; without
+	// it every value is returned. `meta.total` is the number of rows,
+	// `meta.distinct` the number of distinct values of each property, and
+	// `meta.other` the number of rows whose value was left out by the limit.
+	// A count taking longer than 5 seconds is refused with a 400, asking to
+	// narrow the selection.
+	Stats *InQueryStats `form:"stats,omitempty" json:"stats,omitempty"`
+
+	// Orderby Comma-separated list of properties to sort by. Prefix a property with - for descending order (e.g. orderby=nodename,-app).
+	Orderby *InQueryOrderby `form:"orderby,omitempty" json:"orderby,omitempty"`
+
+	// Filter Column filter, repeatable; several filters combine with AND. Each value is
+	// `prop:expr`, `prop` being a property of the list (joined ones included, as
+	// for orderby) and `expr` one of:
+	//   - text: case-insensitive match anywhere in the value;
+	//   - `~regex`: regular expression (RE2 syntax), case-insensitive;
+	//   - `in:a,b,c`: one of the listed values;
+	//   - `eq:v`, `ne:v`: equal, not equal;
+	//   - `gt:v`, `gte:v`, `lt:v`, `lte:v`: comparisons, for numbers and dates;
+	//     a date may be relative to now, `-` then a duration in weeks, days,
+	//     hours, minutes and seconds: `lt:-15m` keeps the dates older than 15
+	//     minutes, `gte:-1d12h` those of the last day and a half;
+	//   - `empty`: no value;
+	//   - `!expr`: the inverse of any of the above, that is the rows `expr` leaves
+	//     out, those without a value included: `!dev`, `!~^dev`, `!in:a,b`,
+	//     `!empty` (any value).
+	// An unknown property, a property without a column, or an invalid regular
+	// expression is answered with 400.
+	Filter *InQueryFilter `form:"filter,omitempty" json:"filter,omitempty"`
+
+	// Groupby Comma-separated list of properties to group the result by (e.g. groupby=app,svcname).
+	Groupby *InQueryGroupby `form:"groupby,omitempty" json:"groupby,omitempty"`
+}
+
+// GetOrchestrationsParams defines parameters for GetOrchestrations.
+type GetOrchestrationsParams struct {
+	// Props A list of properties to include in each data dictionnary.
+	Props *InQueryProps `form:"props,omitempty" json:"props,omitempty"`
+
+	// Limit The maximum number of entries to return. 0 means no limit.
+	Limit *InQueryLimit `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// Offset Skip the first entries of the data cursor.
+	Offset *InQueryOffset `form:"offset,omitempty" json:"offset,omitempty"`
+
+	// Meta Include metadata in the response. Enabled by default. Use false or 0 to omit
+	// the meta field. The metadata of a list carries its total number of rows
+	// without pagination (total), as well as the rows returned (count), the offset
+	// and the limit.
+	Meta *InQueryMeta `form:"meta,omitempty" json:"meta,omitempty"`
+
+	// Stats With "1" or "true", the response counts the distinct values of each
+	// selected property instead of listing the rows: `data` maps each property
+	// to an object of value → number of rows ("empty" for a null or blank
+	// value), over the whole selection (access control, filters and session
+	// filterset applied, `offset` ignored). `limit`, when given, caps the
+	// number of values returned per property, the most frequent first; without
+	// it every value is returned. `meta.total` is the number of rows,
+	// `meta.distinct` the number of distinct values of each property, and
+	// `meta.other` the number of rows whose value was left out by the limit.
+	// A count taking longer than 5 seconds is refused with a 400, asking to
+	// narrow the selection.
+	Stats *InQueryStats `form:"stats,omitempty" json:"stats,omitempty"`
+
+	// Orderby Comma-separated list of properties to sort by. Prefix a property with - for descending order (e.g. orderby=nodename,-app).
+	Orderby *InQueryOrderby `form:"orderby,omitempty" json:"orderby,omitempty"`
+
+	// Filter Column filter, repeatable; several filters combine with AND. Each value is
+	// `prop:expr`, `prop` being a property of the list (joined ones included, as
+	// for orderby) and `expr` one of:
+	//   - text: case-insensitive match anywhere in the value;
+	//   - `~regex`: regular expression (RE2 syntax), case-insensitive;
+	//   - `in:a,b,c`: one of the listed values;
+	//   - `eq:v`, `ne:v`: equal, not equal;
+	//   - `gt:v`, `gte:v`, `lt:v`, `lte:v`: comparisons, for numbers and dates;
+	//     a date may be relative to now, `-` then a duration in weeks, days,
+	//     hours, minutes and seconds: `lt:-15m` keeps the dates older than 15
+	//     minutes, `gte:-1d12h` those of the last day and a half;
+	//   - `empty`: no value;
+	//   - `!expr`: the inverse of any of the above, that is the rows `expr` leaves
+	//     out, those without a value included: `!dev`, `!~^dev`, `!in:a,b`,
+	//     `!empty` (any value).
+	// An unknown property, a property without a column, or an invalid regular
+	// expression is answered with 400.
+	Filter *InQueryFilter `form:"filter,omitempty" json:"filter,omitempty"`
+
+	// Groupby Comma-separated list of properties to group the result by (e.g. groupby=app,svcname).
+	Groupby *InQueryGroupby `form:"groupby,omitempty" json:"groupby,omitempty"`
 }
 
 // GetPackagesParams defines parameters for GetPackages.
@@ -16336,6 +16507,130 @@ func (t OidcMappingListResponse_Data) MarshalJSON() ([]byte, error) {
 }
 
 func (t *OidcMappingListResponse_Data) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsOrchestrationListResponseData0 returns the union data inside the OrchestrationListResponse_Data as a OrchestrationListResponseData0
+func (t OrchestrationListResponse_Data) AsOrchestrationListResponseData0() (OrchestrationListResponseData0, error) {
+	var body OrchestrationListResponseData0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromOrchestrationListResponseData0 overwrites any union data inside the OrchestrationListResponse_Data as the provided OrchestrationListResponseData0
+func (t *OrchestrationListResponse_Data) FromOrchestrationListResponseData0(v OrchestrationListResponseData0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeOrchestrationListResponseData0 performs a merge with any union data inside the OrchestrationListResponse_Data, using the provided OrchestrationListResponseData0
+func (t *OrchestrationListResponse_Data) MergeOrchestrationListResponseData0(v OrchestrationListResponseData0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsOrchestrationListResponseData1 returns the union data inside the OrchestrationListResponse_Data as a OrchestrationListResponseData1
+func (t OrchestrationListResponse_Data) AsOrchestrationListResponseData1() (OrchestrationListResponseData1, error) {
+	var body OrchestrationListResponseData1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromOrchestrationListResponseData1 overwrites any union data inside the OrchestrationListResponse_Data as the provided OrchestrationListResponseData1
+func (t *OrchestrationListResponse_Data) FromOrchestrationListResponseData1(v OrchestrationListResponseData1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeOrchestrationListResponseData1 performs a merge with any union data inside the OrchestrationListResponse_Data, using the provided OrchestrationListResponseData1
+func (t *OrchestrationListResponse_Data) MergeOrchestrationListResponseData1(v OrchestrationListResponseData1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t OrchestrationListResponse_Data) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *OrchestrationListResponse_Data) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsOrchestrationRunListResponseData0 returns the union data inside the OrchestrationRunListResponse_Data as a OrchestrationRunListResponseData0
+func (t OrchestrationRunListResponse_Data) AsOrchestrationRunListResponseData0() (OrchestrationRunListResponseData0, error) {
+	var body OrchestrationRunListResponseData0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromOrchestrationRunListResponseData0 overwrites any union data inside the OrchestrationRunListResponse_Data as the provided OrchestrationRunListResponseData0
+func (t *OrchestrationRunListResponse_Data) FromOrchestrationRunListResponseData0(v OrchestrationRunListResponseData0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeOrchestrationRunListResponseData0 performs a merge with any union data inside the OrchestrationRunListResponse_Data, using the provided OrchestrationRunListResponseData0
+func (t *OrchestrationRunListResponse_Data) MergeOrchestrationRunListResponseData0(v OrchestrationRunListResponseData0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsOrchestrationRunListResponseData1 returns the union data inside the OrchestrationRunListResponse_Data as a OrchestrationRunListResponseData1
+func (t OrchestrationRunListResponse_Data) AsOrchestrationRunListResponseData1() (OrchestrationRunListResponseData1, error) {
+	var body OrchestrationRunListResponseData1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromOrchestrationRunListResponseData1 overwrites any union data inside the OrchestrationRunListResponse_Data as the provided OrchestrationRunListResponseData1
+func (t *OrchestrationRunListResponse_Data) FromOrchestrationRunListResponseData1(v OrchestrationRunListResponseData1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeOrchestrationRunListResponseData1 performs a merge with any union data inside the OrchestrationRunListResponse_Data, using the provided OrchestrationRunListResponseData1
+func (t *OrchestrationRunListResponse_Data) MergeOrchestrationRunListResponseData1(v OrchestrationRunListResponseData1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t OrchestrationRunListResponse_Data) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *OrchestrationRunListResponse_Data) UnmarshalJSON(b []byte) error {
 	err := t.union.UnmarshalJSON(b)
 	return err
 }
