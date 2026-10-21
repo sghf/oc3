@@ -3,7 +3,7 @@ package serverhandlers
 import (
 	"context"
 	"database/sql"
-	"fmt"
+	"log/slog"
 	"net/http"
 
 	"github.com/google/uuid"
@@ -21,51 +21,64 @@ func (a *Api) DeleteNode(c echo.Context, nodeId string) error {
 
 func (a *Api) deleteNodeByID(c echo.Context, handlerName, nodeId string) error {
 	log := echolog.GetLogHandler(c, handlerName)
-	odb := a.ODB
 	ctx, cancel := context.WithTimeout(c.Request().Context(), a.SyncTimeout)
 	defer cancel()
+	if err := checkNodeDeleter(c); err != nil {
+		return err
+	}
+	log.Info("called", logkey.NodeID, nodeId)
+	o := a.deleteNodeOne(c, log, ctx, nodeId)
+	if o.ok() {
+		if err := a.ODB.Session.NotifyChanges(ctx); err != nil {
+			log.Error("cannot notify changes", logkey.Error, err)
+		}
+	}
+	return writeOutcome(c, o)
+}
 
+// checkNodeDeleter answers 401 or 403 unless the caller may delete nodes: a
+// user with NodeManager, as the historical collector, which a Manager holds
+// implicitly.
+func checkNodeDeleter(c echo.Context) error {
 	if !IsAuthByUser(c) {
 		return JSONProblemf(c, http.StatusUnauthorized, "user authentication required")
 	}
-	// As the historical collector: NodeManager, which a Manager holds implicitly.
 	if !IsNodeManager(c) {
 		return JSONProblemf(c, http.StatusForbidden, "NodeManager privilege required")
 	}
+	return nil
+}
 
-	log.Info("called", logkey.NodeID, nodeId)
-
+// deleteNodeOne deletes a node and what refers to it, in a transaction of its
+// own, after checking the caller is responsible for it.
+func (a *Api) deleteNodeOne(c echo.Context, log *slog.Logger, ctx context.Context, nodeId string) batchOutcome {
+	odb := a.ODB
 	node, err := odb.NodeByNodeIDOrNodename(ctx, nodeId)
 	if err != nil {
 		log.Error("cannot lookup node", logkey.NodeID, nodeId, logkey.Error, err)
-		return JSONProblemf(c, http.StatusInternalServerError, "cannot lookup node %s", nodeId)
+		return batchFail(http.StatusInternalServerError, "cannot lookup node %s", nodeId)
 	}
 	if node == nil {
-		return JSONProblemf(c, http.StatusNotFound, "node %s not found", nodeId)
+		return batchFail(http.StatusNotFound, "node %s not found", nodeId)
 	}
-
 	responsible, err := odb.NodeResponsible(ctx, node.NodeID, UserGroupsFromContext(c), IsManager(c))
 	if err != nil {
 		log.Error("cannot check node responsibility", logkey.NodeID, node.NodeID, logkey.Error, err)
-		return JSONProblemf(c, http.StatusInternalServerError, "cannot check node responsibility")
+		return batchFail(http.StatusInternalServerError, "cannot check node responsibility")
 	}
 	if !responsible {
-		return JSONProblemf(c, http.StatusForbidden, "you are not responsible for node %s", node.Nodename)
+		return batchFail(http.StatusForbidden, "you are not responsible for node %s", node.Nodename)
 	}
-
 	tx, markSuccess, endTx, err := odb.BeginTxWithControl(ctx, log, &sql.TxOptions{})
 	if err != nil {
 		log.Error("cannot start transaction", logkey.Error, err)
-		return JSONProblemf(c, http.StatusInternalServerError, "cannot delete node")
+		return batchFail(http.StatusInternalServerError, "cannot delete node")
 	}
 	defer endTx()
-
 	if err := tx.DeleteNodeCascade(ctx, node.NodeID); err != nil {
 		log.Error("cannot delete node", logkey.NodeID, node.NodeID, logkey.Error, err)
-		return JSONProblemf(c, http.StatusInternalServerError, "cannot delete node %s", node.Nodename)
+		return batchFail(http.StatusInternalServerError, "cannot delete node %s", node.Nodename)
 	}
-
-	msg := fmt.Sprintf("delete node %s", node.Nodename)
 	userEmail, _ := c.Get(XUserEmail).(string)
 	logEntry := cdb.LogEntry{
 		Action: "node.delete",
@@ -79,14 +92,8 @@ func (a *Api) deleteNodeByID(c echo.Context, handlerName, nodeId string) error {
 	}
 	if logErr := tx.Log(ctx, logEntry); logErr != nil {
 		log.Error("cannot write audit log", logkey.Error, logErr)
-		return JSONProblemf(c, http.StatusInternalServerError, "cannot write audit log")
+		return batchFail(http.StatusInternalServerError, "cannot write audit log")
 	}
-
 	markSuccess()
-
-	if err := odb.Session.NotifyChanges(ctx); err != nil {
-		log.Error("cannot notify changes", logkey.Error, err)
-	}
-
-	return c.JSON(http.StatusOK, map[string]string{"info": msg})
+	return batchOK("delete node %s", node.Nodename)
 }

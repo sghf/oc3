@@ -220,6 +220,27 @@ func (e AssistantStreamEventType) Valid() bool {
 	}
 }
 
+// Defines values for ChecksBatchInputAction.
+const (
+	Delete          ChecksBatchInputAction = "delete"
+	ResetThresholds ChecksBatchInputAction = "reset_thresholds"
+	SetThresholds   ChecksBatchInputAction = "set_thresholds"
+)
+
+// Valid indicates whether the value is a known member of the ChecksBatchInputAction enum.
+func (e ChecksBatchInputAction) Valid() bool {
+	switch e {
+	case Delete:
+		return true
+	case ResetThresholds:
+		return true
+	case SetThresholds:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ComplianceAttachmentOutcomeObject.
 const (
 	ComplianceAttachmentOutcomeObjectModuleset ComplianceAttachmentOutcomeObject = "moduleset"
@@ -1342,6 +1363,12 @@ type ActionEnqueueListResult struct {
 	} `json:"refusals"`
 }
 
+// ActionsAckInput defines model for ActionsAckInput.
+type ActionsAckInput struct {
+	AckedComment *string `json:"acked_comment,omitempty"`
+	Ids          []int64 `json:"ids"`
+}
+
 // AlertEvent defines model for AlertEvent.
 type AlertEvent struct {
 	// Begin The start of the occurrence, "YYYY-MM-DD HH:MM:SS" in the collector time zone.
@@ -1649,6 +1676,20 @@ type AuthInfo struct {
 	Session bool `json:"session"`
 }
 
+// BatchOutcome What became of one object of a batch, as its single route would answer
+type BatchOutcome struct {
+	Id   string `json:"id"`
+	Info string `json:"info"`
+
+	// Status The http status the single route would answer with
+	Status int `json:"status"`
+}
+
+// BatchResult defines model for BatchResult.
+type BatchResult struct {
+	Data []BatchOutcome `json:"data"`
+}
+
 // ChartListResponse defines model for ChartListResponse.
 type ChartListResponse struct {
 	Data ChartListResponse_Data `json:"data"`
@@ -1874,6 +1915,17 @@ type CheckSettingsRequest struct {
 	NodeId      string  `json:"node_id"`
 	SvcId       *string `json:"svc_id,omitempty"`
 }
+
+// ChecksBatchInput defines model for ChecksBatchInput.
+type ChecksBatchInput struct {
+	Action  ChecksBatchInputAction `json:"action"`
+	ChkHigh *int64                 `json:"chk_high,omitempty"`
+	ChkLow  *int64                 `json:"chk_low,omitempty"`
+	Ids     []int64                `json:"ids"`
+}
+
+// ChecksBatchInputAction defines model for ChecksBatchInput.Action.
+type ChecksBatchInputAction string
 
 // ClusterListResponse defines model for ClusterListResponse.
 type ClusterListResponse struct {
@@ -3064,6 +3116,11 @@ type HiddenMenuEntriesResponse struct {
 	Data []string `json:"data"`
 }
 
+// IdsInput defines model for IdsInput.
+type IdsInput struct {
+	Ids []string `json:"ids"`
+}
+
 // Impersonation defines model for Impersonation.
 type Impersonation struct {
 	Email string `json:"email"`
@@ -3159,6 +3216,14 @@ type InstanceStatusPeriod struct {
 	// End Its end; for the current period, the last status received.
 	End     string `json:"end"`
 	Overall string `json:"overall"`
+}
+
+// InstancesInput defines model for InstancesInput.
+type InstancesInput struct {
+	Instances []struct {
+		NodeId string `json:"node_id"`
+		SvcId  string `json:"svc_id"`
+	} `json:"instances"`
 }
 
 // IpListResponse defines model for IpListResponse.
@@ -13742,6 +13807,9 @@ type PostChecksDefaultsJSONRequestBody = CheckDefaultRequest
 // PostCheckDefaultJSONRequestBody defines body for PostCheckDefault for application/json ContentType.
 type PostCheckDefaultJSONRequestBody = CheckDefaultRequest
 
+// PostChecksLiveBatchJSONRequestBody defines body for PostChecksLiveBatch for application/json ContentType.
+type PostChecksLiveBatchJSONRequestBody = ChecksBatchInput
+
 // DeleteChecksSettingsJSONRequestBody defines body for DeleteChecksSettings for application/json ContentType.
 type DeleteChecksSettingsJSONRequestBody = CheckKey
 
@@ -13961,6 +14029,9 @@ type DeleteNodesJSONRequestBody DeleteNodesJSONBody
 // PostNodesJSONRequestBody defines body for PostNodes for application/json ContentType.
 type PostNodesJSONRequestBody PostNodesJSONBody
 
+// PostNodesDeleteJSONRequestBody defines body for PostNodesDelete for application/json ContentType.
+type PostNodesDeleteJSONRequestBody = IdsInput
+
 // PostNodeJSONRequestBody defines body for PostNode for application/json ContentType.
 type PostNodeJSONRequestBody PostNodeJSONBody
 
@@ -14015,6 +14086,9 @@ type DeleteServicesJSONRequestBody DeleteServicesJSONBody
 // PostServicesJSONRequestBody defines body for PostServices for application/json ContentType.
 type PostServicesJSONRequestBody PostServicesJSONBody
 
+// PostServicesDeleteJSONRequestBody defines body for PostServicesDelete for application/json ContentType.
+type PostServicesDeleteJSONRequestBody = IdsInput
+
 // PostServiceJSONRequestBody defines body for PostService for application/json ContentType.
 type PostServiceJSONRequestBody PostServiceJSONBody
 
@@ -14024,11 +14098,17 @@ type PutServiceStatusLogAckJSONRequestBody PutServiceStatusLogAckJSONBody
 // PostServicesActionsJSONRequestBody defines body for PostServicesActions for application/json ContentType.
 type PostServicesActionsJSONRequestBody PostServicesActionsJSONBody
 
+// PostServicesActionsAckJSONRequestBody defines body for PostServicesActionsAck for application/json ContentType.
+type PostServicesActionsAckJSONRequestBody = ActionsAckInput
+
 // PostServicesActionJSONRequestBody defines body for PostServicesAction for application/json ContentType.
 type PostServicesActionJSONRequestBody = ServiceActionAckRequest
 
 // DeleteServicesInstancesJSONRequestBody defines body for DeleteServicesInstances for application/json ContentType.
 type DeleteServicesInstancesJSONRequestBody DeleteServicesInstancesJSONBody
+
+// PostServicesInstancesDeleteJSONRequestBody defines body for PostServicesInstancesDelete for application/json ContentType.
+type PostServicesInstancesDeleteJSONRequestBody = InstancesInput
 
 // DeleteTagsJSONRequestBody defines body for DeleteTags for application/json ContentType.
 type DeleteTagsJSONRequestBody DeleteTagsJSONBody

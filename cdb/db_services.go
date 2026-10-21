@@ -213,42 +213,72 @@ func (oDb *DB) InsertService(ctx context.Context, svcID, svcname, clusterID, svc
 }
 
 // DeleteServiceCascade deletes a service and all its related data
+// serviceCascadeTables are the tables holding rows of a service, which its
+// deletion empties of them.
+var serviceCascadeTables = []string{
+	"services",
+	"drpservices",
+	"checks_settings",
+	"comp_rulesets_services",
+	"comp_modulesets_services",
+	"action_queue",
+	"svc_tags",
+	"svcmon",
+	"dashboard",
+	"svcdisks",
+	"resmon",
+	"checks_live",
+	"comp_status",
+	"resinfo",
+	"saves",
+	"svcactions",
+	"svcmon_log",
+	"resmon_log",
+	"svcmon_log_ack",
+	"comp_log",
+	"comp_log_daily",
+	"form_output_results",
+	"svcmon_log_last",
+	"resmon_log_last",
+	"dashboard_events",
+}
+
 func (oDb *DB) DeleteServiceCascade(ctx context.Context, svcID string) error {
 	defer logDuration("DeleteServiceCascade", time.Now())
 	if svcID == "" {
 		return fmt.Errorf("DeleteServiceCascade: empty svc_id")
 	}
-	tables := []string{
-		"services",
-		"drpservices",
-		"checks_settings",
-		"comp_rulesets_services",
-		"comp_modulesets_services",
-		"action_queue",
-		"svc_tags",
-		"svcmon",
-		"dashboard",
-		"svcdisks",
-		"resmon",
-		"checks_live",
-		"comp_status",
-		"resinfo",
-		"saves",
-		"svcactions",
-		"svcmon_log",
-		"resmon_log",
-		"svcmon_log_ack",
-		"comp_log",
-		"comp_log_daily",
-		"form_output_results",
-		"svcmon_log_last",
-		"resmon_log_last",
-		"dashboard_events",
-	}
+	tables := serviceCascadeTables
 	for _, t := range tables {
 		query := "DELETE FROM " + t + " WHERE svc_id = ?"
 		if _, err := oDb.ExecContext(ctx, query, svcID); err != nil {
 			return fmt.Errorf("DeleteServiceCascade %s: %w", t, err)
+		}
+		oDb.SetChange(t)
+	}
+	return nil
+}
+
+// DeleteServicesCascade deletes several services as DeleteServiceCascade does
+// one, a statement per table for all of them: a batch costs the 25 statements
+// once, not once per service.
+func (oDb *DB) DeleteServicesCascade(ctx context.Context, svcIDs []string) error {
+	defer logDuration("DeleteServicesCascade", time.Now())
+	if len(svcIDs) == 0 {
+		return nil
+	}
+	args := make([]any, len(svcIDs))
+	for i, id := range svcIDs {
+		if id == "" {
+			return fmt.Errorf("DeleteServicesCascade: empty svc_id")
+		}
+		args[i] = id
+	}
+	placeholders := strings.TrimSuffix(strings.Repeat("?,", len(svcIDs)), ",")
+	for _, t := range serviceCascadeTables {
+		query := "DELETE FROM " + t + " WHERE svc_id IN (" + placeholders + ")"
+		if _, err := oDb.ExecContext(ctx, query, args...); err != nil {
+			return fmt.Errorf("DeleteServicesCascade %s: %w", t, err)
 		}
 		oDb.SetChange(t)
 	}

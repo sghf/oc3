@@ -108,24 +108,6 @@ func (a *Api) checksLog(c echo.Context, ctx context.Context, log *slog.Logger, a
 	}
 }
 
-// checkNodeResponsible answers 403 unless the user may change the checks of
-// the node: a Manager, or a user responsible for its application. It returns
-// whether the request may go on.
-func (a *Api) checkNodeResponsible(c echo.Context, ctx context.Context, log *slog.Logger, nodeID string) (bool, error) {
-	if IsManager(c) {
-		return true, nil
-	}
-	responsible, err := a.ODB.NodeResponsible(ctx, nodeID, UserGroupsFromContext(c), false)
-	if err != nil {
-		log.Error("cannot check node responsibility", logkey.NodeID, nodeID, logkey.Error, err)
-		return false, JSONProblemf(c, http.StatusInternalServerError, "cannot check node responsibility")
-	}
-	if !responsible {
-		return false, JSONProblemf(c, http.StatusForbidden, "user is not responsible for node %s", nodeID)
-	}
-	return true, nil
-}
-
 // refreshNodeChecks sets the thresholds and the alerts of the checks of a node
 // again, after a change of the settings of one of them; it returns whether the
 // request may go on, having answered 500 otherwise.
@@ -183,25 +165,59 @@ func (a *Api) DeleteCheckLive(c echo.Context, id int64) error {
 	if err := requirePrivilege(c, "CheckExec"); err != nil {
 		return err
 	}
+	check, o := a.checkLiveByID(log, ctx, id)
+	if check != nil {
+		o = a.deleteCheckOne(c, log, ctx, check)
+	}
+	if o.ok() {
+		a.notifyChanges(log, ctx)
+	}
+	return writeOutcome(c, o)
+}
+
+// checkLiveByID reads a check, nil with the outcome to answer when it cannot.
+func (a *Api) checkLiveByID(log *slog.Logger, ctx context.Context, id int64) (*cdb.CheckLive, batchOutcome) {
 	check, err := a.ODB.CheckLiveByID(ctx, id)
 	if err != nil {
 		log.Error("cannot read the check", "id", id, logkey.Error, err)
-		return JSONProblemf(c, http.StatusInternalServerError, "cannot read the check")
+		return nil, batchFail(http.StatusInternalServerError, "cannot read the check")
 	}
 	if check == nil {
-		return JSONProblemf(c, http.StatusNotFound, "check %d not found", id)
+		return nil, batchFail(http.StatusNotFound, "check %d not found", id)
 	}
-	if ok, err := a.checkNodeResponsible(c, ctx, log, check.NodeID); !ok {
-		return err
+	return check, batchOutcome{}
+}
+
+// nodeResponsibleOutcome tells whether the user may change the checks of the
+// node, a failure outcome when not: a Manager, or a user responsible for its
+// application.
+func (a *Api) nodeResponsibleOutcome(c echo.Context, ctx context.Context, log *slog.Logger, nodeID string) (batchOutcome, bool) {
+	if IsManager(c) {
+		return batchOutcome{}, true
+	}
+	responsible, err := a.ODB.NodeResponsible(ctx, nodeID, UserGroupsFromContext(c), false)
+	if err != nil {
+		log.Error("cannot check node responsibility", logkey.NodeID, nodeID, logkey.Error, err)
+		return batchFail(http.StatusInternalServerError, "cannot check node responsibility"), false
+	}
+	if !responsible {
+		return batchFail(http.StatusForbidden, "user is not responsible for node %s", nodeID), false
+	}
+	return batchOutcome{}, true
+}
+
+// deleteCheckOne deletes a check instance; its node is responsible for it.
+func (a *Api) deleteCheckOne(c echo.Context, log *slog.Logger, ctx context.Context, check *cdb.CheckLive) batchOutcome {
+	if o, ok := a.nodeResponsibleOutcome(c, ctx, log, check.NodeID); !ok {
+		return o
 	}
 	if err := a.ODB.DeleteCheckLive(ctx, check); err != nil {
-		log.Error("cannot delete the check", "id", id, logkey.Error, err)
-		return JSONProblemf(c, http.StatusInternalServerError, "cannot delete the check")
+		log.Error("cannot delete the check", "id", check.ID, logkey.Error, err)
+		return batchFail(http.StatusInternalServerError, "cannot delete the check")
 	}
 	a.checksLog(c, ctx, log, "check.delete", "delete check instance %(data)s",
 		map[string]any{"data": check.Type + "-" + check.Instance}, check.NodeID, check.SvcID)
-	a.notifyChanges(log, ctx)
-	return c.JSON(http.StatusOK, infoAnswer("check %s:%s deleted", check.Type, check.Instance))
+	return batchOK("check %s:%s deleted", check.Type, check.Instance)
 }
 
 func checkKey(nodeID string, svcID *string, chkType, chkInstance string) cdb.CheckKey {
@@ -210,6 +226,10 @@ func checkKey(nodeID string, svcID *string, chkType, chkInstance string) cdb.Che
 		k.SvcID = *svcID
 	}
 	return k
+}
+
+func keyOfCheck(check *cdb.CheckLive) cdb.CheckKey {
+	return cdb.CheckKey{NodeID: check.NodeID, SvcID: check.SvcID, Type: check.Type, Instance: check.Instance}
 }
 
 // PostChecksSettings handles POST /checks/settings
@@ -233,37 +253,48 @@ func (a *Api) PostChecksSettings(c echo.Context) error {
 	if check == nil {
 		return JSONProblemf(c, http.StatusNotFound, "check instance not found")
 	}
-	if ok, err := a.checkNodeResponsible(c, ctx, log, check.NodeID); !ok {
+	o := a.setCheckThresholdsOne(c, log, ctx, check, body.ChkLow, body.ChkHigh)
+	if !o.ok() {
+		return writeOutcome(c, o)
+	}
+	if ok, err := a.refreshNodeChecks(c, ctx, log, k.NodeID); !ok {
 		return err
 	}
-	// A threshold not given keeps the one the check has now.
-	low, high := check.Low, check.High
-	if body.ChkLow != nil {
-		low = sql.NullInt64{Int64: *body.ChkLow, Valid: true}
+	a.notifyChanges(log, ctx)
+	return writeOutcome(c, o)
+}
+
+// setCheckThresholdsOne sets the thresholds of a check, a threshold not given
+// keeping the one the check has now. The checks of its node are to be refreshed
+// after (ChecksRefreshNode).
+func (a *Api) setCheckThresholdsOne(c echo.Context, log *slog.Logger, ctx context.Context, check *cdb.CheckLive, newLow, newHigh *int64) batchOutcome {
+	if o, ok := a.nodeResponsibleOutcome(c, ctx, log, check.NodeID); !ok {
+		return o
 	}
-	if body.ChkHigh != nil {
-		high = sql.NullInt64{Int64: *body.ChkHigh, Valid: true}
+	low, high := check.Low, check.High
+	if newLow != nil {
+		low = sql.NullInt64{Int64: *newLow, Valid: true}
+	}
+	if newHigh != nil {
+		high = sql.NullInt64{Int64: *newHigh, Valid: true}
 	}
 	if !low.Valid || !high.Valid {
-		return JSONProblemf(c, http.StatusBadRequest, "the check has no threshold to keep: give both chk_low and chk_high")
+		return batchFail(http.StatusBadRequest, "the check has no threshold to keep: give both chk_low and chk_high")
 	}
 	if low.Int64 > high.Int64 {
-		return JSONProblemf(c, http.StatusBadRequest, "chk_low %d is above chk_high %d", low.Int64, high.Int64)
+		return batchFail(http.StatusBadRequest, "chk_low %d is above chk_high %d", low.Int64, high.Int64)
 	}
+	k := keyOfCheck(check)
 	userEmail, _ := c.Get(XUserEmail).(string)
 	if err := a.ODB.SetCheckSettings(ctx, k, low.Int64, high.Int64, userEmail); err != nil {
 		log.Error("cannot set the thresholds of the check", logkey.Error, err)
-		return JSONProblemf(c, http.StatusInternalServerError, "cannot set the thresholds of the check")
+		return batchFail(http.StatusInternalServerError, "cannot set the thresholds of the check")
 	}
 	a.checksLog(c, ctx, log, "check.settings.change",
 		"set thresholds of check %(chk_type)s:%(chk_instance)s to %(chk_low)d - %(chk_high)d",
 		map[string]any{"chk_type": k.Type, "chk_instance": k.Instance, "chk_low": low.Int64, "chk_high": high.Int64},
 		k.NodeID, k.SvcID)
-	if ok, err := a.refreshNodeChecks(c, ctx, log, k.NodeID); !ok {
-		return err
-	}
-	a.notifyChanges(log, ctx)
-	return c.JSON(http.StatusOK, infoAnswer("thresholds of check %s:%s set to %d - %d", k.Type, k.Instance, low.Int64, high.Int64))
+	return batchOK("thresholds of check %s:%s set to %d - %d", k.Type, k.Instance, low.Int64, high.Int64)
 }
 
 // DeleteChecksSettings handles DELETE /checks/settings
@@ -282,24 +313,34 @@ func (a *Api) DeleteChecksSettings(c echo.Context) error {
 		return JSONProblemf(c, http.StatusBadRequest, "node_id, chk_type and chk_instance are required")
 	}
 	k := checkKey(body.NodeId, body.SvcId, body.ChkType, body.ChkInstance)
-	if ok, err := a.checkNodeResponsible(c, ctx, log, k.NodeID); !ok {
-		return err
+	o := a.resetCheckThresholdsOne(c, log, ctx, k)
+	if !o.ok() {
+		return writeOutcome(c, o)
 	}
-	deleted, err := a.ODB.DeleteCheckSettings(ctx, k)
-	if err != nil {
-		log.Error("cannot remove the thresholds of the check", logkey.Error, err)
-		return JSONProblemf(c, http.StatusInternalServerError, "cannot remove the thresholds of the check")
-	}
-	if !deleted {
-		return JSONProblemf(c, http.StatusNotFound, "no thresholds set on check %s:%s", k.Type, k.Instance)
-	}
-	a.checksLog(c, ctx, log, "check.settings.delete", "reset thresholds of check %(chk_type)s:%(chk_instance)s",
-		map[string]any{"chk_type": k.Type, "chk_instance": k.Instance}, k.NodeID, k.SvcID)
 	if ok, err := a.refreshNodeChecks(c, ctx, log, k.NodeID); !ok {
 		return err
 	}
 	a.notifyChanges(log, ctx)
-	return c.JSON(http.StatusOK, infoAnswer("thresholds of check %s:%s reset", k.Type, k.Instance))
+	return writeOutcome(c, o)
+}
+
+// resetCheckThresholdsOne removes the thresholds set on a check, which takes
+// those of its defaults again once its node is refreshed (ChecksRefreshNode).
+func (a *Api) resetCheckThresholdsOne(c echo.Context, log *slog.Logger, ctx context.Context, k cdb.CheckKey) batchOutcome {
+	if o, ok := a.nodeResponsibleOutcome(c, ctx, log, k.NodeID); !ok {
+		return o
+	}
+	deleted, err := a.ODB.DeleteCheckSettings(ctx, k)
+	if err != nil {
+		log.Error("cannot remove the thresholds of the check", logkey.Error, err)
+		return batchFail(http.StatusInternalServerError, "cannot remove the thresholds of the check")
+	}
+	if !deleted {
+		return batchFail(http.StatusNotFound, "no thresholds set on check %s:%s", k.Type, k.Instance)
+	}
+	a.checksLog(c, ctx, log, "check.settings.delete", "reset thresholds of check %(chk_type)s:%(chk_instance)s",
+		map[string]any{"chk_type": k.Type, "chk_instance": k.Instance}, k.NodeID, k.SvcID)
+	return batchOK("thresholds of check %s:%s reset", k.Type, k.Instance)
 }
 
 // validChkType checks a check type: given, and as long as the column allows.

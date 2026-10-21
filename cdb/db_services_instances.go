@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/opensvc/oc3/schema"
 )
@@ -130,8 +131,7 @@ func (oDb *DB) DeleteServiceInstanceCascade(ctx context.Context, svcID, nodeID s
 		return 0, nil
 	}
 	oDb.SetChange("svcmon")
-	cascade := []string{"dashboard", "resmon", "resinfo", "checks_live"}
-	for _, t := range cascade {
+	for _, t := range instanceCascadeTables {
 		query := "DELETE FROM " + t + " WHERE svc_id = ? AND node_id = ?"
 		if _, err := oDb.ExecContext(ctx, query, svcID, nodeID); err != nil {
 			return svcmonCount, fmt.Errorf("DeleteServiceInstanceCascade %s: %w", t, err)
@@ -139,6 +139,65 @@ func (oDb *DB) DeleteServiceInstanceCascade(ctx context.Context, svcID, nodeID s
 		oDb.SetChange(t)
 	}
 	return svcmonCount, nil
+}
+
+// instanceCascadeTables are the tables, besides svcmon, holding rows of an
+// instance, which its deletion empties of them.
+var instanceCascadeTables = []string{"dashboard", "resmon", "resinfo", "checks_live"}
+
+// ExistingInstances returns, among the services of svcIDs, those with an
+// instance on the node.
+func (oDb *DB) ExistingInstances(ctx context.Context, nodeID string, svcIDs []string) (map[string]bool, error) {
+	m := map[string]bool{}
+	if len(svcIDs) == 0 {
+		return m, nil
+	}
+	args := []any{nodeID}
+	for _, id := range svcIDs {
+		args = append(args, id)
+	}
+	rows, err := oDb.DB.QueryContext(ctx, "SELECT DISTINCT svc_id FROM svcmon WHERE node_id = ? AND svc_id IN ("+
+		strings.TrimSuffix(strings.Repeat("?,", len(svcIDs)), ",")+")", args...)
+	if err != nil {
+		return nil, fmt.Errorf("existingInstances: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+	for rows.Next() {
+		var id string
+		if err := rows.Scan(&id); err != nil {
+			return nil, fmt.Errorf("existingInstances: %w", err)
+		}
+		m[id] = true
+	}
+	return m, rows.Err()
+}
+
+// DeleteServiceInstancesCascade deletes several instances as
+// DeleteServiceInstanceCascade does one, by node: for each node, a statement per
+// table for all the services whose instance on it goes, the svc_id index serving
+// each. svcIDsByNode holds, by node id, the services.
+func (oDb *DB) DeleteServiceInstancesCascade(ctx context.Context, svcIDsByNode map[string][]string) error {
+	for nodeID, svcIDs := range svcIDsByNode {
+		if nodeID == "" || len(svcIDs) == 0 {
+			continue
+		}
+		args := []any{nodeID}
+		for _, id := range svcIDs {
+			if id == "" {
+				return fmt.Errorf("DeleteServiceInstancesCascade: empty svc_id")
+			}
+			args = append(args, id)
+		}
+		placeholders := strings.TrimSuffix(strings.Repeat("?,", len(svcIDs)), ",")
+		for _, t := range append([]string{"svcmon"}, instanceCascadeTables...) {
+			query := "DELETE FROM " + t + " WHERE node_id = ? AND svc_id IN (" + placeholders + ")"
+			if _, err := oDb.ExecContext(ctx, query, args...); err != nil {
+				return fmt.Errorf("DeleteServiceInstancesCascade %s: %w", t, err)
+			}
+			oDb.SetChange(t)
+		}
+	}
+	return nil
 }
 
 // GetServicesInstance fetches all instances of a single service by svc_id (UUID) or svcname.
