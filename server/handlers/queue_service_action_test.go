@@ -1,6 +1,9 @@
 package serverhandlers
 
-import "testing"
+import (
+	"reflect"
+	"testing"
+)
 
 func TestServiceActionCommand(t *testing.T) {
 	cases := []struct {
@@ -48,6 +51,9 @@ func TestFactorizeActionEntries(t *testing.T) {
 	}
 	if got[2].Rid != "fs#1" || got[2].NodeID != "n2" {
 		t.Errorf("another instance keeps its own entry: %+v", got[2])
+	}
+	if !reflect.DeepEqual(got[0].indexes, []int{1}) || !reflect.DeepEqual(got[1].indexes, []int{0, 2}) || !reflect.DeepEqual(got[2].indexes, []int{3}) {
+		t.Errorf("each entry knows the entries of the list it stands for: %v %v %v", got[0].indexes, got[1].indexes, got[2].indexes)
 	}
 }
 

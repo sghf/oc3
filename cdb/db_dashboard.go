@@ -1740,3 +1740,53 @@ func (oDb *DB) DashboardUpdateServicesBelowSLA(ctx context.Context) error {
 	}
 	return nil
 }
+
+// AlertTypesByIDs returns the type of each alert of ids that exists, by id.
+func (oDb *DB) AlertTypesByIDs(ctx context.Context, ids []int64) (map[int64]string, error) {
+	m := map[int64]string{}
+	if len(ids) == 0 {
+		return m, nil
+	}
+	args := make([]any, len(ids))
+	for i, id := range ids {
+		args[i] = id
+	}
+	query := "SELECT id, dash_type FROM dashboard WHERE id IN (" + strings.TrimSuffix(strings.Repeat("?,", len(ids)), ",") + ")"
+	rows, err := oDb.DB.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, fmt.Errorf("alertTypesByIDs: %w", err)
+	}
+	defer func() { _ = rows.Close() }()
+	for rows.Next() {
+		var (
+			id  int64
+			typ string
+		)
+		if err := rows.Scan(&id, &typ); err != nil {
+			return nil, fmt.Errorf("alertTypesByIDs: %w", err)
+		}
+		m[id] = typ
+	}
+	return m, rows.Err()
+}
+
+// DeleteAlertsByIDs deletes the alerts of ids in one statement, and returns how
+// many there were. Each one still closes its event (trigger dash_del_evt).
+func (oDb *DB) DeleteAlertsByIDs(ctx context.Context, ids []int64) (int64, error) {
+	if len(ids) == 0 {
+		return 0, nil
+	}
+	args := make([]any, len(ids))
+	for i, id := range ids {
+		args[i] = id
+	}
+	query := "DELETE FROM dashboard WHERE id IN (" + strings.TrimSuffix(strings.Repeat("?,", len(ids)), ",") + ")"
+	n, err := oDb.execCountContext(ctx, query, args...)
+	if err != nil {
+		return 0, fmt.Errorf("deleteAlertsByIDs: %w", err)
+	}
+	if n > 0 {
+		oDb.SetChange("dashboard")
+	}
+	return n, nil
+}

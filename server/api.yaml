@@ -116,8 +116,10 @@ paths:
 
         One entry answers with the queued action, as GET /actions/{id} does, or
         with a problem. A list always answers 200, with the queued actions in
-        data and one message per refused entry in error; entries differing only
-        by rid are merged into one action on those resources.
+        data and one message per refused entry in error, and in refusals the
+        index of each refused entry in the list with its reason; entries
+        differing only by rid are merged into one action on those resources, a
+        refusal then naming each of them.
       requestBody:
         required: true
         content:
@@ -134,11 +136,13 @@ paths:
         200:
           description: |
             The queued action for one entry; for a list, an object with the
-            queued actions in data and the refusals in error.
+            queued actions in data and the refusals in error and refusals.
           content:
             application/json:
               schema:
-                type: object
+                oneOf:
+                  - $ref: '#/components/schemas/ListResponse'
+                  - $ref: '#/components/schemas/ActionEnqueueListResult'
         400:
           $ref: '#/components/responses/400'
         401:
@@ -343,6 +347,43 @@ paths:
             application/json:
               schema:
                 type: object
+        400:
+          $ref: '#/components/responses/400'
+        401:
+          $ref: '#/components/responses/401'
+        403:
+          $ref: '#/components/responses/403'
+        500:
+          $ref: '#/components/responses/500'
+      security:
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
+
+  /alerts/delete:
+    post:
+      operationId: PostAlertsDelete
+      description: |
+        Delete alerts by id, up to 10000 at once, as DELETE /alerts/{id} does
+        one by one: in one transaction, a single entry in the audit log naming
+        their count and types, and a single change event. The ids not found, deleted
+        already say, are told in not_found and do not stop the others. Requires
+        the AlertsManager privilege. The checks that raised an alert raise it again
+        at their next run if the cause remains.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/AlertsDeleteInput'
+      tags:
+        - collector
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AlertsDeleteResult'
         400:
           $ref: '#/components/responses/400'
         401:
@@ -23223,6 +23264,58 @@ components:
                   type: integer
         meta:
           $ref: '#/components/schemas/ListMeta'
+
+    ActionEnqueueListResult:
+      type: object
+      description: The answer to a list of entries of PUT /actions.
+      required: [info, error, data, refusals]
+      properties:
+        info:
+          type: array
+          items:
+            type: string
+        error:
+          type: array
+          description: One message per refused entry, naming its target
+          items:
+            type: string
+        data:
+          type: array
+          description: The queued actions, as GET /actions/{id} returns them
+          items:
+            type: object
+        refusals:
+          type: array
+          items:
+            type: object
+            required: [index, message]
+            properties:
+              index:
+                type: integer
+                description: Index of the refused entry in the list sent, from 0
+              message:
+                type: string
+
+    AlertsDeleteInput:
+      type: object
+      required: [ids]
+      properties:
+        ids:
+          type: array
+          maxItems: 10000
+          items:
+            type: integer
+
+    AlertsDeleteResult:
+      type: object
+      required: [deleted, not_found]
+      properties:
+        deleted:
+          type: integer
+        not_found:
+          type: array
+          items:
+            type: integer
 
     ListResponse:
       type: object

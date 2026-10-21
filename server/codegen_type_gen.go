@@ -1327,6 +1327,21 @@ type ActionEnqueue struct {
 	Vmname *string `json:"vmname,omitempty"`
 }
 
+// ActionEnqueueListResult The answer to a list of entries of PUT /actions.
+type ActionEnqueueListResult struct {
+	// Data The queued actions, as GET /actions/{id} returns them
+	Data []map[string]interface{} `json:"data"`
+
+	// Error One message per refused entry, naming its target
+	Error    []string `json:"error"`
+	Info     []string `json:"info"`
+	Refusals []struct {
+		// Index Index of the refused entry in the list sent, from 0
+		Index   int    `json:"index"`
+		Message string `json:"message"`
+	} `json:"refusals"`
+}
+
 // AlertEvent defines model for AlertEvent.
 type AlertEvent struct {
 	// Begin The start of the occurrence, "YYYY-MM-DD HH:MM:SS" in the collector time zone.
@@ -1377,6 +1392,17 @@ type AlertRow struct {
 	NodesNodename   *string `json:"nodes.nodename,omitempty"`
 	ServicesSvcname *string `json:"services.svcname,omitempty"`
 	SvcId           *string `json:"svc_id,omitempty"`
+}
+
+// AlertsDeleteInput defines model for AlertsDeleteInput.
+type AlertsDeleteInput struct {
+	Ids []int `json:"ids"`
+}
+
+// AlertsDeleteResult defines model for AlertsDeleteResult.
+type AlertsDeleteResult struct {
+	Deleted  int   `json:"deleted"`
+	NotFound []int `json:"not_found"`
 }
 
 // AppListResponse defines model for AppListResponse.
@@ -5101,6 +5127,11 @@ type PutActionsJSONBody struct {
 
 // PutActionsJSONBody1 defines parameters for PutActions.
 type PutActionsJSONBody1 = []ActionEnqueue
+
+// PutActions200JSONResponseBody defines parameters for PutActions.
+type PutActions200JSONResponseBody struct {
+	union json.RawMessage
+}
 
 // GetActionParams defines parameters for GetAction.
 type GetActionParams struct {
@@ -13651,6 +13682,9 @@ type DeleteAlertsJSONRequestBody DeleteAlertsJSONBody
 // PostAlertsJSONRequestBody defines body for PostAlerts for application/json ContentType.
 type PostAlertsJSONRequestBody PostAlertsJSONBody
 
+// PostAlertsDeleteJSONRequestBody defines body for PostAlertsDelete for application/json ContentType.
+type PostAlertsDeleteJSONRequestBody = AlertsDeleteInput
+
 // PostAlertJSONRequestBody defines body for PostAlert for application/json ContentType.
 type PostAlertJSONRequestBody PostAlertJSONBody
 
@@ -17010,6 +17044,68 @@ func (t PutActionsJSONBody) MarshalJSON() ([]byte, error) {
 }
 
 func (t *PutActionsJSONBody) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsListResponse returns the union data inside the PutActions200JSONResponseBody as a ListResponse
+func (t PutActions200JSONResponseBody) AsListResponse() (ListResponse, error) {
+	var body ListResponse
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromListResponse overwrites any union data inside the PutActions200JSONResponseBody as the provided ListResponse
+func (t *PutActions200JSONResponseBody) FromListResponse(v ListResponse) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeListResponse performs a merge with any union data inside the PutActions200JSONResponseBody, using the provided ListResponse
+func (t *PutActions200JSONResponseBody) MergeListResponse(v ListResponse) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsActionEnqueueListResult returns the union data inside the PutActions200JSONResponseBody as a ActionEnqueueListResult
+func (t PutActions200JSONResponseBody) AsActionEnqueueListResult() (ActionEnqueueListResult, error) {
+	var body ActionEnqueueListResult
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromActionEnqueueListResult overwrites any union data inside the PutActions200JSONResponseBody as the provided ActionEnqueueListResult
+func (t *PutActions200JSONResponseBody) FromActionEnqueueListResult(v ActionEnqueueListResult) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeActionEnqueueListResult performs a merge with any union data inside the PutActions200JSONResponseBody, using the provided ActionEnqueueListResult
+func (t *PutActions200JSONResponseBody) MergeActionEnqueueListResult(v ActionEnqueueListResult) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t PutActions200JSONResponseBody) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *PutActions200JSONResponseBody) UnmarshalJSON(b []byte) error {
 	err := t.union.UnmarshalJSON(b)
 	return err
 }
