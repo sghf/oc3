@@ -88,9 +88,13 @@ func (oDb *DB) CheckLiveByID(ctx context.Context, id int64) (*CheckLive, error) 
 // CheckLiveByKey returns the check of that key, nil when there is none.
 func (oDb *DB) CheckLiveByKey(ctx context.Context, k CheckKey) (*CheckLive, error) {
 	var c CheckLive
+	// A check reported before oc3 may hold NULL for no service or no instance,
+	// where oc3 stores "": both match an empty key. Should both rows be there,
+	// the one oc3 updates comes first.
 	err := oDb.DB.QueryRowContext(ctx, `SELECT id, IFNULL(node_id, ""), IFNULL(svc_id, ""), chk_type,
 		IFNULL(chk_instance, ""), chk_low, chk_high FROM checks_live
-		WHERE node_id = ? AND svc_id = ? AND chk_type = ? AND chk_instance = ?`,
+		WHERE node_id = ? AND IFNULL(svc_id, "") = ? AND chk_type = ? AND IFNULL(chk_instance, "") = ?
+		ORDER BY svc_id IS NULL, chk_instance IS NULL, chk_updated DESC LIMIT 1`,
 		k.NodeID, k.SvcID, k.Type, k.Instance).
 		Scan(&c.ID, &c.NodeID, &c.SvcID, &c.Type, &c.Instance, &c.Low, &c.High)
 	if errors.Is(err, sql.ErrNoRows) {
@@ -103,14 +107,17 @@ func (oDb *DB) CheckLiveByKey(ctx context.Context, k CheckKey) (*CheckLive, erro
 }
 
 // DeleteCheckLive deletes a check and its alerts. The agent reports it again
-// at its next check run if the check still exists.
+// at its next check run if the check still exists. A check reported before oc3
+// with NULL for no service or no instance goes too: it is the same check.
 func (oDb *DB) DeleteCheckLive(ctx context.Context, c *CheckLive) error {
-	if _, err := oDb.DB.ExecContext(ctx, "DELETE FROM checks_live WHERE id = ?", c.ID); err != nil {
+	if _, err := oDb.DB.ExecContext(ctx, `DELETE FROM checks_live
+		WHERE id = ? OR (node_id = ? AND IFNULL(svc_id, "") = ? AND chk_type = ? AND IFNULL(chk_instance, "") = ?)`,
+		c.ID, c.NodeID, c.SvcID, c.Type, c.Instance); err != nil {
 		return fmt.Errorf("deleteCheckLive: %w", err)
 	}
 	oDb.SetChange("checks_live")
 	count, err := oDb.execCountContext(ctx, `DELETE FROM dashboard
-		WHERE node_id = ? AND svc_id = ? AND dash_instance = ?
+		WHERE node_id = ? AND IFNULL(svc_id, "") = ? AND dash_instance = ?
 		AND dash_type IN ("check out of bounds", "check value not updated")`,
 		c.NodeID, c.SvcID, c.Type+":"+c.Instance)
 	if err != nil {
@@ -157,7 +164,7 @@ func (oDb *DB) SetCheckSettings(ctx context.Context, k CheckKey, low, high int64
 // whether there were some.
 func (oDb *DB) DeleteCheckSettings(ctx context.Context, k CheckKey) (bool, error) {
 	count, err := oDb.execCountContext(ctx, `DELETE FROM checks_settings
-		WHERE node_id = ? AND svc_id = ? AND chk_type = ? AND chk_instance = ?`,
+		WHERE node_id = ? AND IFNULL(svc_id, "") = ? AND chk_type = ? AND IFNULL(chk_instance, "") = ?`,
 		k.NodeID, k.SvcID, k.Type, k.Instance)
 	if err != nil {
 		return false, fmt.Errorf("deleteCheckSettings: %w", err)

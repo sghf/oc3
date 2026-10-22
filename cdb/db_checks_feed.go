@@ -52,7 +52,7 @@ const (
 // its md5 identifies the alert, so every query rebuilding it uses this one.
 func checkOutOfBoundsDictSQL(alias string) string {
 	return fmt.Sprintf(`CONCAT('{"ctype": "', %[1]s.chk_type,
-		'", "inst": "', %[1]s.chk_instance,
+		'", "inst": "', IFNULL(%[1]s.chk_instance, ""),
 		'", "ttype": "', %[1]s.chk_threshold_provider,
 		'", "val": ', %[1]s.chk_value,
 		', "min": ', IFNULL(%[1]s.chk_low, "null"),
@@ -342,7 +342,7 @@ func (oDb *DB) dashboardUpdateChecksOutOfBounds(ctx context.Context, nodeID stri
 		SELECT
 			NULL,
 			"check out of bounds",
-			t.svc_id,
+			IFNULL(t.svc_id, ""),
 			?,
 			"%(ctype)s:%(inst)s check value %(val)d. %(ttype)s thresholds: %(min)d - %(max)d",
 			` + dict + `,
@@ -352,7 +352,7 @@ func (oDb *DB) dashboardUpdateChecksOutOfBounds(ctx context.Context, nodeID stri
 			?,
 			t.node_id,
 			NULL,
-			CONCAT(t.chk_type, ":", t.chk_instance)
+			CONCAT(t.chk_type, ":", IFNULL(t.chk_instance, ""))
 		FROM checks_live t
 		WHERE
 			t.node_id = ? AND
