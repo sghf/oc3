@@ -5,6 +5,7 @@ package server
 
 import (
 	"encoding/json"
+	"fmt"
 	"time"
 
 	"github.com/oapi-codegen/runtime"
@@ -15,24 +16,6 @@ const (
 	BasicAuthScopes  basicAuthContextKey  = "basicAuth.Scopes"
 	BearerAuthScopes bearerAuthContextKey = "bearerAuth.Scopes"
 )
-
-// Defines values for AssistantConfirmationRequestDecision.
-const (
-	Approve AssistantConfirmationRequestDecision = "approve"
-	Reject  AssistantConfirmationRequestDecision = "reject"
-)
-
-// Valid indicates whether the value is a known member of the AssistantConfirmationRequestDecision enum.
-func (e AssistantConfirmationRequestDecision) Valid() bool {
-	switch e {
-	case Approve:
-		return true
-	case Reject:
-		return true
-	default:
-		return false
-	}
-}
 
 // Defines values for AssistantFeedbackRating.
 const (
@@ -115,6 +98,72 @@ func (e AssistantMessageRole) Valid() bool {
 	}
 }
 
+// Defines values for AssistantRunEventType.
+const (
+	CUSTOM             AssistantRunEventType = "CUSTOM"
+	MESSAGESSNAPSHOT   AssistantRunEventType = "MESSAGES_SNAPSHOT"
+	RUNERROR           AssistantRunEventType = "RUN_ERROR"
+	RUNFINISHED        AssistantRunEventType = "RUN_FINISHED"
+	RUNSTARTED         AssistantRunEventType = "RUN_STARTED"
+	TEXTMESSAGECONTENT AssistantRunEventType = "TEXT_MESSAGE_CONTENT"
+	TEXTMESSAGEEND     AssistantRunEventType = "TEXT_MESSAGE_END"
+	TEXTMESSAGESTART   AssistantRunEventType = "TEXT_MESSAGE_START"
+	TOOLCALLARGS       AssistantRunEventType = "TOOL_CALL_ARGS"
+	TOOLCALLEND        AssistantRunEventType = "TOOL_CALL_END"
+	TOOLCALLRESULT     AssistantRunEventType = "TOOL_CALL_RESULT"
+	TOOLCALLSTART      AssistantRunEventType = "TOOL_CALL_START"
+)
+
+// Valid indicates whether the value is a known member of the AssistantRunEventType enum.
+func (e AssistantRunEventType) Valid() bool {
+	switch e {
+	case CUSTOM:
+		return true
+	case MESSAGESSNAPSHOT:
+		return true
+	case RUNERROR:
+		return true
+	case RUNFINISHED:
+		return true
+	case RUNSTARTED:
+		return true
+	case TEXTMESSAGECONTENT:
+		return true
+	case TEXTMESSAGEEND:
+		return true
+	case TEXTMESSAGESTART:
+		return true
+	case TOOLCALLARGS:
+		return true
+	case TOOLCALLEND:
+		return true
+	case TOOLCALLRESULT:
+		return true
+	case TOOLCALLSTART:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for AssistantRunOutcomeType.
+const (
+	Interrupt AssistantRunOutcomeType = "interrupt"
+	Success   AssistantRunOutcomeType = "success"
+)
+
+// Valid indicates whether the value is a known member of the AssistantRunOutcomeType enum.
+func (e AssistantRunOutcomeType) Valid() bool {
+	switch e {
+	case Interrupt:
+		return true
+	case Success:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for AssistantStatusReason.
 const (
 	Disabled         AssistantStatusReason = "disabled"
@@ -133,87 +182,6 @@ func (e AssistantStatusReason) Valid() bool {
 	case PasswordSignIn:
 		return true
 	case TokenUnavailable:
-		return true
-	default:
-		return false
-	}
-}
-
-// Defines values for AssistantStreamEventCode.
-const (
-	AgentFailed    AssistantStreamEventCode = "agent_failed"
-	RequestTimeout AssistantStreamEventCode = "request_timeout"
-	ToolCallLimit  AssistantStreamEventCode = "tool_call_limit"
-)
-
-// Valid indicates whether the value is a known member of the AssistantStreamEventCode enum.
-func (e AssistantStreamEventCode) Valid() bool {
-	switch e {
-	case AgentFailed:
-		return true
-	case RequestTimeout:
-		return true
-	case ToolCallLimit:
-		return true
-	default:
-		return false
-	}
-}
-
-// Defines values for AssistantStreamEventFinishReason.
-const (
-	AssistantStreamEventFinishReasonCompleted     AssistantStreamEventFinishReason = "completed"
-	AssistantStreamEventFinishReasonContentFilter AssistantStreamEventFinishReason = "content_filter"
-	AssistantStreamEventFinishReasonLength        AssistantStreamEventFinishReason = "length"
-	AssistantStreamEventFinishReasonOther         AssistantStreamEventFinishReason = "other"
-	AssistantStreamEventFinishReasonToolCalls     AssistantStreamEventFinishReason = "tool_calls"
-)
-
-// Valid indicates whether the value is a known member of the AssistantStreamEventFinishReason enum.
-func (e AssistantStreamEventFinishReason) Valid() bool {
-	switch e {
-	case AssistantStreamEventFinishReasonCompleted:
-		return true
-	case AssistantStreamEventFinishReasonContentFilter:
-		return true
-	case AssistantStreamEventFinishReasonLength:
-		return true
-	case AssistantStreamEventFinishReasonOther:
-		return true
-	case AssistantStreamEventFinishReasonToolCalls:
-		return true
-	default:
-		return false
-	}
-}
-
-// Defines values for AssistantStreamEventType.
-const (
-	AssistantStreamEventTypeCompleted            AssistantStreamEventType = "completed"
-	AssistantStreamEventTypeConfirmationRequired AssistantStreamEventType = "confirmation_required"
-	AssistantStreamEventTypeError                AssistantStreamEventType = "error"
-	AssistantStreamEventTypeTextDelta            AssistantStreamEventType = "text_delta"
-	AssistantStreamEventTypeToolFinished         AssistantStreamEventType = "tool_finished"
-	AssistantStreamEventTypeToolStarted          AssistantStreamEventType = "tool_started"
-	AssistantStreamEventTypeUsage                AssistantStreamEventType = "usage"
-)
-
-// Valid indicates whether the value is a known member of the AssistantStreamEventType enum.
-func (e AssistantStreamEventType) Valid() bool {
-	switch e {
-	case AssistantStreamEventTypeCompleted:
-		return true
-	case AssistantStreamEventTypeConfirmationRequired:
-		return true
-	case AssistantStreamEventTypeError:
-		return true
-	case AssistantStreamEventTypeTextDelta:
-		return true
-	case AssistantStreamEventTypeToolFinished:
-		return true
-	case AssistantStreamEventTypeToolStarted:
-		return true
-	case AssistantStreamEventTypeUsage:
 		return true
 	default:
 		return false
@@ -1463,6 +1431,9 @@ type AppRow struct {
 	Updated     *string `json:"updated,omitempty"`
 }
 
+// AssistantCapabilities The AG-UI AgentCapabilities of the agent.
+type AssistantCapabilities map[string]interface{}
+
 // AssistantConfirmation defines model for AssistantConfirmation.
 type AssistantConfirmation struct {
 	// ArgumentTypes The MIME type of the arguments whose value is text in a known format,
@@ -1483,16 +1454,6 @@ type AssistantConfirmation struct {
 	} `json:"tool"`
 	TurnId string `json:"turn_id"`
 }
-
-// AssistantConfirmationRequest defines model for AssistantConfirmationRequest.
-type AssistantConfirmationRequest struct {
-	// ConfirmationId The `id` of the confirmation.
-	ConfirmationId string                               `json:"confirmation_id"`
-	Decision       AssistantConfirmationRequestDecision `json:"decision"`
-}
-
-// AssistantConfirmationRequestDecision defines model for AssistantConfirmationRequest.Decision.
-type AssistantConfirmationRequestDecision string
 
 // AssistantConversation defines model for AssistantConversation.
 type AssistantConversation struct {
@@ -1567,6 +1528,30 @@ type AssistantFeedbackRequest struct {
 // AssistantFeedbackRequestRating defines model for AssistantFeedbackRequest.Rating.
 type AssistantFeedbackRequestRating string
 
+// AssistantInterrupt The confirmation an action waits on; answer it with a run whose resume names its id.
+type AssistantInterrupt struct {
+	ExpiresAt *time.Time `json:"expiresAt,omitempty"`
+
+	// Id The id of the confirmation.
+	Id       string  `json:"id"`
+	Message  *string `json:"message,omitempty"`
+	Metadata *struct {
+		// ArgumentTypes The media types of the text arguments, by argument name.
+		ArgumentTypes *map[string]string `json:"argumentTypes,omitempty"`
+		Tool          *struct {
+			Destructive bool   `json:"destructive"`
+			Name        string `json:"name"`
+			Title       string `json:"title"`
+		} `json:"tool,omitempty"`
+		TurnId *string `json:"turnId,omitempty"`
+	} `json:"metadata,omitempty"`
+	Reason         string                  `json:"reason"`
+	ResponseSchema *map[string]interface{} `json:"responseSchema,omitempty"`
+
+	// ToolCallId The call to confirm, whose TOOL_CALL_ARGS are the exact arguments that run.
+	ToolCallId *string `json:"toolCallId,omitempty"`
+}
+
 // AssistantMessage defines model for AssistantMessage.
 type AssistantMessage struct {
 	CreatedAt time.Time            `json:"created_at"`
@@ -1589,6 +1574,132 @@ type AssistantMessagePage struct {
 	NextCursor string `json:"next_cursor"`
 }
 
+// AssistantRunEvent One AG-UI event of a run. RUN_STARTED, then the answers of the model
+// (TEXT_MESSAGE_START, _CONTENT, _END), the tools it calls
+// (TOOL_CALL_START, _ARGS, _END, then TOOL_CALL_RESULT), a
+// MESSAGES_SNAPSHOT for a client out of phase, CUSTOM notes for the
+// developer, and RUN_FINISHED or RUN_ERROR.
+type AssistantRunEvent struct {
+	// Code RUN_ERROR, why the run failed (tool_call_limit, request_timeout, tool_name_conflict, agent_failed).
+	Code *string `json:"code,omitempty"`
+
+	// Content TOOL_CALL_RESULT, the JSON result the model read.
+	Content *string `json:"content,omitempty"`
+
+	// Delta TEXT_MESSAGE_CONTENT, a piece of the answer; TOOL_CALL_ARGS, the JSON arguments of the call.
+	Delta *string `json:"delta,omitempty"`
+
+	// Message RUN_ERROR, for the developer.
+	Message *string `json:"message,omitempty"`
+
+	// MessageId The message of a text, `<turn id>:<sequence>`, or of a tool result.
+	MessageId *string `json:"messageId,omitempty"`
+
+	// Messages MESSAGES_SNAPSHOT, the thread as the model reads it.
+	Messages *[]AssistantRunMessage `json:"messages,omitempty"`
+
+	// Name CUSTOM, its name, such as opensvc.warning.
+	Name *string `json:"name,omitempty"`
+
+	// Outcome How RUN_FINISHED ends the run, a success, or an interrupt on the action to confirm.
+	Outcome         *AssistantRunOutcome `json:"outcome,omitempty"`
+	ParentMessageId *string              `json:"parentMessageId,omitempty"`
+
+	// ProtocolVersion RUN_STARTED, the version of AG-UI of the agent.
+	ProtocolVersion *string `json:"protocolVersion,omitempty"`
+
+	// Result RUN_FINISHED of a completed turn, its id, for its feedback.
+	Result *struct {
+		TurnId *string `json:"turnId,omitempty"`
+	} `json:"result,omitempty"`
+	Role     *string `json:"role,omitempty"`
+	RunId    *string `json:"runId,omitempty"`
+	ThreadId *string `json:"threadId,omitempty"`
+
+	// Timestamp Milliseconds since the epoch.
+	Timestamp    *int64                `json:"timestamp,omitempty"`
+	ToolCallId   *string               `json:"toolCallId,omitempty"`
+	ToolCallName *string               `json:"toolCallName,omitempty"`
+	Type         AssistantRunEventType `json:"type"`
+	Usage        *[]struct {
+		InputTokens  *int `json:"inputTokens,omitempty"`
+		OutputTokens *int `json:"outputTokens,omitempty"`
+		TotalTokens  *int `json:"totalTokens,omitempty"`
+	} `json:"usage,omitempty"`
+
+	// Value CUSTOM, its value.
+	Value interface{} `json:"value,omitempty"`
+}
+
+// AssistantRunEventType defines model for AssistantRunEvent.Type.
+type AssistantRunEventType string
+
+// AssistantRunInput The AG-UI RunAgentInput of a run. The agent reads threadId, runId,
+// protocolVersion, the last message, a message of the user, the ids of the
+// others, the tools of the client and resume; not the state, the context or
+// the forwarded properties.
+type AssistantRunInput struct {
+	Messages []AssistantRunMessage `json:"messages"`
+
+	// ProtocolVersion The version of AG-UI the client speaks, MAJOR.MINOR.
+	ProtocolVersion *string `json:"protocolVersion,omitempty"`
+
+	// Resume The decision on the action the conversation waits on.
+	Resume *[]struct {
+		// InterruptId The id of the interrupt, that of the confirmation.
+		InterruptId string `json:"interruptId"`
+		Payload     *struct {
+			Approved bool `json:"approved"`
+		} `json:"payload,omitempty"`
+
+		// Status resolved, the payload approving the call or not; or cancelled, rejecting it.
+		Status string `json:"status"`
+	} `json:"resume,omitempty"`
+
+	// RunId The id the client gives the run, printable, without spaces.
+	RunId string `json:"runId"`
+
+	// ThreadId The id of the conversation of the route.
+	ThreadId string `json:"threadId"`
+
+	// Tools The tools of the client, offered to the model and run by the client.
+	Tools *[]struct {
+		Description *string                 `json:"description,omitempty"`
+		Name        string                  `json:"name"`
+		Parameters  *map[string]interface{} `json:"parameters,omitempty"`
+	} `json:"tools,omitempty"`
+	AdditionalProperties map[string]interface{} `json:"-"`
+}
+
+// AssistantRunMessage A message of the thread, as AG-UI gives it; the agent reads the text of the last one, a prompt, and the ids of the others.
+type AssistantRunMessage struct {
+	Content *string `json:"content,omitempty"`
+	Error   *string `json:"error,omitempty"`
+	Id      string  `json:"id"`
+
+	// Role user, assistant, tool, system or developer.
+	Role       string  `json:"role"`
+	ToolCallId *string `json:"toolCallId,omitempty"`
+	ToolCalls  *[]struct {
+		Function struct {
+			Arguments string `json:"arguments"`
+			Name      string `json:"name"`
+		} `json:"function"`
+		Id   string  `json:"id"`
+		Type *string `json:"type,omitempty"`
+	} `json:"toolCalls,omitempty"`
+}
+
+// AssistantRunOutcome How RUN_FINISHED ends the run, a success, or an interrupt on the action to confirm.
+type AssistantRunOutcome struct {
+	Interrupts         *[]AssistantInterrupt   `json:"interrupts,omitempty"`
+	PendingToolCallIds *[]string               `json:"pendingToolCallIds,omitempty"`
+	Type               AssistantRunOutcomeType `json:"type"`
+}
+
+// AssistantRunOutcomeType defines model for AssistantRunOutcome.Type.
+type AssistantRunOutcomeType string
+
 // AssistantStatus defines model for AssistantStatus.
 type AssistantStatus struct {
 	// Available Whether the caller can use it now.
@@ -1604,58 +1715,10 @@ type AssistantStatus struct {
 // AssistantStatusReason Why it is not available.
 type AssistantStatusReason string
 
-// AssistantStreamEvent One event of a streamed turn. The SSE event name equals `type`.
-type AssistantStreamEvent struct {
-	// Code `error`: why the turn failed. `tool_call_limit`: the model asked for more than 8 tools in one answer, or more than 16 in the turn.
-	Code         *AssistantStreamEventCode `json:"code,omitempty"`
-	Confirmation *AssistantConfirmation    `json:"confirmation,omitempty"`
-
-	// FinishReason `completed`: why the model stopped.
-	FinishReason *AssistantStreamEventFinishReason `json:"finish_reason,omitempty"`
-
-	// Iteration The model iteration of the turn.
-	Iteration *int `json:"iteration,omitempty"`
-
-	// Message `error`: a human-readable message.
-	Message *string `json:"message,omitempty"`
-
-	// TextDelta `text_delta`: the next piece of the answer.
-	TextDelta *string `json:"text_delta,omitempty"`
-
-	// ToolError `tool_finished`: whether the tool failed.
-	ToolError *bool `json:"tool_error,omitempty"`
-
-	// ToolName `tool_started`, `tool_finished`: the MCP tool.
-	ToolName *string                  `json:"tool_name,omitempty"`
-	Type     AssistantStreamEventType `json:"type"`
-
-	// Usage `usage`: the tokens of one model call.
-	Usage *struct {
-		InputTokens  *int `json:"input_tokens,omitempty"`
-		OutputTokens *int `json:"output_tokens,omitempty"`
-		TotalTokens  *int `json:"total_tokens,omitempty"`
-	} `json:"usage,omitempty"`
-}
-
-// AssistantStreamEventCode `error`: why the turn failed. `tool_call_limit`: the model asked for more than 8 tools in one answer, or more than 16 in the turn.
-type AssistantStreamEventCode string
-
-// AssistantStreamEventFinishReason `completed`: why the model stopped.
-type AssistantStreamEventFinishReason string
-
-// AssistantStreamEventType defines model for AssistantStreamEvent.Type.
-type AssistantStreamEventType string
-
 // AssistantTitleRequest defines model for AssistantTitleRequest.
 type AssistantTitleRequest struct {
 	// Title Control characters are replaced by spaces and whitespace is normalized.
 	Title string `json:"title"`
-}
-
-// AssistantTurnRequest defines model for AssistantTurnRequest.
-type AssistantTurnRequest struct {
-	// Prompt The question of the user, at most 32 KiB, not blank.
-	Prompt string `json:"prompt"`
 }
 
 // AuthInfo defines model for AuthInfo.
@@ -14026,11 +14089,8 @@ type PostAppsResponsiblesJSONRequestBody PostAppsResponsiblesJSONBody
 // PatchAssistantConversationJSONRequestBody defines body for PatchAssistantConversation for application/json ContentType.
 type PatchAssistantConversationJSONRequestBody = AssistantTitleRequest
 
-// PostAssistantTurnJSONRequestBody defines body for PostAssistantTurn for application/json ContentType.
-type PostAssistantTurnJSONRequestBody = AssistantTurnRequest
-
-// PostAssistantConfirmationJSONRequestBody defines body for PostAssistantConfirmation for application/json ContentType.
-type PostAssistantConfirmationJSONRequestBody = AssistantConfirmationRequest
+// PostAssistantRunJSONRequestBody defines body for PostAssistantRun for application/json ContentType.
+type PostAssistantRunJSONRequestBody = AssistantRunInput
 
 // PutAssistantFeedbackJSONRequestBody defines body for PutAssistantFeedback for application/json ContentType.
 type PutAssistantFeedbackJSONRequestBody = AssistantFeedbackRequest
@@ -14409,6 +14469,145 @@ type PostUserJSONRequestBody PostUserJSONBody
 
 // PostUserPrefsJSONRequestBody defines body for PostUserPrefs for application/json ContentType.
 type PostUserPrefsJSONRequestBody PostUserPrefsJSONBody
+
+// Getter for additional properties for AssistantRunInput. Returns the specified
+// element and whether it was found
+func (a AssistantRunInput) Get(fieldName string) (value interface{}, found bool) {
+	if a.AdditionalProperties != nil {
+		value, found = a.AdditionalProperties[fieldName]
+	}
+	return
+}
+
+// Setter for additional properties for AssistantRunInput
+func (a *AssistantRunInput) Set(fieldName string, value interface{}) {
+	if a.AdditionalProperties == nil {
+		a.AdditionalProperties = make(map[string]interface{})
+	}
+	a.AdditionalProperties[fieldName] = value
+}
+
+// Override default JSON handling for AssistantRunInput to handle AdditionalProperties
+func (a *AssistantRunInput) UnmarshalJSON(b []byte) error {
+	object := make(map[string]json.RawMessage)
+	err := json.Unmarshal(b, &object)
+	if err != nil {
+		return err
+	}
+
+	if raw, found := object["messages"]; found {
+		err = json.Unmarshal(raw, &a.Messages)
+		if err != nil {
+			return fmt.Errorf("error reading 'messages': %w", err)
+		}
+		delete(object, "messages")
+	}
+
+	if raw, found := object["protocolVersion"]; found {
+		err = json.Unmarshal(raw, &a.ProtocolVersion)
+		if err != nil {
+			return fmt.Errorf("error reading 'protocolVersion': %w", err)
+		}
+		delete(object, "protocolVersion")
+	}
+
+	if raw, found := object["resume"]; found {
+		err = json.Unmarshal(raw, &a.Resume)
+		if err != nil {
+			return fmt.Errorf("error reading 'resume': %w", err)
+		}
+		delete(object, "resume")
+	}
+
+	if raw, found := object["runId"]; found {
+		err = json.Unmarshal(raw, &a.RunId)
+		if err != nil {
+			return fmt.Errorf("error reading 'runId': %w", err)
+		}
+		delete(object, "runId")
+	}
+
+	if raw, found := object["threadId"]; found {
+		err = json.Unmarshal(raw, &a.ThreadId)
+		if err != nil {
+			return fmt.Errorf("error reading 'threadId': %w", err)
+		}
+		delete(object, "threadId")
+	}
+
+	if raw, found := object["tools"]; found {
+		err = json.Unmarshal(raw, &a.Tools)
+		if err != nil {
+			return fmt.Errorf("error reading 'tools': %w", err)
+		}
+		delete(object, "tools")
+	}
+
+	if len(object) != 0 {
+		a.AdditionalProperties = make(map[string]interface{})
+		for fieldName, fieldBuf := range object {
+			var fieldVal interface{}
+			err := json.Unmarshal(fieldBuf, &fieldVal)
+			if err != nil {
+				return fmt.Errorf("error unmarshaling field %s: %w", fieldName, err)
+			}
+			a.AdditionalProperties[fieldName] = fieldVal
+		}
+	}
+	return nil
+}
+
+// Override default JSON handling for AssistantRunInput to handle AdditionalProperties
+func (a AssistantRunInput) MarshalJSON() ([]byte, error) {
+	var err error
+	object := make(map[string]json.RawMessage)
+
+	if a.Messages != nil {
+		object["messages"], err = json.Marshal(a.Messages)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'messages': %w", err)
+		}
+	}
+
+	if a.ProtocolVersion != nil {
+		object["protocolVersion"], err = json.Marshal(a.ProtocolVersion)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'protocolVersion': %w", err)
+		}
+	}
+
+	if a.Resume != nil {
+		object["resume"], err = json.Marshal(a.Resume)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'resume': %w", err)
+		}
+	}
+
+	object["runId"], err = json.Marshal(a.RunId)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'runId': %w", err)
+	}
+
+	object["threadId"], err = json.Marshal(a.ThreadId)
+	if err != nil {
+		return nil, fmt.Errorf("error marshaling 'threadId': %w", err)
+	}
+
+	if a.Tools != nil {
+		object["tools"], err = json.Marshal(a.Tools)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling 'tools': %w", err)
+		}
+	}
+
+	for fieldName, field := range a.AdditionalProperties {
+		object[fieldName], err = json.Marshal(field)
+		if err != nil {
+			return nil, fmt.Errorf("error marshaling '%s': %w", fieldName, err)
+		}
+	}
+	return json.Marshal(object)
+}
 
 // AsAlertListResponseData0 returns the union data inside the AlertListResponse_Data as a AlertListResponseData0
 func (t AlertListResponse_Data) AsAlertListResponseData0() (AlertListResponseData0, error) {

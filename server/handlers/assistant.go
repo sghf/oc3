@@ -3,6 +3,7 @@ package serverhandlers
 import (
 	"bytes"
 	"errors"
+	"fmt"
 	"io"
 	"net/http"
 	"net/url"
@@ -25,15 +26,18 @@ type AssistantConfig struct {
 	BaseURL *url.URL
 	Path    string
 	// Client calls the agent for the answers in one piece; Stream for the streamed
-	// turns, without an overall timeout, ended with the request of the browser.
+	// runs, without an overall timeout, ended with the request of the browser.
 	Client *http.Client
 	Stream *http.Client
 }
 
 const (
-	// assistantBodyLimit is the size of a request body relayed: the agent refuses
-	// more than 64 KiB.
+	// assistantBodyLimit is the size of a request body relayed to the routes of
+	// the conversations: the agent refuses more than 64 KiB.
 	assistantBodyLimit = 64 << 10
+	// assistantRunBodyLimit is the size of the AG-UI input of a run relayed: the
+	// agent refuses more than 4 MiB.
+	assistantRunBodyLimit = 4 << 20
 	// assistantAnswerLimit is the size of an answer relayed in one piece: the
 	// agent's message pages are at most 1 MiB.
 	assistantAnswerLimit = 2 << 20
@@ -105,10 +109,11 @@ func (a *Api) GetAssistantStatus(c echo.Context) error {
 }
 
 // assistantRelay forwards a request to the agent: the method, the path under
-// the configured backend path, the query, a JSON body, and the access token of
-// the caller. Nothing else of the browser's request goes: no cookie, no other
-// header. The answer comes back as it is, a stream of events as it arrives.
-func (a *Api) assistantRelay(c echo.Context, method, subpath string, query url.Values, withBody, stream bool) error {
+// the configured backend path, the query, a JSON body of at most bodyLimit
+// bytes (none when 0), and the access token of the caller. Nothing else of the
+// browser's request goes: no cookie, no other header. The answer comes back as
+// it is, a stream of events as it arrives.
+func (a *Api) assistantRelay(c echo.Context, method, subpath string, query url.Values, bodyLimit int, stream bool) error {
 	log := echolog.GetLogHandler(c, "assistant")
 	if a.Assistant == nil {
 		return assistantError(c, http.StatusNotFound, "assistant_disabled", "the AI assistant is not configured")
@@ -129,13 +134,15 @@ func (a *Api) assistantRelay(c echo.Context, method, subpath string, query url.V
 	}
 
 	var body io.Reader
+	withBody := bodyLimit > 0
 	if withBody {
-		b, err := io.ReadAll(io.LimitReader(c.Request().Body, assistantBodyLimit+1))
+		b, err := io.ReadAll(io.LimitReader(c.Request().Body, int64(bodyLimit)+1))
 		if err != nil {
 			return assistantError(c, http.StatusBadRequest, "invalid_request", "the request body cannot be read")
 		}
-		if len(b) > assistantBodyLimit {
-			return assistantError(c, http.StatusRequestEntityTooLarge, "request_too_large", "the request body exceeds 64 KiB")
+		if len(b) > bodyLimit {
+			return assistantError(c, http.StatusRequestEntityTooLarge, "request_too_large",
+				fmt.Sprintf("the request body exceeds %d KiB", bodyLimit>>10))
 		}
 		body = bytes.NewReader(b)
 	}
@@ -214,27 +221,27 @@ func conversationPath(id string, rest ...string) string {
 
 // GetAssistantConversations handles GET /assistant/conversations.
 func (a *Api) GetAssistantConversations(c echo.Context) error {
-	return a.assistantRelay(c, http.MethodGet, "/conversations", nil, false, false)
+	return a.assistantRelay(c, http.MethodGet, "/conversations", nil, 0, false)
 }
 
 // PostAssistantConversation handles POST /assistant/conversations.
 func (a *Api) PostAssistantConversation(c echo.Context) error {
-	return a.assistantRelay(c, http.MethodPost, "/conversations", nil, false, false)
+	return a.assistantRelay(c, http.MethodPost, "/conversations", nil, 0, false)
 }
 
 // GetAssistantConversation handles GET /assistant/conversations/{conversation_id}.
 func (a *Api) GetAssistantConversation(c echo.Context, conversationId string) error {
-	return a.assistantRelay(c, http.MethodGet, conversationPath(conversationId), nil, false, false)
+	return a.assistantRelay(c, http.MethodGet, conversationPath(conversationId), nil, 0, false)
 }
 
 // PatchAssistantConversation handles PATCH /assistant/conversations/{conversation_id}.
 func (a *Api) PatchAssistantConversation(c echo.Context, conversationId string) error {
-	return a.assistantRelay(c, http.MethodPatch, conversationPath(conversationId), nil, true, false)
+	return a.assistantRelay(c, http.MethodPatch, conversationPath(conversationId), nil, assistantBodyLimit, false)
 }
 
 // DeleteAssistantConversation handles DELETE /assistant/conversations/{conversation_id}.
 func (a *Api) DeleteAssistantConversation(c echo.Context, conversationId string) error {
-	return a.assistantRelay(c, http.MethodDelete, conversationPath(conversationId), nil, false, false)
+	return a.assistantRelay(c, http.MethodDelete, conversationPath(conversationId), nil, 0, false)
 }
 
 // GetAssistantMessages handles GET /assistant/conversations/{conversation_id}/messages.
@@ -246,20 +253,18 @@ func (a *Api) GetAssistantMessages(c echo.Context, conversationId string, params
 	if params.Before != nil && *params.Before != "" {
 		query.Set("before", *params.Before)
 	}
-	return a.assistantRelay(c, http.MethodGet, conversationPath(conversationId, "messages"), query, false, false)
+	return a.assistantRelay(c, http.MethodGet, conversationPath(conversationId, "messages"), query, 0, false)
 }
 
-// PostAssistantTurn handles POST /assistant/conversations/{conversation_id}/turns.
-func (a *Api) PostAssistantTurn(c echo.Context, conversationId string) error {
-	return a.assistantRelay(c, http.MethodPost, conversationPath(conversationId, "turns"), nil, true, true)
+// PostAssistantRun handles POST /assistant/conversations/{conversation_id}/runs:
+// an AG-UI run, its input relayed as it is and its events streamed back.
+func (a *Api) PostAssistantRun(c echo.Context, conversationId string) error {
+	return a.assistantRelay(c, http.MethodPost, conversationPath(conversationId, "runs"), nil, assistantRunBodyLimit, true)
 }
 
-// PostAssistantConfirmation handles POST /assistant/conversations/{conversation_id}/turns/{turn_id}/confirmation.
-func (a *Api) PostAssistantConfirmation(c echo.Context, conversationId string, turnId string) error {
-	if !regexpAssistantID.MatchString(turnId) {
-		return assistantError(c, http.StatusBadRequest, "invalid_request", "invalid conversation or turn id")
-	}
-	return a.assistantRelay(c, http.MethodPost, conversationPath(conversationId, "turns", turnId, "confirmation"), nil, true, true)
+// GetAssistantCapabilities handles GET /assistant/capabilities.
+func (a *Api) GetAssistantCapabilities(c echo.Context) error {
+	return a.assistantRelay(c, http.MethodGet, "/capabilities", nil, 0, false)
 }
 
 // PutAssistantFeedback handles PUT /assistant/conversations/{conversation_id}/turns/{turn_id}/feedback.
@@ -267,7 +272,7 @@ func (a *Api) PutAssistantFeedback(c echo.Context, conversationId string, turnId
 	if !regexpAssistantID.MatchString(turnId) {
 		return assistantError(c, http.StatusBadRequest, "invalid_request", "invalid conversation or turn id")
 	}
-	return a.assistantRelay(c, http.MethodPut, conversationPath(conversationId, "turns", turnId, "feedback"), nil, true, false)
+	return a.assistantRelay(c, http.MethodPut, conversationPath(conversationId, "turns", turnId, "feedback"), nil, assistantBodyLimit, false)
 }
 
 // DeleteAssistantFeedback handles DELETE /assistant/conversations/{conversation_id}/turns/{turn_id}/feedback.
@@ -275,5 +280,5 @@ func (a *Api) DeleteAssistantFeedback(c echo.Context, conversationId string, tur
 	if !regexpAssistantID.MatchString(turnId) {
 		return assistantError(c, http.StatusBadRequest, "invalid_request", "invalid conversation or turn id")
 	}
-	return a.assistantRelay(c, http.MethodDelete, conversationPath(conversationId, "turns", turnId, "feedback"), nil, false, false)
+	return a.assistantRelay(c, http.MethodDelete, conversationPath(conversationId, "turns", turnId, "feedback"), nil, 0, false)
 }

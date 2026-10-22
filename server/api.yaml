@@ -5513,17 +5513,25 @@ paths:
         - basicAuth: [ ]
         - bearerAuth: [ ]
 
-  /assistant/conversations/{conversation_id}/turns:
+  /assistant/conversations/{conversation_id}/runs:
     post:
-      operationId: PostAssistantTurn
+      operationId: PostAssistantRun
       description: |
-        Send a prompt and stream the turn of the agent; send the new prompt only, the agent keeps the history.
+        Run the agent on a conversation, in the AG-UI protocol
+        (https://docs.ag-ui.com): a new prompt, the last message, a message of
+        the user; or the decision on the action the conversation waits on,
+        `resume`. The agent keeps the history of the conversation and reads
+        none of the other messages but their ids, which tell it whether the
+        client holds its last stored message. The run is streamed as AG-UI
+        events, and ends with RUN_FINISHED, whose outcome is a success or an
+        interrupt for a confirmation, or RUN_ERROR.
 
         Relayed by oc3 to the AI agent, at the base_url and path of
         server.assistant, with the access token of the caller's single sign-on
         session, or the bearer token of the request; nothing else of the
         browser's request is forwarded. The agent's answers and error codes are
         returned as they are.
+        The body is relayed as it is, up to 4 MiB, the agent's own bound.
       tags:
         - assistant
       parameters:
@@ -5537,16 +5545,22 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/AssistantTurnRequest'
+              $ref: '#/components/schemas/AssistantRunInput'
       responses:
         200:
-          description: The turn, streamed as server-sent events.
+          description: The run, streamed as server-sent events.
           content:
             text/event-stream:
               schema:
-                description: "The schema of each event of the stream, written as `event: <type>` then `data: <the event as JSON>` and an empty line; the stream ends after completed, confirmation_required or error."
+                description: "The schema of each event of the stream, written as `data: <the event as JSON>` and an empty line, without an event name; `: keepalive` comments come while nothing else is written."
                 allOf:
-                  - $ref: '#/components/schemas/AssistantStreamEvent'
+                  - $ref: '#/components/schemas/AssistantRunEvent'
+        400:
+          description: "Invalid input: not a RunAgentInput, another thread, an invalid run id, prompt, decision or protocol version (invalid_request, thread_mismatch, invalid_run_id, invalid_prompt, invalid_decision, invalid_protocol_version, unsupported_protocol_version, invalid_tools, invalid_tool_results)."
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssistantError'
         401:
           description: No access token for the caller - a password sign-in, or a single sign-on session to open again (assistant_token_unavailable) - or the agent refused it.
           content:
@@ -5560,7 +5574,25 @@ paths:
               schema:
                 $ref: '#/components/schemas/AssistantError'
         404:
-          description: The assistant is not configured (assistant_disabled), or the conversation does not exist.
+          description: The assistant is not configured (assistant_disabled), or the conversation does not exist (conversation_not_found).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssistantError'
+        409:
+          description: A turn is running or an action waits a decision (conversation_busy), or the conversation waits on no such confirmation (confirmation_not_pending).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssistantError'
+        410:
+          description: The conversation, or its confirmation, has expired (conversation_expired, confirmation_expired).
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/AssistantError'
+        413:
+          description: The body exceeds 4 MiB, or the prompt 32 KiB (request_too_large, prompt_too_large).
           content:
             application/json:
               schema:
@@ -5573,30 +5605,6 @@ paths:
                 $ref: '#/components/schemas/AssistantError'
         503:
           description: The agent is unavailable.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AssistantError'
-        400:
-          description: Invalid request.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AssistantError'
-        409:
-          description: A turn is running, an action waits a decision, or a limit is reached.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AssistantError'
-        410:
-          description: The conversation has expired.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AssistantError'
-        413:
-          description: The prompt is too large.
           content:
             application/json:
               schema:
@@ -5605,11 +5613,12 @@ paths:
         - basicAuth: [ ]
         - bearerAuth: [ ]
 
-  /assistant/conversations/{conversation_id}/turns/{turn_id}/confirmation:
-    post:
-      operationId: PostAssistantConfirmation
+  /assistant/capabilities:
+    get:
+      operationId: GetAssistantCapabilities
       description: |
-        Approve or reject the action a turn waits on, and stream the rest of the turn.
+        What the runs can do, as an AG-UI AgentCapabilities: streaming, the tools
+        of the client, the interrupts without edits.
 
         Relayed by oc3 to the AI agent, at the base_url and path of
         server.assistant, with the access token of the caller's single sign-on
@@ -5618,34 +5627,15 @@ paths:
         returned as they are.
       tags:
         - assistant
-      parameters:
-        - in: path
-          name: conversation_id
-          required: true
-          schema:
-            type: string
-        - in: path
-          name: turn_id
-          required: true
-          schema:
-            type: string
-      requestBody:
-        required: true
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/AssistantConfirmationRequest'
       responses:
         200:
-          description: The turn, streamed as server-sent events.
+          description: The capabilities.
           content:
-            text/event-stream:
+            application/json:
               schema:
-                description: "The schema of each event of the stream, written as `event: <type>` then `data: <the event as JSON>` and an empty line; the stream ends after completed, confirmation_required or error."
-                allOf:
-                  - $ref: '#/components/schemas/AssistantStreamEvent'
+                $ref: '#/components/schemas/AssistantCapabilities'
         401:
-          description: No access token for the caller - a password sign-in, or a single sign-on session to open again (assistant_token_unavailable) - or the agent refused it.
+          description: No access token for the caller (assistant_token_unavailable), or the agent refused it.
           content:
             application/json:
               schema:
@@ -5657,7 +5647,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/AssistantError'
         404:
-          description: The assistant is not configured (assistant_disabled), or the conversation does not exist.
+          description: The assistant is not configured (assistant_disabled).
           content:
             application/json:
               schema:
@@ -5670,30 +5660,6 @@ paths:
                 $ref: '#/components/schemas/AssistantError'
         503:
           description: The agent is unavailable.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AssistantError'
-        400:
-          description: Invalid request.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AssistantError'
-        409:
-          description: A turn is running, an action waits a decision, or a limit is reached.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AssistantError'
-        410:
-          description: The conversation has expired.
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/AssistantError'
-        413:
-          description: The prompt is too large.
           content:
             application/json:
               schema:
@@ -20402,16 +20368,6 @@ components:
           minLength: 1
           maxLength: 80
           description: Control characters are replaced by spaces and whitespace is normalized.
-    AssistantTurnRequest:
-      type: object
-      additionalProperties: false
-      required:
-      - prompt
-      properties:
-        prompt:
-          type: string
-          minLength: 1
-          description: The question of the user, at most 32 KiB, not blank.
     AssistantFeedbackReason:
       type: string
       description: |
@@ -20478,22 +20434,6 @@ components:
         updated_at:
           type: string
           format: date-time
-    AssistantConfirmationRequest:
-      type: object
-      additionalProperties: false
-      required:
-      - confirmation_id
-      - decision
-      properties:
-        confirmation_id:
-          type: string
-          minLength: 1
-          description: The `id` of the confirmation.
-        decision:
-          type: string
-          enum:
-          - approve
-          - reject
     AssistantConfirmation:
       type: object
       required:
@@ -20575,67 +20515,269 @@ components:
         next_cursor:
           type: string
           description: Pass it as `before` to read the previous page; empty when there is none.
-    AssistantStreamEvent:
+    AssistantRunInput:
       type: object
+      description: |
+        The AG-UI RunAgentInput of a run. The agent reads threadId, runId,
+        protocolVersion, the last message, a message of the user, the ids of the
+        others, the tools of the client and resume; not the state, the context or
+        the forwarded properties.
+      required:
+      - threadId
+      - runId
+      - messages
+      properties:
+        threadId:
+          type: string
+          description: The id of the conversation of the route.
+        runId:
+          type: string
+          maxLength: 128
+          description: The id the client gives the run, printable, without spaces.
+        protocolVersion:
+          type: string
+          description: The version of AG-UI the client speaks, MAJOR.MINOR.
+        messages:
+          type: array
+          items:
+            $ref: '#/components/schemas/AssistantRunMessage'
+        tools:
+          type: array
+          maxItems: 16
+          description: The tools of the client, offered to the model and run by the client.
+          items:
+            type: object
+            required:
+            - name
+            properties:
+              name:
+                type: string
+              description:
+                type: string
+              parameters:
+                type: object
+        resume:
+          type: array
+          maxItems: 1
+          description: The decision on the action the conversation waits on.
+          items:
+            type: object
+            required:
+            - interruptId
+            - status
+            properties:
+              interruptId:
+                type: string
+                description: The id of the interrupt, that of the confirmation.
+              status:
+                type: string
+                description: resolved, the payload approving the call or not; or cancelled, rejecting it.
+              payload:
+                type: object
+                additionalProperties: false
+                required:
+                - approved
+                properties:
+                  approved:
+                    type: boolean
+      additionalProperties: true
+    AssistantRunMessage:
+      type: object
+      description: A message of the thread, as AG-UI gives it; the agent reads the text of the last one, a prompt, and the ids of the others.
+      required:
+      - id
+      - role
+      properties:
+        id:
+          type: string
+        role:
+          type: string
+          description: user, assistant, tool, system or developer.
+        content:
+          type: string
+        toolCallId:
+          type: string
+        error:
+          type: string
+        toolCalls:
+          type: array
+          items:
+            type: object
+            required:
+            - id
+            - function
+            properties:
+              id:
+                type: string
+              type:
+                type: string
+              function:
+                type: object
+                required:
+                - name
+                - arguments
+                properties:
+                  name:
+                    type: string
+                  arguments:
+                    type: string
+    AssistantRunEvent:
+      type: object
+      description: |
+        One AG-UI event of a run. RUN_STARTED, then the answers of the model
+        (TEXT_MESSAGE_START, _CONTENT, _END), the tools it calls
+        (TOOL_CALL_START, _ARGS, _END, then TOOL_CALL_RESULT), a
+        MESSAGES_SNAPSHOT for a client out of phase, CUSTOM notes for the
+        developer, and RUN_FINISHED or RUN_ERROR.
       required:
       - type
-      description: One event of a streamed turn. The SSE event name equals `type`.
       properties:
         type:
           type: string
           enum:
-          - text_delta
-          - tool_started
-          - tool_finished
-          - usage
-          - completed
-          - confirmation_required
-          - error
-        iteration:
+          - RUN_STARTED
+          - MESSAGES_SNAPSHOT
+          - TEXT_MESSAGE_START
+          - TEXT_MESSAGE_CONTENT
+          - TEXT_MESSAGE_END
+          - TOOL_CALL_START
+          - TOOL_CALL_ARGS
+          - TOOL_CALL_END
+          - TOOL_CALL_RESULT
+          - CUSTOM
+          - RUN_FINISHED
+          - RUN_ERROR
+        timestamp:
           type: integer
-          minimum: 1
-          description: The model iteration of the turn.
-        text_delta:
+          format: int64
+          description: Milliseconds since the epoch.
+        threadId:
           type: string
-          description: '`text_delta`: the next piece of the answer.'
-        tool_name:
+        runId:
           type: string
-          description: '`tool_started`, `tool_finished`: the MCP tool.'
-        tool_error:
-          type: boolean
-          description: '`tool_finished`: whether the tool failed.'
-        usage:
+        protocolVersion:
+          type: string
+          description: RUN_STARTED, the version of AG-UI of the agent.
+        messageId:
+          type: string
+          description: The message of a text, `<turn id>:<sequence>`, or of a tool result.
+        role:
+          type: string
+        delta:
+          type: string
+          description: TEXT_MESSAGE_CONTENT, a piece of the answer; TOOL_CALL_ARGS, the JSON arguments of the call.
+        toolCallId:
+          type: string
+        toolCallName:
+          type: string
+        parentMessageId:
+          type: string
+        content:
+          type: string
+          description: TOOL_CALL_RESULT, the JSON result the model read.
+        messages:
+          type: array
+          description: MESSAGES_SNAPSHOT, the thread as the model reads it.
+          items:
+            $ref: '#/components/schemas/AssistantRunMessage'
+        name:
+          type: string
+          description: CUSTOM, its name, such as opensvc.warning.
+        value:
+          description: CUSTOM, its value.
+        outcome:
+          $ref: '#/components/schemas/AssistantRunOutcome'
+        result:
           type: object
-          description: '`usage`: the tokens of one model call.'
+          description: RUN_FINISHED of a completed turn, its id, for its feedback.
           properties:
-            input_tokens:
-              type: integer
-            output_tokens:
-              type: integer
-            total_tokens:
-              type: integer
-        finish_reason:
-          type: string
-          enum:
-          - completed
-          - tool_calls
-          - length
-          - content_filter
-          - other
-          description: '`completed`: why the model stopped.'
-        confirmation:
-          $ref: '#/components/schemas/AssistantConfirmation'
-          description: '`confirmation_required`: the action waiting a decision; the turn ends until it is given.'
+            turnId:
+              type: string
+        usage:
+          type: array
+          items:
+            type: object
+            properties:
+              inputTokens:
+                type: integer
+              outputTokens:
+                type: integer
+              totalTokens:
+                type: integer
         code:
           type: string
-          enum:
-          - agent_failed
-          - request_timeout
-          - tool_call_limit
-          description: '`error`: why the turn failed. `tool_call_limit`: the model asked for more than 8 tools in one answer, or more than 16 in the turn.'
+          description: RUN_ERROR, why the run failed (tool_call_limit, request_timeout, tool_name_conflict, agent_failed).
         message:
           type: string
-          description: '`error`: a human-readable message.'
+          description: RUN_ERROR, for the developer.
+    AssistantRunOutcome:
+      type: object
+      description: How RUN_FINISHED ends the run, a success, or an interrupt on the action to confirm.
+      required:
+      - type
+      properties:
+        type:
+          type: string
+          enum:
+          - success
+          - interrupt
+        pendingToolCallIds:
+          type: array
+          items:
+            type: string
+        interrupts:
+          type: array
+          items:
+            $ref: '#/components/schemas/AssistantInterrupt'
+    AssistantInterrupt:
+      type: object
+      description: The confirmation an action waits on; answer it with a run whose resume names its id.
+      required:
+      - id
+      - reason
+      properties:
+        id:
+          type: string
+          description: The id of the confirmation.
+        reason:
+          type: string
+        toolCallId:
+          type: string
+          description: The call to confirm, whose TOOL_CALL_ARGS are the exact arguments that run.
+        message:
+          type: string
+        expiresAt:
+          type: string
+          format: date-time
+        responseSchema:
+          type: object
+        metadata:
+          type: object
+          properties:
+            turnId:
+              type: string
+            tool:
+              type: object
+              required:
+              - name
+              - title
+              - destructive
+              properties:
+                name:
+                  type: string
+                title:
+                  type: string
+                destructive:
+                  type: boolean
+            argumentTypes:
+              type: object
+              additionalProperties:
+                type: string
+              description: The media types of the text arguments, by argument name.
+    AssistantCapabilities:
+      type: object
+      description: The AG-UI AgentCapabilities of the agent.
+      additionalProperties: true
     AssistantError:
       type: object
       required:

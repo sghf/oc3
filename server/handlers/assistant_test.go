@@ -27,11 +27,11 @@ func newFakeAgent(t *testing.T, seen *fakeAgent) *httptest.Server {
 		*seen = fakeAgent{method: r.Method, path: r.URL.Path, query: r.URL.RawQuery, auth: r.Header.Get("Authorization"),
 			contentType: r.Header.Get("Content-Type"), cookie: r.Header.Get("Cookie"), extra: r.Header.Get("X-Extra"), body: string(b)}
 		switch {
-		case strings.HasSuffix(r.URL.Path, "/turns"):
-			w.Header().Set("Content-Type", "text/event-stream")
-			_, _ = io.WriteString(w, "event: text_delta\ndata: {\"type\":\"text_delta\",\"text_delta\":\"Hello\"}\n\n")
+		case strings.HasSuffix(r.URL.Path, "/runs"):
+			w.Header().Set("Content-Type", "text/event-stream; charset=utf-8")
+			_, _ = io.WriteString(w, "data: {\"type\":\"TEXT_MESSAGE_CONTENT\",\"messageId\":\"t:2\",\"delta\":\"Hello\"}\n\n")
 			w.(http.Flusher).Flush()
-			_, _ = io.WriteString(w, "event: completed\ndata: {\"type\":\"completed\"}\n\n")
+			_, _ = io.WriteString(w, "data: {\"type\":\"RUN_FINISHED\",\"outcome\":{\"type\":\"success\"}}\n\n")
 		case strings.HasSuffix(r.URL.Path, "/missing"):
 			w.Header().Set("Content-Type", "application/json")
 			w.WriteHeader(http.StatusNotFound)
@@ -104,17 +104,53 @@ func TestAssistantRelay(t *testing.T) {
 		}
 	}
 
-	// A turn streams, its body relayed.
-	c, rec = assistantRequest(http.MethodPost, "/", `{"prompt":"hi"}`, xauth.AuthSourceBearer)
-	if err := a.PostAssistantTurn(c, "c1"); err != nil {
+	// A run streams, its AG-UI input relayed as it is.
+	input := `{"threadId":"c1","runId":"r1","messages":[{"id":"u1","role":"user","content":"hi"}]}`
+	c, rec = assistantRequest(http.MethodPost, "/", input, xauth.AuthSourceBearer)
+	if err := a.PostAssistantRun(c, "c1"); err != nil {
 		t.Fatal(err)
 	}
-	if seen.body != `{"prompt":"hi"}` || seen.contentType != "application/json" || seen.method != http.MethodPost {
-		t.Fatalf("turn request: %+v", seen)
+	if seen.path != "/base/v1/oc3/conversations/c1/runs" || seen.body != input || seen.contentType != "application/json" || seen.method != http.MethodPost {
+		t.Fatalf("run request: %+v", seen)
 	}
-	if rec.Header().Get("Content-Type") != "text/event-stream" || !strings.Contains(rec.Body.String(), "event: completed") ||
-		!strings.Contains(rec.Body.String(), `"text_delta":"Hello"`) {
+	if rec.Header().Get("Content-Type") != "text/event-stream" || !strings.Contains(rec.Body.String(), `"type":"RUN_FINISHED"`) ||
+		!strings.Contains(rec.Body.String(), `"delta":"Hello"`) {
 		t.Fatalf("stream: %q %q", rec.Header().Get("Content-Type"), rec.Body.String())
+	}
+
+	// The input of a run may weigh more than the 64 KiB of the other routes, up to 4 MiB.
+	big := `{"threadId":"c1","runId":"r2","messages":[{"id":"u2","role":"user","content":"` + strings.Repeat("x", 100<<10) + `"}]}`
+	c, rec = assistantRequest(http.MethodPost, "/", big, xauth.AuthSourceBearer)
+	if err := a.PostAssistantRun(c, "c1"); err != nil {
+		t.Fatal(err)
+	}
+	if rec.Code != http.StatusOK || len(seen.body) != len(big) {
+		t.Fatalf("run of %d bytes: %d, relayed %d", len(big), rec.Code, len(seen.body))
+	}
+	c, rec = assistantRequest(http.MethodPost, "/", strings.Repeat("x", 4<<20+1), xauth.AuthSourceBearer)
+	seen = fakeAgent{}
+	if err := a.PostAssistantRun(c, "c1"); err != nil {
+		t.Fatal(err)
+	}
+	if rec.Code != http.StatusRequestEntityTooLarge || seen.method != "" {
+		t.Fatalf("run over 4 MiB: %d, agent called: %v", rec.Code, seen.method != "")
+	}
+	c, rec = assistantRequest(http.MethodPatch, "/", `{"title":"`+strings.Repeat("x", 64<<10)+`"}`, xauth.AuthSourceBearer)
+	seen = fakeAgent{}
+	if err := a.PatchAssistantConversation(c, "c1"); err != nil {
+		t.Fatal(err)
+	}
+	if rec.Code != http.StatusRequestEntityTooLarge || seen.method != "" {
+		t.Fatalf("rename over 64 KiB: %d, agent called: %v", rec.Code, seen.method != "")
+	}
+
+	// The capabilities are relayed.
+	c, rec = assistantRequest(http.MethodGet, "/", "", xauth.AuthSourceBearer)
+	if err := a.GetAssistantCapabilities(c); err != nil {
+		t.Fatal(err)
+	}
+	if rec.Code != http.StatusOK || seen.path != "/base/v1/oc3/capabilities" {
+		t.Fatalf("capabilities relayed to %s: %d", seen.path, rec.Code)
 	}
 }
 
