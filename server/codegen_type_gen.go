@@ -1465,6 +1465,13 @@ type AppRow struct {
 
 // AssistantConfirmation defines model for AssistantConfirmation.
 type AssistantConfirmation struct {
+	// ArgumentTypes The MIME type of the arguments whose value is text in a known format,
+	// by argument name: application/yaml for the definition of a form given
+	// to create_form or update_form, say. An argument absent from it is
+	// plain text, or a JSON value when it is not a string. A client renders
+	// each argument after its type, never after its content.
+	ArgumentTypes *map[string]string `json:"argument_types,omitempty"`
+
 	// Arguments The exact arguments of the call that runs if the user approves it.
 	Arguments interface{} `json:"arguments"`
 	ExpiresAt time.Time   `json:"expires_at"`

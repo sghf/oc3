@@ -20522,6 +20522,16 @@ components:
               type: boolean
         arguments:
           description: The exact arguments of the call that runs if the user approves it.
+        argument_types:
+          type: object
+          description: |
+            The MIME type of the arguments whose value is text in a known format,
+            by argument name: application/yaml for the definition of a form given
+            to create_form or update_form, say. An argument absent from it is
+            plain text, or a JSON value when it is not a string. A client renders
+            each argument after its type, never after its content.
+          additionalProperties:
+            type: string
         expires_at:
           type: string
           format: date-time
