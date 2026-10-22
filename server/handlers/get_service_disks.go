@@ -2,6 +2,7 @@ package serverhandlers
 
 import (
 	"context"
+	"errors"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
@@ -16,7 +17,10 @@ import (
 func (a *Api) GetServiceDisks(c echo.Context, svcId string, params server.GetServiceDisksParams) error {
 	log := echolog.GetLogHandler(c, "GetServiceDisks")
 
-	svc, err := a.ODB.ServiceBySvcIDOrName(c.Request().Context(), svcId)
+	svc, err := a.ODB.ServiceBySvcIDOrName(c.Request().Context(), svcId, UserGroupsFromContext(c), IsManager(c))
+	if errors.Is(err, cdb.ErrServiceAmbiguous) {
+		return JSONProblemf(c, http.StatusConflict, "%s", err)
+	}
 	if err != nil {
 		log.Error("cannot resolve service", "svc_id", svcId, logkey.Error, err)
 		return JSONProblemf(c, http.StatusInternalServerError, "cannot resolve service %s", svcId)

@@ -1,6 +1,7 @@
 package serverhandlers
 
 import (
+	"errors"
 	"net/http"
 	"slices"
 
@@ -23,7 +24,10 @@ func (a *Api) GetServiceAlerts(c echo.Context, svcId string, params server.GetSe
 
 	log := echolog.GetLogHandler(c, "GetServiceAlerts")
 
-	svc, err := a.ODB.ServiceBySvcIDOrName(c.Request().Context(), svcId)
+	svc, err := a.ODB.ServiceBySvcIDOrName(c.Request().Context(), svcId, UserGroupsFromContext(c), IsManager(c))
+	if errors.Is(err, cdb.ErrServiceAmbiguous) {
+		return JSONProblemf(c, http.StatusConflict, "%s", err)
+	}
 	if err != nil {
 		log.Error("cannot resolve service", "svc_id", svcId, logkey.Error, err)
 		return JSONProblemf(c, http.StatusInternalServerError, "cannot resolve service %s", svcId)

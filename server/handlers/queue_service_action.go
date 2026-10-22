@@ -2,6 +2,7 @@ package serverhandlers
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"net/http"
 	"regexp"
@@ -195,7 +196,10 @@ func (a *Api) checkServiceAction(act actionActor, log *slog.Logger, ctx context.
 		return nil, refuseAction(http.StatusBadRequest, "invalid svc_id: ''")
 	}
 
-	svc, err := a.ODB.ServiceBySvcIDOrName(ctx, svcID)
+	svc, err := a.ODB.ServiceBySvcIDOrName(ctx, svcID, act.groups, act.manager())
+	if errors.Is(err, cdb.ErrServiceAmbiguous) {
+		return nil, refuseAction(http.StatusConflict, "%s", err)
+	}
 	if err != nil {
 		log.Error("cannot resolve service", "svc_id", svcID, logkey.Error, err)
 		return nil, refuseAction(http.StatusInternalServerError, "cannot resolve service %s", svcID)

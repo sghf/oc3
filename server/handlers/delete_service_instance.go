@@ -3,6 +3,7 @@ package serverhandlers
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"log/slog"
 	"net/http"
 
@@ -71,7 +72,10 @@ func (a *Api) deleteServiceInstances(c echo.Context, log *slog.Logger, ctx conte
 			outcomes[i] = batchFail(http.StatusBadRequest, "invalid svc_id: ''")
 			continue
 		}
-		svc, err := odb.ServiceBySvcIDOrName(ctx, svcId)
+		svc, err := odb.ServiceBySvcIDOrName(ctx, svcId, UserGroupsFromContext(c), IsManager(c))
+		if errors.Is(err, cdb.ErrServiceAmbiguous) {
+			outcomes[i] = batchFail(http.StatusConflict, "%s", err)
+		}
 		if err != nil {
 			log.Error("cannot resolve service", "svc_id", svcId, logkey.Error, err)
 			outcomes[i] = batchFail(http.StatusInternalServerError, "cannot resolve service %s", svcId)

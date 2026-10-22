@@ -2,6 +2,7 @@ package serverhandlers
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -35,15 +36,22 @@ func (a *Api) PostServices(c echo.Context) error {
 		return JSONProblemf(c, http.StatusBadRequest, "svc_id or svcname is required")
 	}
 
-	// Resolve lookup key: svc_id, fall back to svcname.
-	lookupKey := ""
-	if body.SvcId != nil {
-		lookupKey = *body.SvcId
-	} else {
-		lookupKey = *body.Svcname
+	// The service the body names: by its svc_id; else by its name in the
+	// cluster given, a name being borne by a service of each cluster; else by
+	// its name alone, which must then name a single service the caller sees.
+	var existing *cdb.DBService
+	var err error
+	switch {
+	case body.SvcId != nil && *body.SvcId != "":
+		existing, err = odb.ServiceBySvcIDOrName(ctx, *body.SvcId, UserGroupsFromContext(c), IsManager(c))
+	case body.ClusterId != nil && *body.ClusterId != "" && body.Svcname != nil:
+		existing, err = odb.ServiceByNameAndCluster(ctx, *body.Svcname, *body.ClusterId)
+	default:
+		existing, err = odb.ServiceBySvcIDOrName(ctx, *body.Svcname, UserGroupsFromContext(c), IsManager(c))
 	}
-
-	existing, err := odb.ServiceBySvcIDOrName(ctx, lookupKey)
+	if errors.Is(err, cdb.ErrServiceAmbiguous) {
+		return JSONProblemf(c, http.StatusConflict, "%s", err)
+	}
 	if err != nil {
 		log.Error("cannot lookup service", logkey.Error, err)
 		return JSONProblemf(c, http.StatusInternalServerError, "cannot lookup service")
@@ -69,6 +77,13 @@ func (a *Api) PostServices(c echo.Context) error {
 	}
 	if body.ClusterId == nil || *body.ClusterId == "" {
 		return JSONProblemf(c, http.StatusBadRequest, "cluster_id is required to create a service")
+	}
+	// A cluster the collector knows: its daemon has reported its status.
+	if _, known, err := odb.ClusterName(ctx, *body.ClusterId); err != nil {
+		log.Error("cannot check the cluster", logkey.Error, err)
+		return JSONProblemf(c, http.StatusInternalServerError, "cannot check cluster %s", *body.ClusterId)
+	} else if !known {
+		return JSONProblemf(c, http.StatusBadRequest, "cluster %s is unknown to the collector", *body.ClusterId)
 	}
 
 	if msg, err := checkConstraints(c, ctx, odb, server.FieldConstraintObjectKindService, "", serviceBodyFieldsFromPostServices(body).toFields()); err != nil {

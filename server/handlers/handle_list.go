@@ -300,6 +300,10 @@ func (a *Api) handleItem(
 	}
 
 	items, err := fetch(c.Request().Context(), dbParams)
+	if errors.Is(err, cdb.ErrServiceAmbiguous) {
+		// A svcname several services bear: the caller names one by its svc_id.
+		return JSONProblemf(c, http.StatusConflict, "%s", err)
+	}
 	if err != nil {
 		log.Error("cannot fetch item", idKey, idVal, logkey.Error, err)
 		return JSONProblemf(c, http.StatusInternalServerError, "cannot get %s", mappingKey)

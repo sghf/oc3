@@ -2,7 +2,10 @@ package serverhandlers
 
 import (
 	"context"
+	"errors"
 	"net/http"
+
+	"github.com/opensvc/oc3/cdb"
 
 	"github.com/labstack/echo/v4"
 
@@ -22,7 +25,10 @@ func (a *Api) GetServiceAmIResponsible(c echo.Context, svcId string) error {
 
 	log.Info("called", "svc_id", svcId, "is_manager", isManager)
 
-	svc, err := odb.ServiceBySvcIDOrName(ctx, svcId)
+	svc, err := odb.ServiceBySvcIDOrName(ctx, svcId, UserGroupsFromContext(c), IsManager(c))
+	if errors.Is(err, cdb.ErrServiceAmbiguous) {
+		return JSONProblemf(c, http.StatusConflict, "%s", err)
+	}
 	if err != nil {
 		log.Error("cannot resolve service", "svc_id", svcId, logkey.Error, err)
 		return JSONProblemf(c, http.StatusInternalServerError, "cannot resolve service %s", svcId)

@@ -2,6 +2,7 @@ package serverhandlers
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log/slog"
 	"net/http"
@@ -31,7 +32,10 @@ func (a *Api) PostService(c echo.Context, svcId string) error {
 		return JSONProblem(c, http.StatusBadRequest, err.Error())
 	}
 
-	svc, err := odb.ServiceBySvcIDOrName(ctx, svcId)
+	svc, err := odb.ServiceBySvcIDOrName(ctx, svcId, UserGroupsFromContext(c), IsManager(c))
+	if errors.Is(err, cdb.ErrServiceAmbiguous) {
+		return JSONProblemf(c, http.StatusConflict, "%s", err)
+	}
 	if err != nil {
 		log.Error("cannot lookup service", logkey.Error, err)
 		return JSONProblemf(c, http.StatusInternalServerError, "cannot lookup service")

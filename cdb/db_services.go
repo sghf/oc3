@@ -8,32 +8,66 @@ import (
 	"strings"
 	"time"
 
+	"github.com/google/uuid"
+
 	"github.com/opensvc/oc3/schema"
 )
+
+// ErrServiceAmbiguous is the error of a service named by a svcname that several
+// services the caller may see bear, in different clusters: only the svc_id
+// tells them apart.
+var ErrServiceAmbiguous = errors.New("several services bear this name: use the svc_id")
+
+// AmbiguousServiceError names the svcname that several services bear; it is
+// an ErrServiceAmbiguous.
+type AmbiguousServiceError struct {
+	Name string
+}
+
+func (e AmbiguousServiceError) Error() string {
+	return fmt.Sprintf("several services are named %s, in different clusters: use the svc_id", e.Name)
+}
+
+func (e AmbiguousServiceError) Is(target error) bool { return target == ErrServiceAmbiguous }
+
+// isServiceID tells a svc_id from a svcname: a service named after a uuid is
+// out of the question.
+func isServiceID(key string) bool {
+	if len(key) != 36 {
+		return false
+	}
+	_, err := uuid.Parse(key)
+	return err == nil
+}
+
+// servicesVisibility is the condition keeping the services the caller may see:
+// those of an app their groups are responsible for; all of them for a Manager.
+func servicesVisibility(groups []string, isManager bool) (string, []any) {
+	if isManager {
+		return "", nil
+	}
+	cleanGroups := cleanGroups(groups)
+	if len(cleanGroups) == 0 {
+		return "1=0", nil
+	}
+	args := make([]any, len(cleanGroups))
+	for i, g := range cleanGroups {
+		args[i] = g
+	}
+	return "services.svc_app IN (" +
+		"SELECT a.app FROM apps a" +
+		" JOIN apps_responsibles ar ON ar.app_id = a.id" +
+		" JOIN auth_group ag ON ag.id = ar.group_id" +
+		" WHERE ag.role IN (" + Placeholders(len(cleanGroups)) + ")" +
+		")", args
+}
 
 func buildServicesQuery(groups []string, isManager bool, selectExprs []string, filters []ColumnFilter) (string, []any, error) {
 	q := From(schema.TServices).
 		RawSelect(selectExprs...)
 
-	if !isManager {
-		cleanGroups := cleanGroups(groups)
-		if len(cleanGroups) == 0 {
-			q = q.WhereRaw("1=0")
-		} else {
-			args := make([]any, len(cleanGroups))
-			for i, g := range cleanGroups {
-				args[i] = g
-			}
-			q = q.WhereRaw(
-				"services.svc_app IN ("+
-					"SELECT a.app FROM apps a"+
-					" JOIN apps_responsibles ar ON ar.app_id = a.id"+
-					" JOIN auth_group ag ON ag.id = ar.group_id"+
-					" WHERE ag.role IN ("+Placeholders(len(cleanGroups))+")"+
-					")",
-				args...,
-			)
-		}
+	if cond, args := servicesVisibility(groups, isManager); cond != "" {
+		q = q.WhereRaw(cond, args...)
 	} else {
 		q = q.Where(schema.ServicesID, ">", 0)
 	}
@@ -97,14 +131,19 @@ func (oDb *DB) GetServicesByIDs(ctx context.Context, ids []string, p ListParams)
 	return scanRowsToMaps(rows, p.Props, p.TypeHints)
 }
 
-// GetService fetches a single service by svc_id (UUID) or svcname.
+// GetService fetches a single service the caller may see, by svc_id (UUID) or
+// svcname; an AmbiguousServiceError when several bear that name.
 func (oDb *DB) GetService(ctx context.Context, svcID string, p ListParams) ([]map[string]any, error) {
 	query, args, err := buildServicesQuery(p.Groups, p.IsManager, p.SelectExprs, p.Filters)
 	if err != nil {
 		return nil, err
 	}
-	query += " AND (services.svc_id = ? OR services.svcname = ?)"
-	args = append(args, svcID, svcID)
+	if isServiceID(svcID) {
+		query += " AND services.svc_id = ?"
+	} else {
+		query += " AND services.svcname = ?"
+	}
+	args = append(args, svcID)
 	query, args = appendLimitOffset(query, args, p.Limit, p.Offset)
 
 	rows, err := oDb.DB.QueryContext(ctx, query, args...)
@@ -113,7 +152,11 @@ func (oDb *DB) GetService(ctx context.Context, svcID string, p ListParams) ([]ma
 	}
 	defer func() { _ = rows.Close() }()
 
-	return scanRowsToMaps(rows, p.Props, p.TypeHints)
+	items, err := scanRowsToMaps(rows, p.Props, p.TypeHints)
+	if err == nil && len(items) > 1 {
+		return nil, AmbiguousServiceError{Name: svcID}
+	}
+	return items, err
 }
 
 // Minimal service data needed
@@ -123,18 +166,68 @@ type DBService struct {
 	SvcApp  string
 }
 
-// ServiceBySvcIDOrName looks up a service by UUID or svcname
-func (oDb *DB) ServiceBySvcIDOrName(ctx context.Context, id string) (*DBService, error) {
-	const query = `SELECT svc_id, svcname, COALESCE(svc_app, '') FROM services WHERE svc_id = ? OR svcname = ? LIMIT 1`
-	var svcID, svcname, svcApp sql.NullString
-	err := oDb.DB.QueryRowContext(ctx, query, id, id).Scan(&svcID, &svcname, &svcApp)
+// ServiceBySvcIDOrName looks up a service by svc_id or by svcname, nil when none.
+//
+// A svc_id names one service, which the caller then checks access to. A svcname
+// may be borne by a service of each cluster: it is looked for among the
+// services the caller may see only (servicesVisibility), as the historical
+// collector did (get_svc_id), and several of them give an
+// AmbiguousServiceError rather than one of them taken at random.
+func (oDb *DB) ServiceBySvcIDOrName(ctx context.Context, key string, groups []string, isManager bool) (*DBService, error) {
+	query := `SELECT svc_id, svcname, COALESCE(svc_app, '') FROM services WHERE `
+	args := []any{key}
+	if isServiceID(key) {
+		query += "svc_id = ?"
+	} else {
+		query += "svcname = ?"
+		if cond, visArgs := servicesVisibility(groups, isManager); cond != "" {
+			query += " AND " + cond
+			args = append(args, visArgs...)
+		}
+	}
+	// Two rows are enough to tell an ambiguous name.
+	services, err := oDb.queryDBServices(ctx, query+" LIMIT 2", args...)
 	switch {
-	case errors.Is(err, sql.ErrNoRows):
-		return nil, nil
 	case err != nil:
 		return nil, fmt.Errorf("serviceBySvcIDOrName: %w", err)
+	case len(services) == 0:
+		return nil, nil
+	case len(services) > 1:
+		return nil, AmbiguousServiceError{Name: key}
 	}
-	return &DBService{SvcID: svcID.String, Svcname: svcname.String, SvcApp: svcApp.String}, nil
+	return &services[0], nil
+}
+
+// ServiceByNameAndCluster looks up the service of a svcname in a cluster, nil
+// when none: the pair names one service, as service_ids does.
+func (oDb *DB) ServiceByNameAndCluster(ctx context.Context, svcname, clusterID string) (*DBService, error) {
+	services, err := oDb.queryDBServices(ctx,
+		`SELECT svc_id, svcname, COALESCE(svc_app, '') FROM services WHERE svcname = ? AND cluster_id = ? LIMIT 1`,
+		svcname, clusterID)
+	if err != nil {
+		return nil, fmt.Errorf("serviceByNameAndCluster: %w", err)
+	}
+	if len(services) == 0 {
+		return nil, nil
+	}
+	return &services[0], nil
+}
+
+func (oDb *DB) queryDBServices(ctx context.Context, query string, args ...any) ([]DBService, error) {
+	rows, err := oDb.DB.QueryContext(ctx, query, args...)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = rows.Close() }()
+	var services []DBService
+	for rows.Next() {
+		var svcID, svcname, svcApp sql.NullString
+		if err := rows.Scan(&svcID, &svcname, &svcApp); err != nil {
+			return nil, err
+		}
+		services = append(services, DBService{SvcID: svcID.String, Svcname: svcname.String, SvcApp: svcApp.String})
+	}
+	return services, rows.Err()
 }
 
 // Access is granted when the service's svc_app is in the list of apps the groups are responsible for.

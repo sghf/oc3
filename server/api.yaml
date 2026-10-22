@@ -10849,9 +10849,12 @@ paths:
     post:
       operationId: PostServices
       description: |
-        Create or update a service (by svcname or svc_id). Updating a service
-        requires being responsible for it; creating one requires the Manager
-        privilege (403 otherwise), as creating a node does.
+        Create or update a service. The service is the one of svc_id when given;
+        else the one of svcname in cluster_id when given; else the one service
+        named svcname the caller may see (409 when several are, in different
+        clusters). Updating a service requires being responsible for it;
+        creating one requires the Manager privilege (403 otherwise), as creating
+        a node does, and a cluster_id the collector knows (400 otherwise).
       requestBody:
         required: true
         content:

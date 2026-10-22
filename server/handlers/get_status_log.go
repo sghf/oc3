@@ -1,6 +1,7 @@
 package serverhandlers
 
 import (
+	"errors"
 	"log/slog"
 	"net/http"
 	"strings"
@@ -44,10 +45,16 @@ func (a *Api) GetServiceStatusLog(c echo.Context, svcId string, params server.Ge
 		return err
 	}
 	ctx := c.Request().Context()
-	svc, err := a.ODB.ServiceBySvcIDOrName(ctx, svcId)
-	if err != nil || svc == nil {
+	svc, err := a.ODB.ServiceBySvcIDOrName(ctx, svcId, UserGroupsFromContext(c), IsManager(c))
+	if errors.Is(err, cdb.ErrServiceAmbiguous) {
+		return JSONProblemf(c, http.StatusConflict, "%s", err)
+	}
+	if err != nil {
 		log.Error("cannot resolve service", "svc_id", svcId, logkey.Error, err)
 		return JSONProblemf(c, http.StatusInternalServerError, "cannot resolve service %s", svcId)
+	}
+	if svc == nil {
+		return JSONProblemf(c, http.StatusNotFound, "service %s not found", svcId)
 	}
 	periods, err := a.ODB.ServiceStatusPeriods(ctx, svc.SvcID, days)
 	if err != nil {
@@ -97,10 +104,16 @@ func (a *Api) serviceForAck(c echo.Context, log *slog.Logger, svcId string) (*cd
 		return nil, err
 	}
 	ctx := c.Request().Context()
-	svc, err := a.ODB.ServiceBySvcIDOrName(ctx, svcId)
-	if err != nil || svc == nil {
+	svc, err := a.ODB.ServiceBySvcIDOrName(ctx, svcId, UserGroupsFromContext(c), IsManager(c))
+	if errors.Is(err, cdb.ErrServiceAmbiguous) {
+		return nil, denyRequest(c, http.StatusConflict, "%s", err)
+	}
+	if err != nil {
 		log.Error("cannot resolve service", "svc_id", svcId, logkey.Error, err)
 		return nil, denyRequest(c, http.StatusInternalServerError, "cannot resolve service %s", svcId)
+	}
+	if svc == nil {
+		return nil, denyRequest(c, http.StatusNotFound, "service %s not found", svcId)
 	}
 	responsible, err := a.ODB.ServiceResponsible(ctx, svc.SvcID, UserGroupsFromContext(c), IsManager(c))
 	if err != nil {
@@ -211,10 +224,16 @@ func (a *Api) GetServiceInstanceStatusLog(c echo.Context, svcId string, nodeId s
 		return err
 	}
 	ctx := c.Request().Context()
-	svc, err := a.ODB.ServiceBySvcIDOrName(ctx, svcId)
-	if err != nil || svc == nil {
+	svc, err := a.ODB.ServiceBySvcIDOrName(ctx, svcId, UserGroupsFromContext(c), IsManager(c))
+	if errors.Is(err, cdb.ErrServiceAmbiguous) {
+		return JSONProblemf(c, http.StatusConflict, "%s", err)
+	}
+	if err != nil {
 		log.Error("cannot resolve service", "svc_id", svcId, logkey.Error, err)
 		return JSONProblemf(c, http.StatusInternalServerError, "cannot resolve service %s", svcId)
+	}
+	if svc == nil {
+		return JSONProblemf(c, http.StatusNotFound, "service %s not found", svcId)
 	}
 	node, err := a.ODB.NodeByNodeIDOrNodename(ctx, nodeId)
 	if err != nil {
