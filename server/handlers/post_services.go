@@ -55,7 +55,15 @@ func (a *Api) PostServices(c echo.Context) error {
 		return postServiceUpdate(c, log, odb, ctx, existing.SvcID, fields)
 	}
 
-	// Create path: requires svcname and cluster_id.
+	// Create path: a Manager only, as POST /nodes. Nothing ties a user to a
+	// cluster yet, and a service created ahead of its agent's reports keeps
+	// the app it was given when the agent reports it: whoever creates it would
+	// choose who is responsible for it.
+	if !IsManager(c) {
+		return JSONProblemf(c, http.StatusForbidden, "Manager privilege required to create a service")
+	}
+
+	// Requires svcname and cluster_id.
 	if body.Svcname == nil || *body.Svcname == "" {
 		return JSONProblemf(c, http.StatusBadRequest, "svcname is required to create a service")
 	}
