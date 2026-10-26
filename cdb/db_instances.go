@@ -234,7 +234,7 @@ func (oDb *DB) SvcmonRefreshTimestamp(ctx context.Context, nodeID string, object
 		return
 	}
 
-	slog.Info(fmt.Sprintf("SvcmonRefreshTimestamp %s", time.Since(begin)))
+	slog.Debug(fmt.Sprintf("SvcmonRefreshTimestamp %s", time.Since(begin)))
 	return
 }
 
@@ -437,49 +437,40 @@ func (oDb *DB) SvcmonLogUpdate(ctx context.Context, l ...*DBInstanceStatusLog) e
 
 func (oDb *DB) SvcmonUpdate(ctx context.Context, l ...*DBInstanceStatus) error {
 	defer logDuration("SvcmonUpdate", time.Now())
-	const (
-		insertColList = `(svc_id, node_id, mon_vmname,
-		    mon_smon_status, mon_smon_global_expect, mon_availstatus, 
-		    mon_overallstatus, mon_ipstatus, mon_diskstatus, mon_fsstatus,
-		    mon_sharestatus, mon_containerstatus, mon_appstatus, mon_syncstatus,
-		    mon_frozen, mon_frozen_at, mon_vmtype, mon_updated)`
-		valueList             = "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())"
-		onDuplicateAssignment = `mon_smon_status=VALUES(mon_smon_status),
-		    mon_smon_global_expect=VALUES(mon_smon_global_expect),
-		    mon_availstatus=VALUES(mon_availstatus),
-		    mon_overallstatus=VALUES(mon_overallstatus),
-		    mon_ipstatus=VALUES(mon_ipstatus),
-		    mon_diskstatus=VALUES(mon_diskstatus),
-		    mon_fsstatus=VALUES(mon_fsstatus),
-		    mon_sharestatus=VALUES(mon_sharestatus),
-		    mon_containerstatus=VALUES(mon_containerstatus),
-		    mon_appstatus=VALUES(mon_appstatus),
-		    mon_syncstatus=VALUES(mon_syncstatus),
-		    mon_frozen=VALUES(mon_frozen),
-		    mon_frozen_at=VALUES(mon_frozen_at),
-		    mon_vmtype=VALUES(mon_vmtype),
-		    mon_updated=NOW()`
-	)
 	if len(l) == 0 {
 		return nil
 	}
-	placeholders := strings.Repeat(valueList+", ", len(l)-1) + valueList
-	args := make([]any, 0, 17*len(l))
-	for _, v := range l {
-		args = append(args, v.SvcID, v.NodeID, v.MonVmName,
+	columns := []string{"svc_id", "node_id", "mon_vmname",
+		"mon_smon_status", "mon_smon_global_expect", "mon_availstatus",
+		"mon_overallstatus", "mon_ipstatus", "mon_diskstatus", "mon_fsstatus",
+		"mon_sharestatus", "mon_containerstatus", "mon_appstatus", "mon_syncstatus",
+		"mon_frozen", "mon_frozen_at", "mon_vmtype"}
+	rows := make([][]any, len(l))
+	for i, v := range l {
+		rows[i] = []any{v.SvcID, v.NodeID, v.MonVmName,
 			v.MonSmonStatus, v.MonSmonGlobalExpect, v.MonAvailStatus,
 			v.MonOverallStatus, v.MonIpStatus, v.MonDiskStatus, v.MonFsStatus,
 			v.MonShareStatus, v.MonContainerStatus, v.MonAppStatus, v.MonSyncStatus,
-			v.MonFrozen, v.MonFrozenAt, v.MonVmType)
+			v.MonFrozen, v.MonFrozenAt, v.MonVmType}
 	}
-
-	query := fmt.Sprintf("INSERT INTO svcmon %s VALUES %s ON DUPLICATE KEY UPDATE %s",
-		insertColList, placeholders, onDuplicateAssignment)
-
-	// TODO check vs v2
-	if count, err := oDb.execCountContext(ctx, query, args...); err != nil {
-		return fmt.Errorf("failed with instance status count %d query len %d: %s: %w", len(l), len(query), query, err)
-	} else if count > 0 {
+	given, args := givenRows(columns, rows)
+	update := make([]string, 0, len(columns))
+	for _, c := range columns[3:] {
+		update = append(update, c+" = s."+c)
+	}
+	changed, inserted, err := oDb.upsertRows(ctx, rowsUpsert{
+		table:   "svcmon",
+		source:  "SELECT r.*, NOW() AS mon_updated FROM (" + given + ") r",
+		args:    args,
+		columns: append(columns, "mon_updated"),
+		// The unique key uk_svcmon.
+		match:  "t.node_id = s.node_id AND t.svc_id = s.svc_id AND t.mon_vmname = s.mon_vmname",
+		update: append(update, "mon_updated = s.mon_updated"),
+	})
+	if err != nil {
+		return fmt.Errorf("instance status count %d: %w", len(l), err)
+	}
+	if count := changed + inserted; count > 0 {
 		oDb.SetChange("svcmon")
 		oDb.Metrics.InstanceStatusUpdate.Add(float64(count))
 	}

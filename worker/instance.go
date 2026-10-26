@@ -16,24 +16,17 @@ type (
 
 		MonSmonStatus string
 
-		pingInstance bool
 		dropInstance bool
 	}
 )
 
-// extractInstanceDetails processes and extracts detailed information about a specific instance based on its status, object, node, and changes.
-func (d *JobDB) extractInstanceDetails(ctx context.Context, iStatus *instanceData, obj *cdb.DBObject, node *cdb.DBNode, changes map[string]struct{}) (result instanceDetails, err error) {
+// extractInstanceDetails processes and extracts detailed information about a specific instance based on its status, object and node.
+func (d *JobDB) extractInstanceDetails(ctx context.Context, iStatus *instanceData, obj *cdb.DBObject, node *cdb.DBNode) (result instanceDetails, err error) {
 	objID := obj.SvcID
 	objectName := obj.Svcname
 	nodeID := node.NodeID
-	nodename := node.Nodename
 	iStatus.SvcID = objID
 	iStatus.NodeID = nodeID
-	_, isChanged := changes[objectName+"@"+nodename]
-	if !isChanged && obj.AvailStatus != "undef" && obj.AvailStatus == "TODO" {
-		result.pingInstance = true
-		return result, nil
-	}
 	result.MonSmonStatus = iStatus.MonSmonStatus
 	if iStatus.encap == nil {
 		subNodeID, _, _, err := d.oDb.TranslateEncapNodename(ctx, objID, nodeID)
@@ -64,6 +57,11 @@ func (d *JobDB) extractInstanceDetails(ctx context.Context, iStatus *instanceDat
 				}
 
 				result.svcmonL = append(result.svcmonL, &containerStatus.DBInstanceStatus)
+			}
+			// The resources of the instance, those of its containers among
+			// them, once: not once per container, which wrote each row and
+			// logged each change as many times.
+			if len(result.svcmonL) > 0 {
 				result.resmonL = append(result.resmonL, iStatus.InstanceResources()...)
 			}
 		}

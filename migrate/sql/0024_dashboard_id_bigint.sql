@@ -1,0 +1,11 @@
+-- 2026-10-26: dashboard.id becomes a BIGINT UNSIGNED. A signed int ends at
+-- 2,147,483,647, and the feeders and the scheduler consumed an auto-increment
+-- value for each alert they confirmed with INSERT ... ON DUPLICATE KEY UPDATE,
+-- the alerts only updated included: ~1,150 a minute in dev, 125 million
+-- consumed. At the end of the range no alert can be raised any more. The
+-- alerts already there are now updated without consuming values
+-- (upsertAlerts); the wider type keeps the counter clear of the end anyway.
+-- The counter keeps its value. A change of type rebuilds the table, writes
+-- locked meanwhile: one row per open alert, a short rebuild. Run again, the
+-- statement rebuilds it to the same type.
+ALTER TABLE dashboard MODIFY id BIGINT UNSIGNED NOT NULL AUTO_INCREMENT;

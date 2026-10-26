@@ -273,7 +273,7 @@ func (o *DBHeartbeat) SameAsLog(logStatus *DBHeartbeatLog) bool {
 func (o *DBHeartbeat) AsLog() *DBHeartbeatLog {
 	return &DBHeartbeatLog{
 		ClusterID:  o.ClusterID,
-		NodeID:     o.ClusterID,
+		NodeID:     o.NodeID,
 		Name:       o.Name,
 		PeerNodeID: o.PeerNodeID,
 		State:      o.State,

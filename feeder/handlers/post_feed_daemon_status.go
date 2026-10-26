@@ -7,26 +7,18 @@ import (
 	"net/http"
 	"strings"
 
-	"github.com/go-redis/redis/v8"
 	"github.com/labstack/echo/v4"
 
 	"github.com/opensvc/oc3/cachekeys"
 	"github.com/opensvc/oc3/feeder"
 	"github.com/opensvc/oc3/util/logkey"
+	"github.com/opensvc/oc3/util/pendingchanges"
 )
 
 func (a *Api) PostDaemonStatus(c echo.Context) error {
 	nodeID, clusterID, log := getNodeIDClusterIDAndLogger(c, "PostDaemonStatus")
 	if nodeID == "" {
 		return JSONNodeAuthProblem(c)
-	}
-
-	mChange := make(map[string]struct{})
-
-	mergeChanges := func(s string) {
-		for _, v := range strings.Fields(s) {
-			mChange[v] = struct{}{}
-		}
 	}
 
 	body := c.Request().Body
@@ -44,8 +36,6 @@ func (a *Api) PostDaemonStatus(c echo.Context) error {
 	if err := json.Unmarshal(b, postData); err != nil {
 		log.Debug("request Unmarshal", logkey.Error, err)
 		return JSONProblem(c, http.StatusBadRequest, err.Error())
-	} else {
-		mergeChanges(strings.Join(postData.Changes, " "))
 	}
 	if !strings.HasPrefix(postData.Version, "2.") && !strings.HasPrefix(postData.Version, "3.") {
 		msg := fmt.Sprintf("unexpected version %s", postData.Version)
@@ -58,33 +48,11 @@ func (a *Api) PostDaemonStatus(c echo.Context) error {
 		log.Error("HSet FeedDaemonStatusH", logkey.Error, err)
 		return JSONError(c)
 	}
-	if len(mChange) > 0 {
-		// request contains changes, merge them to not yet applied changes
-		log.Debug("HGet FeedDaemonStatusChangesH")
-		redisChanges, err := a.Redis.HGet(ctx, cachekeys.FeedDaemonStatusChangesH, nodeID).Result()
-		switch err {
-		case nil:
-			// merge existing changes
-			mergeChanges(redisChanges)
-		case redis.Nil:
-			// no existing changes to merge
-		default:
-			log.Error("HGet FeedDaemonStatusChangesH", logkey.Error, err)
-			return JSONError(c)
-		}
-		l := make([]string, len(mChange))
-		i := 0
-		for k := range mChange {
-			l[i] = k
-			i++
-		}
-		mergedChanges := strings.Join(l, " ")
-		// push changes
-		log.Debug("HSet FeedDaemonStatusChangesH", logkey.Changes, mergedChanges)
-		if err := a.Redis.HSet(ctx, cachekeys.FeedDaemonStatusChangesH, nodeID, mergedChanges).Err(); err != nil {
-			log.Error("HSet FeedDaemonStatusChangesH", logkey.Changes, mergedChanges, logkey.Error, err)
-			return JSONError(c)
-		}
+	// The changes, merged with those not applied yet: the worker only writes in
+	// full the objects and instances listed.
+	if err := pendingchanges.Merge(ctx, a.Redis, cachekeys.FeedDaemonStatusChangesH, nodeID, postData.Changes); err != nil {
+		log.Error("merge FeedDaemonStatusChangesH", logkey.Changes, postData.Changes, logkey.Error, err)
+		return JSONError(c)
 	}
 	if err := a.pushNotPending(ctx, log, cachekeys.FeedDaemonStatusPendingH, cachekeys.FeedDaemonStatusQ, nodeID); err != nil {
 		log.Error("pushNotPending", logkey.Error, err)

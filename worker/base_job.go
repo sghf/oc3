@@ -42,6 +42,11 @@ type (
 	DBGetter interface {
 		DB() cdb.DBOperater
 	}
+
+	// failureHandler is a job with something to undo when an operation fails.
+	failureHandler interface {
+		onFailure(context.Context)
+	}
 )
 
 func RunJob(ctx context.Context, j JobRunner) error {
@@ -56,6 +61,9 @@ func RunJob(ctx context.Context, j JobRunner) error {
 
 	err := j.runOps(ctx, jlog, ops...)
 	if err != nil {
+		if h, ok := j.(failureHandler); ok {
+			h.onFailure(ctx)
+		}
 		// TODO: confirm not anymore required rollack
 		if tx, ok := j.(cdb.DBTxer); ok {
 			jlog.Debug("call rollback on error")

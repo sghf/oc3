@@ -453,14 +453,10 @@ func (oDb *DB) PurgeNodeHBAsOutdated(ctx context.Context, maxAge time.Duration) 
 func (oDb *DB) AlertMACDup(ctx context.Context) error {
 	request := `
 		-- Step 1: Find duplicates and prepare data for insert/update
-		INSERT INTO dashboard (
-		  dash_type, dash_severity, node_id, svc_id,
-		  dash_fmt, dash_dict, dash_created, dash_env, dash_updated
-		)
 		SELECT
 		  "mac duplicate" AS dash_type,
 		  IF(nodes.node_env = "PRD", 4, 3) AS dash_severity,
-		  nodes.node_id,
+		  nodes.node_id AS node_id,
 		  "" AS svc_id,
 		  CONCAT("mac ", duplicates.mac, " reported by nodes ", duplicates.node_names) AS dash_fmt,
 		  CONCAT('{"mac": "', duplicates.mac, '", "nodes": "', duplicates.node_names, '"}') AS dash_dict,
@@ -497,13 +493,12 @@ func (oDb *DB) AlertMACDup(ctx context.Context) error {
 		  HAVING COUNT(t.mac) > 1
 		) AS duplicates
 		JOIN nodes ON FIND_IN_SET(nodes.node_id, duplicates.node_ids)
-		ON DUPLICATE KEY UPDATE
-		  dash_fmt = VALUES(dash_fmt),
-		  dash_dict = VALUES(dash_dict),
-		  dash_env = VALUES(dash_env),
-		  dash_updated = VALUES(dash_updated)
-		`
-	if count, err := oDb.execCountContext(ctx, request); err != nil {
+	`
+	if count, err := oDb.upsertAlerts(ctx, alertsUpsert{
+		source:  request,
+		columns: []string{"dash_type", "dash_severity", "node_id", "svc_id", "dash_fmt", "dash_dict", "dash_created", "dash_env", "dash_updated"},
+		update:  []string{"dash_fmt = s.dash_fmt", "dash_dict = s.dash_dict", "dash_env = s.dash_env", "dash_updated = s.dash_updated"},
+	}); err != nil {
 		return err
 	} else if count > 0 {
 		oDb.SetChange("dashboard")

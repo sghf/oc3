@@ -17,16 +17,13 @@ type (
 
 func (oDb *DB) DashboardUpdateObjectFlexStarted(ctx context.Context, obj *DBObject, sev int) error {
 	defer logDuration("dashboardUpdateObjectFlexStarted", time.Now())
-	const query = `
-		INSERT INTO dashboard
-			(dash_type, dash_fmt, dash_dict, dash_dict_md5, dash_created, dash_updated, 
-			 svc_id, dash_severity, dash_env)
-		SELECT "flex error",
-                "%(n)d instances started. thresholds: %(smin)d - %(smax)d",
-		        CONCAT('{"n": ', t.up, ', "smin": ', t.svc_flex_min_nodes,', "smax": ', t.svc_flex_max_nodes, '}'),
-		        MD5(CONCAT('{"n": ', t.up, ', "smin": ', t.svc_flex_min_nodes,', "smax": ', t.svc_flex_max_nodes, '}')),
-			    NOW(), NOW(),
-			    ?, ?, ?
+	const source = `
+		SELECT "flex error" AS dash_type,
+                "%(n)d instances started. thresholds: %(smin)d - %(smax)d" AS dash_fmt,
+		        CONCAT('{"n": ', t.up, ', "smin": ', t.svc_flex_min_nodes,', "smax": ', t.svc_flex_max_nodes, '}') AS dash_dict,
+		        MD5(CONCAT('{"n": ', t.up, ', "smin": ', t.svc_flex_min_nodes,', "smax": ', t.svc_flex_max_nodes, '}')) AS dash_dict_md5,
+			    NOW() AS dash_created, NOW() AS dash_updated,
+			    ? AS svc_id, ? AS dash_severity, ? AS dash_env
 		FROM (
 				SELECT *
 		    	FROM (
@@ -45,17 +42,19 @@ func (oDb *DB) DashboardUpdateObjectFlexStarted(ctx context.Context, obj *DBObje
 					OR
 					(w.svc_flex_max_nodes > 0 AND w.up > w.svc_flex_max_nodes)
 		) t
-		ON DUPLICATE KEY UPDATE 
-			dash_updated = NOW(),
-		    dash_dict = CONCAT('{"n": ', t.up, ', "smin": ', t.svc_flex_min_nodes,', "smax": ', t.svc_flex_max_nodes, '}'),
-		    dash_dict_md5 = MD5(CONCAT('{"n": ', t.up, ', "smin": ', t.svc_flex_min_nodes,', "smax": ', t.svc_flex_max_nodes, '}'))
 	`
 
 	const queryDelete = `
 		DELETE FROM dashboard
 		WHERE svc_id = ? and dash_type = "flex error" and dash_fmt like "%instances started%"`
 
-	if count, err := oDb.execCountContext(ctx, query, obj.SvcID, sev, obj.Env, obj.SvcID, obj.SvcID); err != nil {
+	u := alertsUpsert{
+		source:  source,
+		args:    []any{obj.SvcID, sev, obj.Env, obj.SvcID, obj.SvcID},
+		columns: []string{"dash_type", "dash_fmt", "dash_dict", "dash_dict_md5", "dash_created", "dash_updated", "svc_id", "dash_severity", "dash_env"},
+		update:  []string{"dash_updated = s.dash_updated", "dash_dict = s.dash_dict", "dash_dict_md5 = s.dash_dict_md5"},
+	}
+	if count, err := oDb.upsertAlerts(ctx, u); err != nil {
 		return fmt.Errorf("dashboardDeleteObjectWithType flex error: %w", err)
 	} else if count > 0 {
 		defer oDb.SetChange("dashboard")
@@ -91,22 +90,18 @@ func (oDb *DB) DashboardUpdateObjectFlexStartedBatch(ctx context.Context, l ...*
 
 	unionClause := strings.Join(unionParts, " UNION ALL ")
 
-	// 2. The Batched INSERT/UPDATE Query
-	// Note: We use VALUES(col) in ON DUPLICATE KEY for cleaner MariaDB 10.4 syntax
-	queryInsert := fmt.Sprintf(`
-        INSERT INTO dashboard
-            (dash_type, dash_fmt, dash_dict, dash_dict_md5, dash_created, dash_updated, 
-             svc_id, dash_severity, dash_env)
+	// 2. The batched insert or update
+	source := fmt.Sprintf(`
         SELECT 
-            "flex error",
-            "%%(n)d instances started. thresholds: %%(smin)d - %%(smax)d",
-            CONCAT('{"n": ', t.up, ', "smin": ', t.svc_flex_min_nodes,', "smax": ', t.svc_flex_max_nodes, '}'),
-            MD5(CONCAT('{"n": ', t.up, ', "smin": ', t.svc_flex_min_nodes,', "smax": ', t.svc_flex_max_nodes, '}')),
-            NOW(), 
-            NOW(),
-            t.svc_id, 
-            t.b_sev, 
-            t.b_env
+            "flex error" AS dash_type,
+            "%%(n)d instances started. thresholds: %%(smin)d - %%(smax)d" AS dash_fmt,
+            CONCAT('{"n": ', t.up, ', "smin": ', t.svc_flex_min_nodes,', "smax": ', t.svc_flex_max_nodes, '}') AS dash_dict,
+            MD5(CONCAT('{"n": ', t.up, ', "smin": ', t.svc_flex_min_nodes,', "smax": ', t.svc_flex_max_nodes, '}')) AS dash_dict_md5,
+            NOW() AS dash_created, 
+            NOW() AS dash_updated,
+            t.svc_id AS svc_id, 
+            t.b_sev AS dash_severity, 
+            t.b_env AS dash_env
         FROM (
             SELECT 
                 p.svc_id, bp.b_sev, bp.b_env, p.svc_flex_min_nodes, p.svc_flex_max_nodes,
@@ -117,14 +112,14 @@ func (oDb *DB) DashboardUpdateObjectFlexStartedBatch(ctx context.Context, l ...*
         ) t
         WHERE (t.svc_flex_min_nodes > 0 AND t.up < t.svc_flex_min_nodes)
            OR (t.svc_flex_max_nodes > 0 AND t.up > t.svc_flex_max_nodes)
-        ON DUPLICATE KEY UPDATE 
-            dash_updated = NOW(),
-            dash_dict = VALUES(dash_dict),
-            dash_dict_md5 = VALUES(dash_dict_md5)
     `, unionClause)
 
-	// Execute the batch insert
-	_, err := oDb.ExecContext(ctx, queryInsert, args...)
+	_, err := oDb.upsertAlerts(ctx, alertsUpsert{
+		source:  source,
+		args:    args,
+		columns: []string{"dash_type", "dash_fmt", "dash_dict", "dash_dict_md5", "dash_created", "dash_updated", "svc_id", "dash_severity", "dash_env"},
+		update:  []string{"dash_updated = s.dash_updated", "dash_dict = s.dash_dict", "dash_dict_md5 = s.dash_dict_md5"},
+	})
 	if err != nil {
 		return fmt.Errorf("batch flex error insert: %w", err)
 	}

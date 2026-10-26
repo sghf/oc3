@@ -338,34 +338,35 @@ func (oDb *DB) dashboardUpdateChecksOutOfBounds(ctx context.Context, nodeID stri
 		severity = 3
 	}
 	dict := checkOutOfBoundsDictSQL("t")
-	query := `INSERT INTO dashboard
-		SELECT
-			NULL,
-			"check out of bounds",
-			IFNULL(t.svc_id, ""),
-			?,
-			"%(ctype)s:%(inst)s check value %(val)d. %(ttype)s thresholds: %(min)d - %(max)d",
-			` + dict + `,
-			?,
-			MD5(` + dict + `),
-			?,
-			?,
-			t.node_id,
-			NULL,
-			CONCAT(t.chk_type, ":", IFNULL(t.chk_instance, ""))
+	u := alertsUpsert{
+		source: `SELECT
+			"check out of bounds" AS dash_type,
+			IFNULL(t.svc_id, "") AS svc_id,
+			? AS dash_severity,
+			"%(ctype)s:%(inst)s check value %(val)d. %(ttype)s thresholds: %(min)d - %(max)d" AS dash_fmt,
+			` + dict + ` AS dash_dict,
+			? AS dash_created,
+			MD5(` + dict + `) AS dash_dict_md5,
+			? AS dash_env,
+			? AS dash_updated,
+			t.node_id AS node_id,
+			CONCAT(t.chk_type, ":", IFNULL(t.chk_instance, "")) AS dash_instance
 		FROM checks_live t
 		WHERE
 			t.node_id = ? AND
 			t.chk_updated >= DATE_SUB(?, INTERVAL 1 DAY) AND
-			(t.chk_value < t.chk_low OR t.chk_value > t.chk_high)
-		ON DUPLICATE KEY UPDATE dash_updated = ?, dash_dict = VALUES(dash_dict),
-			dash_dict_md5 = VALUES(dash_dict_md5), dash_severity = VALUES(dash_severity)`
-	if count, err := oDb.execCountContext(ctx, query, severity, now, env, now, nodeID, now, now); err != nil {
+			(t.chk_value < t.chk_low OR t.chk_value > t.chk_high)`,
+		args:    []any{severity, now, env, now, nodeID, now},
+		columns: positionalAlertColumns,
+		update: []string{"dash_updated = s.dash_updated", "dash_dict = s.dash_dict",
+			"dash_dict_md5 = s.dash_dict_md5", "dash_severity = s.dash_severity"},
+	}
+	if count, err := oDb.upsertAlerts(ctx, u); err != nil {
 		return fmt.Errorf("DashboardUpdateChecksOutOfBounds: %w", err)
 	} else if count > 0 {
 		oDb.SetChange("dashboard")
 	}
-	query = `DELETE FROM dashboard
+	query := `DELETE FROM dashboard
 		WHERE node_id = ? AND (
 			(dash_type = "check out of bounds" AND (dash_updated < ? OR dash_updated IS NULL))`
 	if fed {

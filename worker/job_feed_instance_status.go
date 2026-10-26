@@ -141,13 +141,11 @@ func (d *jobFeedInstanceStatus) findObjectFromDb(ctx context.Context) error {
 }
 
 func (d *jobFeedInstanceStatus) updateDB(ctx context.Context) error {
-	changes := make(map[string]struct{})
 	details, err := d.extractInstanceDetails(
 		ctx,
 		d.status,
 		d.obj,
-		d.node,
-		changes)
+		d.node)
 	if err != nil {
 		return err
 	}

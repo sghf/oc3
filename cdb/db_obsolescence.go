@@ -46,29 +46,17 @@ func (oDb *DB) StatObsolescenceHW(ctx context.Context) error {
 		return fmt.Errorf("update obsolescence failed: %w", err)
 	}
 	query = `
-		INSERT INTO dashboard (
-		    dash_type,
-		    svc_id,
-		    dash_severity,
-		    dash_fmt,
-		    dash_dict,
-		    dash_created,
-		    dash_dict_md5,
-		    dash_env,
-		    dash_updated,
-		    node_id
-		)
 		SELECT
-		    "hardware obsolescence warning",
-		    "",
-		    0,
-		    "%(o)s warning since %(a)s",
-		    JSON_OBJECT("a", o.obs_warn_date, "o", o.obs_name),
-		    NOW(),
-		    "",
-		    n.node_env,
-		    NOW(),
-		    n.node_id
+		    "hardware obsolescence warning" AS dash_type,
+		    "" AS svc_id,
+		    0 AS dash_severity,
+		    "%(o)s warning since %(a)s" AS dash_fmt,
+		    JSON_OBJECT("a", o.obs_warn_date, "o", o.obs_name) AS dash_dict,
+		    NOW() AS dash_created,
+		    "" AS dash_dict_md5,
+		    n.node_env AS dash_env,
+		    NOW() AS dash_updated,
+		    n.node_id AS node_id
 		FROM obsolescence o
 		JOIN nodes n ON o.obs_name = n.model
 		WHERE
@@ -80,10 +68,12 @@ func (oDb *DB) StatObsolescenceHW(ctx context.Context) error {
 		    AND o.obs_name NOT LIKE "%cluster%"
 		    AND o.obs_warn_date < NOW()
 		    AND o.obs_alert_date > NOW()
-		ON DUPLICATE KEY UPDATE
-		  dash_updated=NOW()
-            `
-	if _, err := oDb.ExecContext(ctx, query); err != nil {
+	`
+	if _, err := oDb.upsertAlerts(ctx, alertsUpsert{
+		source:  query,
+		columns: []string{"dash_type", "svc_id", "dash_severity", "dash_fmt", "dash_dict", "dash_created", "dash_dict_md5", "dash_env", "dash_updated", "node_id"},
+		update:  []string{"dash_updated = NOW()"},
+	}); err != nil {
 		return fmt.Errorf("update obsolescence failed: %w", err)
 	}
 	query = `
@@ -106,29 +96,17 @@ func (oDb *DB) StatObsolescenceHW(ctx context.Context) error {
 		return fmt.Errorf("update obsolescence failed: %w", err)
 	}
 	query = `
-		INSERT INTO dashboard (
-		    dash_type,
-		    svc_id,
-		    dash_severity,
-		    dash_fmt,
-		    dash_dict,
-		    dash_created,
-		    dash_dict_md5,
-		    dash_env,
-		    dash_updated,
-		    node_id
-		)
 		SELECT
-		    "hardware obsolescence alert",
-		    "",
-		    0,
-		    "%(o)s alert since %(a)s",
-		    JSON_OBJECT("a", o.obs_alert_date, "o", o.obs_name),
-		    NOW(),
-		    "",
-		    n.node_env,
-		    NOW(),
-		    n.node_id
+		    "hardware obsolescence alert" AS dash_type,
+		    "" AS svc_id,
+		    0 AS dash_severity,
+		    "%(o)s alert since %(a)s" AS dash_fmt,
+		    JSON_OBJECT("a", o.obs_alert_date, "o", o.obs_name) AS dash_dict,
+		    NOW() AS dash_created,
+		    "" AS dash_dict_md5,
+		    n.node_env AS dash_env,
+		    NOW() AS dash_updated,
+		    n.node_id AS node_id
 		FROM obsolescence o
 		JOIN nodes n ON o.obs_name = n.model
 		WHERE
@@ -139,10 +117,12 @@ func (oDb *DB) StatObsolescenceHW(ctx context.Context) error {
 		    AND o.obs_name NOT LIKE "%virtuel%"
 		    AND o.obs_name NOT LIKE "%cluster%"
 		    AND o.obs_alert_date < NOW()
-		ON DUPLICATE KEY UPDATE
-		  dash_updated=NOW()
-            `
-	if _, err := oDb.ExecContext(ctx, query); err != nil {
+	`
+	if _, err := oDb.upsertAlerts(ctx, alertsUpsert{
+		source:  query,
+		columns: []string{"dash_type", "svc_id", "dash_severity", "dash_fmt", "dash_dict", "dash_created", "dash_dict_md5", "dash_env", "dash_updated", "node_id"},
+		update:  []string{"dash_updated = NOW()"},
+	}); err != nil {
 		return fmt.Errorf("update obsolescence failed: %w", err)
 	}
 	return nil
@@ -183,29 +163,17 @@ func (oDb *DB) StatObsolescenceOS(ctx context.Context) error {
 		return fmt.Errorf("update obsolescence failed: %w", err)
 	}
 	query = `
-		INSERT INTO dashboard (
-		    dash_type,
-		    svc_id,
-		    dash_severity,
-		    dash_fmt,
-		    dash_dict,
-		    dash_created,
-		    dash_dict_md5,
-		    dash_env,
-		    dash_updated,
-		    node_id
-		)
 		SELECT
-		    "os obsolescence warning",
-		    "",
-		    0,
-		    "%(o)s warning since %(a)s",
-		    JSON_OBJECT("a", o.obs_warn_date, "o", o.obs_name),
-		    NOW(),
-		    "",
-		    n.node_env,
-		    NOW(),
-		    n.node_id
+		    "os obsolescence warning" AS dash_type,
+		    "" AS svc_id,
+		    0 AS dash_severity,
+		    "%(o)s warning since %(a)s" AS dash_fmt,
+		    JSON_OBJECT("a", o.obs_warn_date, "o", o.obs_name) AS dash_dict,
+		    NOW() AS dash_created,
+		    "" AS dash_dict_md5,
+		    n.node_env AS dash_env,
+		    NOW() AS dash_updated,
+		    n.node_id AS node_id
 		FROM obsolescence o
 		JOIN nodes n ON o.obs_name = n.os_concat
 		WHERE
@@ -214,10 +182,12 @@ func (oDb *DB) StatObsolescenceOS(ctx context.Context) error {
 		    AND o.obs_alert_date != "0000-00-00 00:00:00"
 		    AND o.obs_warn_date < NOW()
 		    AND o.obs_alert_date > NOW()
-		ON DUPLICATE KEY UPDATE
-		  dash_updated=NOW()
-            `
-	if _, err := oDb.ExecContext(ctx, query); err != nil {
+	`
+	if _, err := oDb.upsertAlerts(ctx, alertsUpsert{
+		source:  query,
+		columns: []string{"dash_type", "svc_id", "dash_severity", "dash_fmt", "dash_dict", "dash_created", "dash_dict_md5", "dash_env", "dash_updated", "node_id"},
+		update:  []string{"dash_updated = NOW()"},
+	}); err != nil {
 		return fmt.Errorf("update obsolescence failed: %w", err)
 	}
 	query = `
@@ -237,29 +207,17 @@ func (oDb *DB) StatObsolescenceOS(ctx context.Context) error {
 		return fmt.Errorf("update obsolescence failed: %w", err)
 	}
 	query = `
-		INSERT INTO dashboard (
-		    dash_type,
-		    svc_id,
-		    dash_severity,
-		    dash_fmt,
-		    dash_dict,
-		    dash_created,
-		    dash_dict_md5,
-		    dash_env,
-		    dash_updated,
-		    node_id
-		)
 		SELECT
-		    "os obsolescence alert",
-		    "",
-		    0,
-		    "%(o)s alert since %(a)s",
-		    JSON_OBJECT("a", o.obs_alert_date, "o", o.obs_name),
-		    NOW(),
-		    "",
-		    n.node_env,
-		    NOW(),
-		    n.node_id
+		    "os obsolescence alert" AS dash_type,
+		    "" AS svc_id,
+		    0 AS dash_severity,
+		    "%(o)s alert since %(a)s" AS dash_fmt,
+		    JSON_OBJECT("a", o.obs_alert_date, "o", o.obs_name) AS dash_dict,
+		    NOW() AS dash_created,
+		    "" AS dash_dict_md5,
+		    n.node_env AS dash_env,
+		    NOW() AS dash_updated,
+		    n.node_id AS node_id
 		FROM obsolescence o
 		JOIN nodes n ON o.obs_name = n.os_concat
 		WHERE
@@ -267,10 +225,12 @@ func (oDb *DB) StatObsolescenceOS(ctx context.Context) error {
 		    AND o.obs_alert_date IS NOT NULL
 		    AND o.obs_alert_date != "0000-00-00 00:00:00"
 		    AND o.obs_alert_date < NOW()
-		ON DUPLICATE KEY UPDATE
-		  dash_updated=NOW()
-            `
-	if _, err := oDb.ExecContext(ctx, query); err != nil {
+	`
+	if _, err := oDb.upsertAlerts(ctx, alertsUpsert{
+		source:  query,
+		columns: []string{"dash_type", "svc_id", "dash_severity", "dash_fmt", "dash_dict", "dash_created", "dash_dict_md5", "dash_env", "dash_updated", "node_id"},
+		update:  []string{"dash_updated = NOW()"},
+	}); err != nil {
 		return fmt.Errorf("update obsolescence failed: %w", err)
 	}
 	return nil
@@ -483,14 +443,11 @@ func (oDb *DB) UpdateDashObsHWWarnForName(ctx context.Context, obsName string) e
 	if _, err := oDb.ExecContext(ctx, query, obsName); err != nil {
 		return fmt.Errorf("UpdateDashObsHWWarnForName: %w", err)
 	}
-	query = `INSERT INTO dashboard (
-		    dash_type, svc_id, dash_severity, dash_fmt, dash_dict, dash_created, dash_dict_md5, dash_env, dash_updated, node_id
-		)
-		SELECT
-		    "hardware obsolescence warning", "", 0,
-		    "%(o)s warning since %(a)s",
-		    JSON_OBJECT("a", o.obs_warn_date, "o", o.obs_name),
-		    NOW(), "", n.node_env, NOW(), n.node_id
+	query = `SELECT
+		    "hardware obsolescence warning" AS dash_type, "" AS svc_id, 0 AS dash_severity,
+		    "%(o)s warning since %(a)s" AS dash_fmt,
+		    JSON_OBJECT("a", o.obs_warn_date, "o", o.obs_name) AS dash_dict,
+		    NOW() AS dash_created, "" AS dash_dict_md5, n.node_env AS dash_env, NOW() AS dash_updated, n.node_id AS node_id
 		FROM obsolescence o
 		JOIN nodes n ON o.obs_name = n.model
 		WHERE
@@ -503,8 +460,13 @@ func (oDb *DB) UpdateDashObsHWWarnForName(ctx context.Context, obsName string) e
 		    AND o.obs_warn_date < NOW()
 		    AND o.obs_alert_date > NOW()
 		    AND o.obs_type = "hw"
-		ON DUPLICATE KEY UPDATE dash_updated=NOW()`
-	if _, err := oDb.ExecContext(ctx, query, obsName); err != nil {
+	`
+	if _, err := oDb.upsertAlerts(ctx, alertsUpsert{
+		source:  query,
+		args:    []any{obsName},
+		columns: []string{"dash_type", "svc_id", "dash_severity", "dash_fmt", "dash_dict", "dash_created", "dash_dict_md5", "dash_env", "dash_updated", "node_id"},
+		update:  []string{"dash_updated = NOW()"},
+	}); err != nil {
 		return fmt.Errorf("UpdateDashObsHWWarnForName: %w", err)
 	}
 	return nil
@@ -528,14 +490,11 @@ func (oDb *DB) UpdateDashObsHWAlertForName(ctx context.Context, obsName string) 
 	if _, err := oDb.ExecContext(ctx, query, obsName); err != nil {
 		return fmt.Errorf("UpdateDashObsHWAlertForName: %w", err)
 	}
-	query = `INSERT INTO dashboard (
-		    dash_type, svc_id, dash_severity, dash_fmt, dash_dict, dash_created, dash_dict_md5, dash_env, dash_updated, node_id
-		)
-		SELECT
-		    "hardware obsolescence alert", "", 1,
-		    "%(o)s obsolete since %(a)s",
-		    JSON_OBJECT("a", o.obs_alert_date, "o", o.obs_name),
-		    NOW(), "", n.node_env, NOW(), n.node_id
+	query = `SELECT
+		    "hardware obsolescence alert" AS dash_type, "" AS svc_id, 1 AS dash_severity,
+		    "%(o)s obsolete since %(a)s" AS dash_fmt,
+		    JSON_OBJECT("a", o.obs_alert_date, "o", o.obs_name) AS dash_dict,
+		    NOW() AS dash_created, "" AS dash_dict_md5, n.node_env AS dash_env, NOW() AS dash_updated, n.node_id AS node_id
 		FROM obsolescence o
 		JOIN nodes n ON o.obs_name = n.model
 		WHERE
@@ -547,8 +506,13 @@ func (oDb *DB) UpdateDashObsHWAlertForName(ctx context.Context, obsName string) 
 		    AND o.obs_alert_date != "0000-00-00 00:00:00"
 		    AND o.obs_alert_date < NOW()
 		    AND o.obs_type = "hw"
-		ON DUPLICATE KEY UPDATE dash_updated=NOW()`
-	if _, err := oDb.ExecContext(ctx, query, obsName); err != nil {
+	`
+	if _, err := oDb.upsertAlerts(ctx, alertsUpsert{
+		source:  query,
+		args:    []any{obsName},
+		columns: []string{"dash_type", "svc_id", "dash_severity", "dash_fmt", "dash_dict", "dash_created", "dash_dict_md5", "dash_env", "dash_updated", "node_id"},
+		update:  []string{"dash_updated = NOW()"},
+	}); err != nil {
 		return fmt.Errorf("UpdateDashObsHWAlertForName: %w", err)
 	}
 	return nil
@@ -570,14 +534,11 @@ func (oDb *DB) UpdateDashObsOSWarnForName(ctx context.Context, obsName string) e
 	if _, err := oDb.ExecContext(ctx, query, obsName); err != nil {
 		return fmt.Errorf("UpdateDashObsOSWarnForName: %w", err)
 	}
-	query = `INSERT INTO dashboard (
-		    dash_type, svc_id, dash_severity, dash_fmt, dash_dict, dash_created, dash_dict_md5, dash_env, dash_updated, node_id
-		)
-		SELECT
-		    "os obsolescence warning", "", 0,
-		    "%(o)s warning since %(a)s",
-		    JSON_OBJECT("a", o.obs_warn_date, "o", o.obs_name),
-		    NOW(), "", n.node_env, NOW(), n.node_id
+	query = `SELECT
+		    "os obsolescence warning" AS dash_type, "" AS svc_id, 0 AS dash_severity,
+		    "%(o)s warning since %(a)s" AS dash_fmt,
+		    JSON_OBJECT("a", o.obs_warn_date, "o", o.obs_name) AS dash_dict,
+		    NOW() AS dash_created, "" AS dash_dict_md5, n.node_env AS dash_env, NOW() AS dash_updated, n.node_id AS node_id
 		FROM obsolescence o
 		JOIN nodes n ON o.obs_name = concat_ws(' ', n.os_name, n.os_vendor, n.os_release, n.os_update)
 		WHERE
@@ -587,8 +548,13 @@ func (oDb *DB) UpdateDashObsOSWarnForName(ctx context.Context, obsName string) e
 		    AND o.obs_warn_date < NOW()
 		    AND o.obs_alert_date > NOW()
 		    AND o.obs_type = "os"
-		ON DUPLICATE KEY UPDATE dash_updated=NOW()`
-	if _, err := oDb.ExecContext(ctx, query, obsName); err != nil {
+	`
+	if _, err := oDb.upsertAlerts(ctx, alertsUpsert{
+		source:  query,
+		args:    []any{obsName},
+		columns: []string{"dash_type", "svc_id", "dash_severity", "dash_fmt", "dash_dict", "dash_created", "dash_dict_md5", "dash_env", "dash_updated", "node_id"},
+		update:  []string{"dash_updated = NOW()"},
+	}); err != nil {
 		return fmt.Errorf("UpdateDashObsOSWarnForName: %w", err)
 	}
 	return nil
@@ -610,14 +576,11 @@ func (oDb *DB) UpdateDashObsOSAlertForName(ctx context.Context, obsName string) 
 		return fmt.Errorf("UpdateDashObsOSAlertForName: %w", err)
 	}
 
-	query = `INSERT INTO dashboard (
-		    dash_type, svc_id, dash_severity, dash_fmt, dash_dict, dash_created, dash_dict_md5, dash_env, dash_updated, node_id
-		)
-		SELECT
-		    "os obsolescence alert", "", 1,
-		    "%(o)s obsolete since %(a)s",
-		    JSON_OBJECT("a", o.obs_alert_date, "o", o.obs_name),
-		    NOW(), "", n.node_env, NOW(), n.nodename
+	query = `SELECT
+		    "os obsolescence alert" AS dash_type, "" AS svc_id, 1 AS dash_severity,
+		    "%(o)s obsolete since %(a)s" AS dash_fmt,
+		    JSON_OBJECT("a", o.obs_alert_date, "o", o.obs_name) AS dash_dict,
+		    NOW() AS dash_created, "" AS dash_dict_md5, n.node_env AS dash_env, NOW() AS dash_updated, n.nodename AS node_id
 		FROM obsolescence o
 		JOIN nodes n ON o.obs_name = concat_ws(' ', n.os_name, n.os_vendor, n.os_release, n.os_update)
 		WHERE
@@ -626,8 +589,13 @@ func (oDb *DB) UpdateDashObsOSAlertForName(ctx context.Context, obsName string) 
 		    AND o.obs_alert_date != "0000-00-00 00:00:00"
 		    AND o.obs_alert_date < NOW()
 		    AND o.obs_type = "os"
-		ON DUPLICATE KEY UPDATE dash_updated=NOW()`
-	if _, err := oDb.ExecContext(ctx, query, obsName); err != nil {
+	`
+	if _, err := oDb.upsertAlerts(ctx, alertsUpsert{
+		source:  query,
+		args:    []any{obsName},
+		columns: []string{"dash_type", "svc_id", "dash_severity", "dash_fmt", "dash_dict", "dash_created", "dash_dict_md5", "dash_env", "dash_updated", "node_id"},
+		update:  []string{"dash_updated = NOW()"},
+	}); err != nil {
 		return fmt.Errorf("UpdateDashObsOSAlertForName: %w", err)
 	}
 	return nil

@@ -10,11 +10,10 @@ import (
 	"strings"
 	"time"
 
-	"github.com/go-redis/redis/v8"
-
 	"github.com/opensvc/oc3/cachekeys"
 	"github.com/opensvc/oc3/cdb"
 	"github.com/opensvc/oc3/util/logkey"
+	"github.com/opensvc/oc3/util/pendingchanges"
 )
 
 type (
@@ -62,9 +61,9 @@ type (
 		nodeEnv     string
 		callerNode  *cdb.DBNode
 
-		changes    map[string]struct{}
-		rawChanges string
-		rawData    []byte
+		changes      map[string]struct{}
+		takenChanges []string
+		rawData      []byte
 
 		data dataProvider
 
@@ -169,28 +168,30 @@ func (d *jobFeedDaemonStatus) LogResult() {
 	slog.Debug(fmt.Sprintf("handleDaemonStatus done for %s", d.byNodeID[d.nodeID]))
 }
 
+// getChanges takes the changes the node reported since the last run: the
+// objects and instances listed are written in full, the others only have their
+// timestamps renewed.
 func (d *jobFeedDaemonStatus) getChanges(ctx context.Context) error {
-	s, err := d.redis.HGet(ctx, cachekeys.FeedDaemonStatusChangesH, d.nodeID).Result()
-	if err == nil {
-		// TODO: fix possible race:
-		// worker iteration 1: pickup changes 'a'
-		// listener: read previous changes 'a'
-		// listener: merge b => set changes from 'a' to 'a', 'b'
-		// listener: ask for new worker iteration 2
-		// worker iteration 1: delete changes the 'b' => 'b' change is lost
-		// worker iteration 1: ... done
-		// worker iteration 2: pickup changes: empty instead of expected 'b'
-		if err := d.redis.HDel(ctx, cachekeys.FeedDaemonStatusChangesH, d.nodeID).Err(); err != nil {
-			return fmt.Errorf("getChanges: HDEL %s %s: %w", cachekeys.FeedDaemonStatusChangesH, d.nodeID, err)
-		}
-	} else if !errors.Is(err, redis.Nil) {
-		return fmt.Errorf("getChanges: HGET %s %s: %w", cachekeys.FeedDaemonStatusChangesH, d.nodeID, err)
+	l, err := pendingchanges.Take(ctx, d.redis, cachekeys.FeedDaemonStatusChangesH, d.nodeID)
+	if err != nil {
+		return fmt.Errorf("getChanges: %w", err)
 	}
-	d.rawChanges = s
-	for _, change := range strings.Fields(s) {
+	d.takenChanges = l
+	for _, change := range l {
 		d.changes[change] = struct{}{}
 	}
 	return nil
+}
+
+// onFailure gives the changes taken back to the next run: dropped, the objects
+// and instances they list would keep a stale status until their next change.
+// The job context may be the cause of the failure, cancelled at shutdown.
+func (d *jobFeedDaemonStatus) onFailure(ctx context.Context) {
+	ctx, cancel := context.WithTimeout(context.WithoutCancel(ctx), 5*time.Second)
+	defer cancel()
+	if err := pendingchanges.Merge(ctx, d.redis, cachekeys.FeedDaemonStatusChangesH, d.nodeID, d.takenChanges); err != nil {
+		d.Logger().Error("cannot give the changes back", logkey.Changes, d.takenChanges, logkey.Error, err)
+	}
 }
 
 func (d *jobFeedDaemonStatus) getData(ctx context.Context) error {
@@ -300,7 +301,7 @@ func (d *jobFeedDaemonStatus) dbFetchNodes(ctx context.Context) (err error) {
 		return fmt.Errorf("dbFetchNodes %s [%s] can't update node last comm for node ids %s: %w", d.callerNode, d.nodeID, nodeIDs, err)
 	}
 
-	slog.Debug(fmt.Sprintf("handleDaemonStatus run details: %s changes: [%s]", d.callerNode, d.rawChanges))
+	slog.Debug(fmt.Sprintf("handleDaemonStatus run details: %s changes: [%s]", d.callerNode, strings.Join(d.takenChanges, " ")))
 	return nil
 }
 
@@ -682,7 +683,18 @@ func (d *jobFeedDaemonStatus) dbUpdateInstances(ctx context.Context) error {
 			if iStatus == nil {
 				continue
 			}
-			result, err := d.extractInstanceDetails(ctx, iStatus, obj, node, d.changes)
+			// An instance the node does not report changed only has its
+			// timestamps renewed, as in the legacy collector: rewriting its rows
+			// at each report would consume an auto-increment value per row. One
+			// not yet recorded, or of an object with no status yet, is written
+			// in full.
+			_, isChanged := d.changes[objectName+"@"+nodename]
+			_, isKnown := d.byInstanceID[objID+"@"+nodeID]
+			if !isChanged && isKnown && obj.AvailStatus != "undef" {
+				objectIDsToPingByNodeID[nodeID] = append(objectIDsToPingByNodeID[nodeID], objID)
+				continue
+			}
+			result, err := d.extractInstanceDetails(ctx, iStatus, obj, node)
 			if err != nil {
 				return err
 			}
@@ -733,9 +745,6 @@ func (d *jobFeedDaemonStatus) dbUpdateInstances(ctx context.Context) error {
 				}
 			}
 
-			if result.pingInstance {
-				objectIDsToPingByNodeID[nodeID] = append(objectIDsToPingByNodeID[nodeID], objID)
-			}
 			if result.dropInstance {
 				objectIDsToDropByNodeID[nodeID] = append(objectIDsToDropByNodeID[nodeID], objID)
 			}

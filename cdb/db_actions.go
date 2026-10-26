@@ -447,27 +447,25 @@ func (oDb *DB) UpdateDashActionErrors(ctx context.Context, svcID string, nodeID 
 		if svcEnv.Valid && svcEnv.String == "PRD" {
 			sev = 4
 		}
-		const queryInsert = `INSERT INTO dashboard
-                 SET
-                   dash_type="action errors",
-                   svc_id = ?,
-                   node_id = ?,
-                   dash_severity = ?,
-                   dash_fmt = "%(err)s action errors",
-                   dash_dict = ?,
-                   dash_created = NOW(),
-                   dash_updated = NOW(),
-                   dash_env = ?
-                 ON DUPLICATE KEY UPDATE
-                   dash_severity = ?,
-                   dash_fmt = "%(err)s action errors",
-                   dash_dict = ?,
-                   dash_updated = NOW(),
-                   dash_env = ?`
+		const sourceAlert = `SELECT
+                   "action errors" AS dash_type,
+                   ? AS svc_id,
+                   ? AS node_id,
+                   ? AS dash_severity,
+                   "%(err)s action errors" AS dash_fmt,
+                   ? AS dash_dict,
+                   NOW() AS dash_created,
+                   NOW() AS dash_updated,
+                   ? AS dash_env`
 
 		dashDict := fmt.Sprintf(`{"err": "%d"}`, errCount)
 
-		if _, err := oDb.ExecContext(ctx, queryInsert, svcID, nodeID, sev, dashDict, svcEnv, sev, dashDict, svcEnv); err != nil {
+		if _, err := oDb.upsertAlerts(ctx, alertsUpsert{
+			source:  sourceAlert,
+			args:    []any{svcID, nodeID, sev, dashDict, svcEnv},
+			columns: []string{"dash_type", "svc_id", "node_id", "dash_severity", "dash_fmt", "dash_dict", "dash_created", "dash_updated", "dash_env"},
+			update:  []string{"dash_severity = s.dash_severity", "dash_fmt = s.dash_fmt", "dash_dict = s.dash_dict", "dash_updated = s.dash_updated", "dash_env = s.dash_env"},
+		}); err != nil {
 			return fmt.Errorf("UpdateDashActionErrors: insert/update failed: %w", err)
 		}
 		// TODO: WebSocket notification
