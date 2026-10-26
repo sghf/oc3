@@ -194,3 +194,26 @@ func TestStoreWrite(t *testing.T) {
 		t.Fatalf("removing a missing file: %v", err)
 	}
 }
+
+func TestSecretRoundTripAndBinding(t *testing.T) {
+	ring := testRing(t, "keys:\n- id: k1\n  key: "+testKey(1)+"\n  active: true\n")
+	sealed, err := SealSecret(ring, "form-connector:1", []byte(`{"token":"s3cr3t"}`))
+	if err != nil {
+		t.Fatal(err)
+	}
+	got, err := OpenSecret(ring, "form-connector:1", sealed.Content, sealed.KeyID, sealed.WrappedKey)
+	if err != nil || string(got) != `{"token":"s3cr3t"}` {
+		t.Fatalf("round trip: %q %v", got, err)
+	}
+	// Moved to another record: refused.
+	if _, err := OpenSecret(ring, "form-connector:2", sealed.Content, sealed.KeyID, sealed.WrappedKey); err == nil {
+		t.Error("a secret opened under another label")
+	}
+	// A safe file's label never opens it.
+	if _, err := Open(ring, "form-connector:1", sealed.Content, sealed.KeyID, sealed.WrappedKey); err == nil {
+		t.Error("a secret opened as a safe file")
+	}
+	if _, err := SealSecret(nil, "x", []byte("y")); err != ErrNoKey {
+		t.Errorf("no keyring: %v, want ErrNoKey", err)
+	}
+}

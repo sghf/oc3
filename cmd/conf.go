@@ -79,6 +79,14 @@ func setDefaultServerConfig() {
 	// The javascript sandbox running the manglers of the form rest outputs.
 	viper.SetDefault(s+".forms.nodejs", "/usr/bin/nodejs")
 	viper.SetDefault(s+".forms.vm2", "/usr/local/bin/vm2")
+	// The external hosts a rest output may call by its absolute url, "host" or
+	// "host:port"; none by default: an external API is called through a connector.
+	viper.SetDefault(s+".forms.external_hosts", []string{})
+	// The loopback, private or reserved networks those hosts may resolve to, as
+	// CIDR prefixes; the public addresses are always allowed (see util/egress).
+	viper.SetDefault(s+".forms.external_networks", []string{})
+	viper.SetDefault(s+".forms.external_timeout", "60s")
+	viper.SetDefault(s+".forms.external_max_bytes", 10*1024*1024)
 	viper.SetDefault(s+".log.request.level", "none")
 
 	setDefaultAuthConfig()

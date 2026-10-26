@@ -143,7 +143,11 @@ func (s *formSubmission) validateInput(ctx context.Context, data map[string]any,
 	if fn == "" || key == "" || !strict {
 		return nil
 	}
-	fn = formDereference(fn, data, "")
+	if defString(input, "Connector") != "" {
+		return s.validateConnectorCandidates(ctx, input, data, inputID, key, vals, mandatory)
+	}
+	// The references are replaced by formRestArgs, each value escaped as a path
+	// segment of its own: not here, where a "/" in a value would add segments.
 	if !strings.HasPrefix(fn, "/") {
 		return nil
 	}
@@ -174,7 +178,7 @@ func (s *formSubmission) validateInput(ctx context.Context, data map[string]any,
 		kwargs["search"] = formValueText(keyVal)
 		kwargs["search_props"] = key
 		path := "/" + strings.Join(args, "/")
-		resp, err := s.callAPI(ctx, http.MethodGet, path, kwargs, "")
+		resp, err := s.callAPI(ctx, http.MethodGet, path, kwargs)
 		if err != nil {
 			return httpErrorf(http.StatusBadRequest, "cannot verify the submitted value is a valid candidate: %s", err)
 		}

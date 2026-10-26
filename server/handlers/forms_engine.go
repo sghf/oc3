@@ -3,6 +3,8 @@ package serverhandlers
 import (
 	"encoding/json"
 	"fmt"
+	neturl "net/url"
+	"regexp"
 	"sort"
 	"strconv"
 	"strings"
@@ -71,25 +73,48 @@ func formGetVal(d any, key string) (any, error) {
 
 // formRestArgs splits a rest url into path elements, "#key" references
 // replaced by their value, as form_rest_args() does:
-// "/arrays/#id/diskgroups" gives [arrays 554 diskgroups].
+// "/arrays/#id/diskgroups" gives [arrays 554 diskgroups]. Each element is
+// escaped as one path segment (url.PathEscape): a "/", "?", "#" or "%" coming
+// from a value cannot change the endpoint called, add a query or cut the path;
+// a value leaving an element empty or a dot segment is refused.
 func formRestArgs(url string, d any) ([]string, error) {
 	var args []string
 	for _, s := range strings.Split(strings.TrimRight(url, "/"), "/") {
 		if s == "" {
 			continue
 		}
-		if strings.HasPrefix(s, "#") {
+		if !strings.Contains(s, "#") {
+			args = append(args, s)
+			continue
+		}
+		var text string
+		if formRefOnly.MatchString(s) {
 			v, err := formGetVal(d, strings.TrimLeft(s, "#"))
 			if err != nil {
 				return nil, err
 			}
-			args = append(args, formValueText(v))
-			continue
+			text = formValueText(v)
+		} else {
+			m, _ := d.(map[string]any)
+			text = formDereference(s, m, "")
+			if formRef.MatchString(text) {
+				return nil, fmt.Errorf("%s", s)
+			}
 		}
-		args = append(args, s)
+		switch text {
+		case "", ".", "..":
+			return nil, fmt.Errorf("%s: the value %q makes no path element", s, text)
+		}
+		args = append(args, neturl.PathEscape(text))
 	}
 	return args, nil
 }
+
+// formRef is a "#key" or "#a.b" reference; formRefOnly a whole element of one.
+var (
+	formRef     = regexp.MustCompile(`#[\w.]+`)
+	formRefOnly = regexp.MustCompile(`^#[\w.]+$`)
+)
 
 // formDereference replaces the "#key" references of s by the values of the
 // data, nested keys as "#a.b", as form_dereference() does: keys are replaced

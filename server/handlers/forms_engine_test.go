@@ -2,8 +2,11 @@ package serverhandlers
 
 import (
 	"encoding/json"
+	"net/url"
 	"reflect"
 	"testing"
+
+	"github.com/spf13/viper"
 )
 
 func TestCheckFormCondition(t *testing.T) {
@@ -98,6 +101,59 @@ func TestFormRestArgs(t *testing.T) {
 	}
 	if _, err := formRestArgs("/arrays/#missing", data); err == nil {
 		t.Error("a missing reference must fail")
+	}
+}
+
+// TestFormRestArgsEscapesValues checks a value stays one path segment: a "/",
+// "?", "#" or "%" in it is escaped, a dot segment or an empty value refused.
+func TestFormRestArgsEscapesValues(t *testing.T) {
+	for _, c := range []struct {
+		url  string
+		data map[string]any
+		want []string
+	}{
+		{"/arrays/#id/disks", map[string]any{"id": "../../users"}, []string{"arrays", "..%2F..%2Fusers", "disks"}},
+		{"/services/#svc/disks", map[string]any{"svc": "dev/svc/oc3"}, []string{"services", "dev%2Fsvc%2Foc3", "disks"}},
+		{"/apps/#id/quotas", map[string]any{"id": "1?props=all#x"}, []string{"apps", "1%3Fprops=all%23x", "quotas"}},
+		{"/apps/#id/quotas", map[string]any{"id": "%2e%2e"}, []string{"apps", "%252e%252e", "quotas"}},
+		{"/nodes/node-#id/targets", map[string]any{"id": "a/b"}, []string{"nodes", "node-a%2Fb", "targets"}},
+		{"https://cmdb.example/api/#id", map[string]any{"id": "x/../y"}, []string{"https:", "cmdb.example", "api", "x%2F..%2Fy"}},
+	} {
+		got, err := formRestArgs(c.url, c.data)
+		if err != nil || !reflect.DeepEqual(got, c.want) {
+			t.Errorf("%s %v: got %v %v, want %v", c.url, c.data, got, err, c.want)
+		}
+	}
+	for _, c := range []struct {
+		url  string
+		data map[string]any
+	}{
+		{"/apps/#id/quotas", map[string]any{"id": ".."}},
+		{"/apps/#id/quotas", map[string]any{"id": "."}},
+		{"/apps/#id/quotas", map[string]any{"id": ""}},
+		{"/nodes/node-#id/targets", map[string]any{}},
+	} {
+		if got, err := formRestArgs(c.url, c.data); err == nil {
+			t.Errorf("%s %v: got %v, want a refusal", c.url, c.data, got)
+		}
+	}
+}
+
+func TestFormsExternalHostAllowed(t *testing.T) {
+	viper.Set("server.forms.external_hosts", []string{"cmdb.example", "itsm.example:8443"})
+	defer viper.Set("server.forms.external_hosts", []string{})
+	for raw, want := range map[string]bool{
+		"https://cmdb.example/api":      true,
+		"https://CMDB.example:443/api":  true,
+		"https://itsm.example:8443/x":   true,
+		"https://itsm.example/x":        false,
+		"http://169.254.169.254/latest": false,
+		"https://cmdb.example.evil/api": false,
+	} {
+		u, _ := url.Parse(raw)
+		if got := formsExternalHostAllowed(u); got != want {
+			t.Errorf("%s: %v, want %v", raw, got, want)
+		}
 	}
 }
 

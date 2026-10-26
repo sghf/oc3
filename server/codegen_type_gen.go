@@ -509,6 +509,96 @@ func (e FiltersetNewEntryFOp) Valid() bool {
 	}
 }
 
+// Defines values for FormConnectorAuthAuthStyle.
+const (
+	FormConnectorAuthStyleHeader FormConnectorAuthAuthStyle = "header"
+	FormConnectorAuthStyleParams FormConnectorAuthAuthStyle = "params"
+)
+
+// Valid indicates whether the value is a known member of the FormConnectorAuthAuthStyle enum.
+func (e FormConnectorAuthAuthStyle) Valid() bool {
+	switch e {
+	case FormConnectorAuthStyleHeader:
+		return true
+	case FormConnectorAuthStyleParams:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for FormConnectorAuthIn.
+const (
+	FormConnectorApiKeyInHeader FormConnectorAuthIn = "header"
+	FormConnectorApiKeyInQuery  FormConnectorAuthIn = "query"
+)
+
+// Valid indicates whether the value is a known member of the FormConnectorAuthIn enum.
+func (e FormConnectorAuthIn) Valid() bool {
+	switch e {
+	case FormConnectorApiKeyInHeader:
+		return true
+	case FormConnectorApiKeyInQuery:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for FormConnectorAuthType.
+const (
+	FormConnectorAuthApiKey                  FormConnectorAuthType = "api_key"
+	FormConnectorAuthBasic                   FormConnectorAuthType = "basic"
+	FormConnectorAuthBearer                  FormConnectorAuthType = "bearer"
+	FormConnectorAuthNone                    FormConnectorAuthType = "none"
+	FormConnectorAuthOAuth2ClientCredentials FormConnectorAuthType = "oauth2_client_credentials"
+)
+
+// Valid indicates whether the value is a known member of the FormConnectorAuthType enum.
+func (e FormConnectorAuthType) Valid() bool {
+	switch e {
+	case FormConnectorAuthApiKey:
+		return true
+	case FormConnectorAuthBasic:
+		return true
+	case FormConnectorAuthBearer:
+		return true
+	case FormConnectorAuthNone:
+		return true
+	case FormConnectorAuthOAuth2ClientCredentials:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for FormConnectorMethod.
+const (
+	FormConnectorMethodDelete FormConnectorMethod = "DELETE"
+	FormConnectorMethodGet    FormConnectorMethod = "GET"
+	FormConnectorMethodPatch  FormConnectorMethod = "PATCH"
+	FormConnectorMethodPost   FormConnectorMethod = "POST"
+	FormConnectorMethodPut    FormConnectorMethod = "PUT"
+)
+
+// Valid indicates whether the value is a known member of the FormConnectorMethod enum.
+func (e FormConnectorMethod) Valid() bool {
+	switch e {
+	case FormConnectorMethodDelete:
+		return true
+	case FormConnectorMethodGet:
+		return true
+	case FormConnectorMethodPatch:
+		return true
+	case FormConnectorMethodPost:
+		return true
+	case FormConnectorMethodPut:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for NetworkSegmentRowSegType.
 const (
 	NetworkSegmentRowSegTypeDynamic NetworkSegmentRowSegType = "dynamic"
@@ -3291,6 +3381,181 @@ type FiltersetUsingRef struct {
 	FLogOp   string `json:"f_log_op"`
 	FsetName string `json:"fset_name"`
 	Id       int    `json:"id"`
+}
+
+// FormCandidatesInput defines model for FormCandidatesInput.
+type FormCandidatesInput struct {
+	// Data The values of the form, which the references of the path and arguments read.
+	Data *map[string]interface{} `json:"data,omitempty"`
+}
+
+// FormConnector defines model for FormConnector.
+type FormConnector struct {
+	// Auth How the connector authenticates, its settings without the secrets:
+	// basic, username (secret password); bearer (secret token); api_key, in and
+	// name, the header or query parameter (secret api_key);
+	// oauth2_client_credentials, token_url, client_id, scopes (space-separated),
+	// audience, auth_style (secret client_secret).
+	Auth FormConnectorAuth `json:"auth"`
+
+	// BaseUrl The absolute url the paths of the forms are relative to; https, unless the connector sends no credential.
+	BaseUrl     string `json:"base_url"`
+	Created     string `json:"created"`
+	Description string `json:"description"`
+
+	// Groups The groups the connector is published to.
+	Groups []struct {
+		Id   int64  `json:"id"`
+		Role string `json:"role"`
+	} `json:"groups"`
+
+	// Headers Headers sent with each call, without credential.
+	Headers map[string]string `json:"headers"`
+	Id      int64             `json:"id"`
+
+	// MaxBytes The largest answer read, 1 KiB to 50 MiB.
+	MaxBytes int64                 `json:"max_bytes"`
+	Methods  []FormConnectorMethod `json:"methods"`
+
+	// Name The name the forms give in their Connector key, letters, digits, ".", "_" and "-".
+	Name string `json:"name"`
+
+	// Networks The loopback, private or reserved networks the host may resolve to, as CIDR prefixes.
+	Networks []string `json:"networks"`
+
+	// Paths The path prefixes the forms may call, "/servers"; none, any path under the base url.
+	Paths []string `json:"paths"`
+
+	// Secrets Whether each secret is set; their values are never returned.
+	Secrets struct {
+		ApiKey       bool `json:"api_key"`
+		ClientKey    bool `json:"client_key"`
+		ClientSecret bool `json:"client_secret"`
+		Password     bool `json:"password"`
+		Token        bool `json:"token"`
+	} `json:"secrets"`
+
+	// Timeout Seconds, 1 to 300.
+	Timeout int `json:"timeout"`
+
+	// Tls The TLS settings: the PEM certificates of the authorities to trust instead
+	// of the system ones, the PEM client certificate of a mutual TLS (its key a
+	// secret, client_key), the name to check the server certificate against.
+	Tls       FormConnectorTLS `json:"tls"`
+	Updated   string           `json:"updated"`
+	UpdatedBy string           `json:"updated_by"`
+}
+
+// FormConnectorAuth How the connector authenticates, its settings without the secrets:
+// basic, username (secret password); bearer (secret token); api_key, in and
+// name, the header or query parameter (secret api_key);
+// oauth2_client_credentials, token_url, client_id, scopes (space-separated),
+// audience, auth_style (secret client_secret).
+type FormConnectorAuth struct {
+	Audience  *string                     `json:"audience,omitempty"`
+	AuthStyle *FormConnectorAuthAuthStyle `json:"auth_style,omitempty"`
+	ClientId  *string                     `json:"client_id,omitempty"`
+	In        *FormConnectorAuthIn        `json:"in,omitempty"`
+	Name      *string                     `json:"name,omitempty"`
+	Scopes    *string                     `json:"scopes,omitempty"`
+	TokenUrl  *string                     `json:"token_url,omitempty"`
+	Type      FormConnectorAuthType       `json:"type"`
+	Username  *string                     `json:"username,omitempty"`
+}
+
+// FormConnectorAuthAuthStyle defines model for FormConnectorAuth.AuthStyle.
+type FormConnectorAuthAuthStyle string
+
+// FormConnectorAuthIn defines model for FormConnectorAuth.In.
+type FormConnectorAuthIn string
+
+// FormConnectorAuthType defines model for FormConnectorAuthType.
+type FormConnectorAuthType string
+
+// FormConnectorInput defines model for FormConnectorInput.
+type FormConnectorInput struct {
+	// Auth How the connector authenticates, its settings without the secrets:
+	// basic, username (secret password); bearer (secret token); api_key, in and
+	// name, the header or query parameter (secret api_key);
+	// oauth2_client_credentials, token_url, client_id, scopes (space-separated),
+	// audience, auth_style (secret client_secret).
+	Auth FormConnectorAuth `json:"auth"`
+
+	// BaseUrl The absolute url the paths of the forms are relative to; https, unless the connector sends no credential.
+	BaseUrl     string  `json:"base_url"`
+	Description *string `json:"description,omitempty"`
+
+	// Groups The ids of the groups the connector is published to.
+	Groups *[]int64 `json:"groups,omitempty"`
+
+	// Headers Headers sent with each call, without credential.
+	Headers *map[string]string `json:"headers,omitempty"`
+
+	// MaxBytes The largest answer read, 1 KiB to 50 MiB.
+	MaxBytes *int64                 `json:"max_bytes,omitempty"`
+	Methods  *[]FormConnectorMethod `json:"methods,omitempty"`
+
+	// Name The name the forms give in their Connector key, letters, digits, ".", "_" and "-".
+	Name string `json:"name"`
+
+	// Networks The loopback, private or reserved networks the host may resolve to, as CIDR prefixes.
+	Networks *[]string `json:"networks,omitempty"`
+
+	// Paths The path prefixes the forms may call, "/servers"; none, any path under the base url.
+	Paths *[]string `json:"paths,omitempty"`
+
+	// Secrets The secrets to set; null removes one, absent keeps it.
+	Secrets *struct {
+		ApiKey       *string `json:"api_key,omitempty"`
+		ClientKey    *string `json:"client_key,omitempty"`
+		ClientSecret *string `json:"client_secret,omitempty"`
+		Password     *string `json:"password,omitempty"`
+		Token        *string `json:"token,omitempty"`
+	} `json:"secrets,omitempty"`
+
+	// Timeout Seconds, 1 to 300.
+	Timeout *int `json:"timeout,omitempty"`
+
+	// Tls The TLS settings: the PEM certificates of the authorities to trust instead
+	// of the system ones, the PEM client certificate of a mutual TLS (its key a
+	// secret, client_key), the name to check the server certificate against.
+	Tls *FormConnectorTLS `json:"tls,omitempty"`
+}
+
+// FormConnectorMethod defines model for FormConnectorMethod.
+type FormConnectorMethod string
+
+// FormConnectorTLS The TLS settings: the PEM certificates of the authorities to trust instead
+// of the system ones, the PEM client certificate of a mutual TLS (its key a
+// secret, client_key), the name to check the server certificate against.
+type FormConnectorTLS struct {
+	CaBundle   *string `json:"ca_bundle,omitempty"`
+	ClientCert *string `json:"client_cert,omitempty"`
+	ServerName *string `json:"server_name,omitempty"`
+}
+
+// FormConnectorTestInput defines model for FormConnectorTestInput.
+type FormConnectorTestInput struct {
+	Method *FormConnectorMethod `json:"method,omitempty"`
+
+	// Path Relative to the base url, "/servers".
+	Path  string             `json:"path"`
+	Query *map[string]string `json:"query,omitempty"`
+}
+
+// FormConnectorTestResult defines model for FormConnectorTestResult.
+type FormConnectorTestResult struct {
+	// Body The start of the answer, 4 KiB at most.
+	Body        *string `json:"body,omitempty"`
+	ContentType *string `json:"content_type,omitempty"`
+	DurationMs  int     `json:"duration_ms"`
+
+	// Error Why the call failed before an answer, a refused address say.
+	Error  *string `json:"error,omitempty"`
+	Status *int    `json:"status,omitempty"`
+
+	// Url The url called, without the query parameter carrying an api key.
+	Url string `json:"url"`
 }
 
 // FormListResponse defines model for FormListResponse.
@@ -14507,6 +14772,15 @@ type DeleteFiltersetsFiltersetsJSONRequestBody DeleteFiltersetsFiltersetsJSONBod
 // PostFiltersetsFiltersetsJSONRequestBody defines body for PostFiltersetsFiltersets for application/json ContentType.
 type PostFiltersetsFiltersetsJSONRequestBody PostFiltersetsFiltersetsJSONBody
 
+// PostFormConnectorsJSONRequestBody defines body for PostFormConnectors for application/json ContentType.
+type PostFormConnectorsJSONRequestBody = FormConnectorInput
+
+// PutFormConnectorJSONRequestBody defines body for PutFormConnector for application/json ContentType.
+type PutFormConnectorJSONRequestBody = FormConnectorInput
+
+// PostFormConnectorTestJSONRequestBody defines body for PostFormConnectorTest for application/json ContentType.
+type PostFormConnectorTestJSONRequestBody = FormConnectorTestInput
+
 // PutFormOutputResultsJSONRequestBody defines body for PutFormOutputResults for application/json ContentType.
 type PutFormOutputResultsJSONRequestBody PutFormOutputResultsJSONBody
 
@@ -14521,6 +14795,9 @@ type PostFormJSONRequestBody PostFormJSONBody
 
 // PutFormJSONRequestBody defines body for PutForm for application/json ContentType.
 type PutFormJSONRequestBody PutFormJSONBody
+
+// PostFormInputCandidatesJSONRequestBody defines body for PostFormInputCandidates for application/json ContentType.
+type PostFormInputCandidatesJSONRequestBody = FormCandidatesInput
 
 // DeleteFormsPublicationsJSONRequestBody defines body for DeleteFormsPublications for application/json ContentType.
 type DeleteFormsPublicationsJSONRequestBody DeleteFormsPublicationsJSONBody

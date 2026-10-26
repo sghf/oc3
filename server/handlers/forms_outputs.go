@@ -11,6 +11,7 @@ import (
 	"io"
 	"net/http"
 	"net/smtp"
+	neturl "net/url"
 	"os"
 	"os/exec"
 	"strings"
@@ -20,6 +21,7 @@ import (
 	"github.com/spf13/viper"
 
 	"github.com/opensvc/oc3/cdb"
+	"github.com/opensvc/oc3/util/egress"
 )
 
 // formattedData returns the data an output works on: the submitted data, or
@@ -239,8 +241,13 @@ func (s *formSubmission) outputRest(ctx context.Context, output map[string]any) 
 	}
 	switch action {
 	case http.MethodGet, http.MethodPost, http.MethodDelete, http.MethodPut:
+	case http.MethodPatch:
+		// The connectors know PATCH; the historical rest outputs did not.
+		if defString(output, "Connector") == "" {
+			return errors.New("Handler must be set to either GET, POST, DELETE or PUT in a rest output")
+		}
 	default:
-		return errors.New("Handler must be set to either GET, POST, DELETE or PUT in a rest output")
+		return errors.New("Handler must be set to either GET, POST, DELETE, PUT or, through a connector, PATCH in a rest output")
 	}
 	args, err := formRestArgs(url, s.data)
 	if err != nil {
@@ -283,13 +290,20 @@ func (s *formSubmission) outputRest(ctx context.Context, output map[string]any) 
 	}
 	s.save(ctx, false)
 
+	if defString(output, "Connector") != "" {
+		if err := s.outputConnector(ctx, output, action, vars); err != nil {
+			s.formLog(ctx, outputID, 1, "form.submit", "error:\n%(result)s", map[string]any{"result": err.Error()})
+			s.addReturnCode(1)
+		}
+		return nil
+	}
 	external := strings.HasPrefix(args[0], "http")
 	call := func() (*apiResponse, error) {
 		if external {
 			full := args[0] + "//" + strings.Join(args[1:], "/")
-			return s.callAPI(ctx, action, "", vars, full)
+			return s.callExternal(ctx, action, vars, full)
 		}
-		return s.callAPI(ctx, action, "/"+strings.Join(args, "/"), vars, "")
+		return s.callAPI(ctx, action, "/"+strings.Join(args, "/"), vars)
 	}
 
 	var resp *apiResponse
@@ -660,4 +674,71 @@ func (s *formSubmission) outputWorkflow(ctx context.Context, output map[string]a
 		return s.outputMail(ctx, output, []string{assignee}, recordID)
 	}
 	return nil
+}
+
+// callExternal calls the absolute url of a rest output, as the historical
+// collector did, on a host server.forms.external_hosts lists only, through a
+// client refusing the loopback, private and reserved addresses the networks of
+// server.forms.external_networks do not cover (util/egress), without redirect,
+// within server.forms.external_timeout and server.forms.external_max_bytes. The
+// submitter's credentials are never sent. The data goes as the JSON body, a GET
+// included, as before.
+func (s *formSubmission) callExternal(ctx context.Context, method string, vars any, rawURL string) (*apiResponse, error) {
+	u, err := neturl.Parse(rawURL)
+	if err != nil || (u.Scheme != "http" && u.Scheme != "https") || u.Host == "" {
+		return nil, fmt.Errorf("invalid external url %s", rawURL)
+	}
+	if !formsExternalHostAllowed(u) {
+		return nil, fmt.Errorf("the external host %s is not allowed: call it through a connector, or list it in server.forms.external_hosts", u.Host)
+	}
+	networks, err := egress.ParsePrefixes(viper.GetStringSlice("server.forms.external_networks"))
+	if err != nil {
+		return nil, fmt.Errorf("server.forms.external_networks: %w", err)
+	}
+	client := egress.NewClient(egress.Options{
+		Policy:  egress.Policy{Allowed: networks},
+		Timeout: viper.GetDuration("server.forms.external_timeout"),
+	})
+	var body io.Reader
+	if vars != nil {
+		b, err := json.Marshal(vars)
+		if err != nil {
+			return nil, err
+		}
+		body = bytes.NewReader(b)
+	}
+	req, err := http.NewRequestWithContext(ctx, method, u.String(), body)
+	if err != nil {
+		return nil, err
+	}
+	req.Header.Set("Content-Type", "application/json")
+	req.Header.Set("Accept", "application/json")
+	resp, err := client.Do(req)
+	if err != nil {
+		return nil, err
+	}
+	defer func() { _ = resp.Body.Close() }()
+	raw, err := egress.ReadLimited(resp.Body, viper.GetInt64("server.forms.external_max_bytes"))
+	if err != nil {
+		return nil, err
+	}
+	out := &apiResponse{status: resp.StatusCode, raw: raw}
+	decoder := json.NewDecoder(bytes.NewReader(raw))
+	decoder.UseNumber()
+	_ = decoder.Decode(&out.body)
+	return out, nil
+}
+
+// formsExternalHostAllowed tells whether server.forms.external_hosts lists the
+// host of u, by name or by name and port.
+func formsExternalHostAllowed(u *neturl.URL) bool {
+	host := strings.ToLower(u.Hostname())
+	hostPort := strings.ToLower(u.Host)
+	for _, allowed := range viper.GetStringSlice("server.forms.external_hosts") {
+		allowed = strings.ToLower(strings.TrimSpace(allowed))
+		if allowed != "" && (allowed == host || allowed == hostPort) {
+			return true
+		}
+	}
+	return false
 }

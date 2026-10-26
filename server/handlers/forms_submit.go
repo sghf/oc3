@@ -566,15 +566,12 @@ type apiResponse struct {
 }
 
 // callAPI calls the collector API as the submitter: a GET carries vars in its
-// query string, the other methods in a JSON body. fullURL is used as it is when
-// set, for the external calls of rest outputs, without the credentials.
-func (s *formSubmission) callAPI(ctx context.Context, method, path string, vars any, fullURL string) (*apiResponse, error) {
-	target := fullURL
-	if target == "" {
-		target = formsAPIBase() + path
-	}
+// query string, the other methods in a JSON body. The external urls of the rest
+// outputs go through callExternal, without the credentials.
+func (s *formSubmission) callAPI(ctx context.Context, method, path string, vars any) (*apiResponse, error) {
+	target := formsAPIBase() + path
 	var body io.Reader
-	if method == http.MethodGet && fullURL == "" {
+	if method == http.MethodGet {
 		if m, ok := vars.(map[string]any); ok && len(m) > 0 {
 			q := url.Values{}
 			for k, v := range m {
@@ -595,10 +592,10 @@ func (s *formSubmission) callAPI(ctx context.Context, method, path string, vars 
 	}
 	req.Header.Set("Content-Type", "application/json")
 	req.Header.Set("Accept", "application/json")
-	if fullURL == "" && s.auth != "" {
+	if s.auth != "" {
 		req.Header.Set("Authorization", s.auth)
 	}
-	if fullURL == "" && s.cookie != "" {
+	if s.cookie != "" {
 		// A local call, without Origin: the CSRF header is what a session
 		// request that changes something needs.
 		req.Header.Set("Cookie", s.cookie)
