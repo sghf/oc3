@@ -103,11 +103,11 @@ func (oDb *DB) DeleteCompModuleset(ctx context.Context, id int64) error {
 	return nil
 }
 
-// CloneCompModuleset copies a moduleset as "<name>_clone", authored by author:
-// its modules, its rulesets and its children, under the responsibility and
-// publication of groupID, as clone_moduleset(). It returns the id and the name
-// of the copy.
-func (oDb *DB) CloneCompModuleset(ctx context.Context, id int64, author string, groupID int64) (int64, string, error) {
+// CloneCompModuleset copies a moduleset as cloneName, "<name>_clone" when
+// empty, authored by author: its modules, its rulesets and its children, under
+// the responsibility and publication of groupID, as clone_moduleset(). It
+// returns the id and the name of the copy.
+func (oDb *DB) CloneCompModuleset(ctx context.Context, id int64, author string, groupID int64, cloneName string) (int64, string, error) {
 	var name string
 	err := oDb.DB.QueryRowContext(ctx, "SELECT modset_name FROM comp_moduleset WHERE id = ?", id).Scan(&name)
 	if errors.Is(err, sql.ErrNoRows) {
@@ -115,7 +115,9 @@ func (oDb *DB) CloneCompModuleset(ctx context.Context, id int64, author string, 
 	} else if err != nil {
 		return 0, "", fmt.Errorf("cloneCompModuleset: %w", err)
 	}
-	cloneName := name + "_clone"
+	if cloneName == "" {
+		cloneName = name + "_clone"
+	}
 	if _, found, err := oDb.CompModulesetID(ctx, cloneName); err != nil {
 		return 0, "", err
 	} else if found {

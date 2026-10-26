@@ -58,12 +58,11 @@ func (a *Api) PostComplianceRulesets(c echo.Context) error {
 		return httpProblem(c, httpErrorf(http.StatusBadRequest, "one ruleset is expected"))
 	}
 	entry := entries[0]
-	ctx := c.Request().Context()
 	name, err := compString("ruleset_name", entry["ruleset_name"], true)
 	if err != nil {
 		return httpProblem(c, err)
 	}
-	if id, found, err := a.ODB.CompRulesetID(ctx, name); err != nil {
+	if id, found, err := a.ODB.CompRulesetID(c.Request().Context(), name); err != nil {
 		return httpProblem(c, compDesignerError(c, "PostComplianceRulesets", err))
 	} else if found {
 		delete(entry, "ruleset_name")
@@ -71,9 +70,6 @@ func (a *Api) PostComplianceRulesets(c echo.Context) error {
 			return compInfo(c, "No fields to update")
 		}
 		return a.updateRuleset(c, id, entry)
-	}
-	if err := checkCompManager(c); err != nil {
-		return httpProblem(c, err)
 	}
 	rtype := "explicit"
 	if v, ok := entry["ruleset_type"]; ok {
@@ -90,16 +86,13 @@ func (a *Api) PostComplianceRulesets(c echo.Context) error {
 			return httpProblem(c, err)
 		}
 	}
-	groupID, err := a.ODB.DefaultGroupOrManager(ctx, authUserID(c))
-	if err != nil {
-		return httpProblem(c, compDesignerError(c, "PostComplianceRulesets", err))
+	var id int64
+	if err := a.compWrite(c, "PostComplianceRulesets", func(w *compWriter) (err error) {
+		id, err = w.createRuleset(name, rtype, public)
+		return err
+	}); err != nil {
+		return httpProblem(c, err)
 	}
-	id, err := a.ODB.CreateCompRuleset(ctx, name, rtype, public, groupID)
-	if err != nil {
-		return httpProblem(c, compDesignerError(c, "PostComplianceRulesets", err))
-	}
-	a.afterRulesetChange(c, true)
-	a.compLog(c, "compliance.ruleset.add", "added ruleset %(rset_name)s", map[string]any{"rset_name": name}, "", "")
 	return a.rulesetResponse(c, id, nil)
 }
 
@@ -123,57 +116,21 @@ func (a *Api) PostComplianceRuleset(c echo.Context, rsetId string) error {
 
 // updateRuleset checks and applies a change of ruleset properties.
 func (a *Api) updateRuleset(c echo.Context, id int64, entry map[string]any) error {
-	ctx := c.Request().Context()
 	if err := checkCompManager(c); err != nil {
 		return httpProblem(c, err)
 	}
-	if err := a.requireRulesetResponsible(ctx, c, id); err != nil {
+	fields, err := rulesetFields(entry)
+	if err != nil {
 		return httpProblem(c, err)
-	}
-	fields := map[string]any{}
-	for k, v := range entry {
-		switch k {
-		case "ruleset_name":
-			name, err := compString(k, v, true)
-			if err != nil {
-				return httpProblem(c, err)
-			}
-			if other, found, err := a.ODB.CompRulesetID(ctx, name); err != nil {
-				return httpProblem(c, compDesignerError(c, "PostComplianceRuleset", err))
-			} else if found && other != id {
-				return httpProblem(c, httpErrorf(http.StatusConflict, "a ruleset named '%s' already exists", name))
-			}
-			fields[k] = name
-		case "ruleset_type":
-			rtype, err := compString(k, v, true)
-			if err != nil {
-				return httpProblem(c, err)
-			}
-			if err := compOneOf(k, rtype, "explicit", "contextual"); err != nil {
-				return httpProblem(c, err)
-			}
-			fields[k] = rtype
-		case "ruleset_public":
-			public, err := compBool(k, v)
-			if err != nil {
-				return httpProblem(c, err)
-			}
-			fields[k] = public
-		case "id":
-		default:
-			return httpProblem(c, httpErrorf(http.StatusBadRequest, "unknown ruleset property %s", k))
-		}
 	}
 	if len(fields) == 0 {
 		return compInfo(c, "No fields to update")
 	}
-	if err := a.ODB.UpdateCompRuleset(ctx, id, fields); err != nil {
-		return httpProblem(c, compDesignerError(c, "PostComplianceRuleset", err))
+	if err := a.compWrite(c, "PostComplianceRuleset", func(w *compWriter) error {
+		return w.updateRuleset(id, fields)
+	}); err != nil {
+		return httpProblem(c, err)
 	}
-	// The chains name their rulesets: a renaming rewrites them.
-	_, renamed := fields["ruleset_name"]
-	a.afterRulesetChange(c, renamed)
-	a.compLog(c, "compliance.ruleset.change", "update properties %(data)s", map[string]any{"data": compJSON(fields)}, "", "")
 	return a.rulesetResponse(c, id, nil)
 }
 
@@ -193,27 +150,13 @@ func (a *Api) PutComplianceRuleset(c echo.Context, rsetId string) error {
 	if action != "clone" {
 		return httpProblem(c, httpErrorf(http.StatusBadRequest, "unsupported action %q", action))
 	}
-	if err := checkCompManager(c); err != nil {
+	var cloneName string
+	if err := a.compWrite(c, "PutComplianceRuleset", func(w *compWriter) (err error) {
+		_, cloneName, err = w.cloneObject(cdb.CompRulesetKind, id, "")
+		return err
+	}); err != nil {
 		return httpProblem(c, err)
 	}
-	caller, err := a.formCaller(ctx, c)
-	if err != nil {
-		return httpProblem(c, compDesignerError(c, "PutComplianceRuleset", err))
-	}
-	groupID, err := a.ODB.DefaultGroupOrManager(ctx, authUserID(c))
-	if err != nil {
-		return httpProblem(c, compDesignerError(c, "PutComplianceRuleset", err))
-	}
-	name, err := a.ODB.CompRulesetNameByID(ctx, id)
-	if err != nil {
-		return httpProblem(c, compDesignerError(c, "PutComplianceRuleset", err))
-	}
-	_, cloneName, err := a.ODB.CloneCompRuleset(ctx, id, caller.name, groupID)
-	if err != nil {
-		return httpProblem(c, compDesignerError(c, "PutComplianceRuleset", err))
-	}
-	a.afterRulesetChange(c, true)
-	a.compLog(c, "compliance.ruleset.clone", "cloned ruleset %(o)s from %(n)s", map[string]any{"n": name, "o": cloneName}, "", "")
 	return compInfo(c, "clone done. new ruleset name %s", cloneName)
 }
 
@@ -247,22 +190,11 @@ func (a *Api) DeleteComplianceRulesets(c echo.Context) error {
 // deleteRuleset deletes a ruleset and all its relations, as delete_ruleset(): by
 // a CompManager whose group is responsible for it.
 func (a *Api) deleteRuleset(c echo.Context, id int64) error {
-	ctx := c.Request().Context()
-	if err := checkCompManager(c); err != nil {
+	if err := a.compWrite(c, "DeleteComplianceRuleset", func(w *compWriter) error {
+		return w.deleteObject(cdb.CompRulesetKind, id)
+	}); err != nil {
 		return httpProblem(c, err)
 	}
-	if err := a.requireRulesetResponsible(ctx, c, id); err != nil {
-		return httpProblem(c, err)
-	}
-	name, err := a.ODB.CompRulesetNameByID(ctx, id)
-	if err != nil {
-		return httpProblem(c, compDesignerError(c, "DeleteComplianceRuleset", err))
-	}
-	if err := a.ODB.DeleteCompRuleset(ctx, id); err != nil {
-		return httpProblem(c, compDesignerError(c, "DeleteComplianceRuleset", err))
-	}
-	a.afterRulesetChange(c, true)
-	a.compLog(c, "compliance.ruleset.delete", "deleted ruleset %(rset_name)s", map[string]any{"rset_name": name}, "", "")
 	return compInfo(c, "Ruleset %d deleted", id)
 }
 

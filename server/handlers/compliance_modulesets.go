@@ -99,29 +99,13 @@ func (a *Api) PostComplianceModulesets(c echo.Context) error {
 	if err != nil {
 		return httpProblem(c, err)
 	}
-	ctx := c.Request().Context()
-	if err := checkCompManager(c); err != nil {
+	var id int64
+	if err := a.compWrite(c, "PostComplianceModulesets", func(w *compWriter) (err error) {
+		id, err = w.createModuleset(name)
+		return err
+	}); err != nil {
 		return httpProblem(c, err)
 	}
-	if _, found, err := a.ODB.CompModulesetID(ctx, name); err != nil {
-		return httpProblem(c, compDesignerError(c, "PostComplianceModulesets", err))
-	} else if found {
-		return httpProblem(c, httpErrorf(http.StatusConflict, "a moduleset named '%s' already exists", name))
-	}
-	caller, err := a.formCaller(ctx, c)
-	if err != nil {
-		return httpProblem(c, compDesignerError(c, "PostComplianceModulesets", err))
-	}
-	groupID, err := a.ODB.DefaultGroupOrManager(ctx, authUserID(c))
-	if err != nil {
-		return httpProblem(c, compDesignerError(c, "PostComplianceModulesets", err))
-	}
-	id, err := a.ODB.CreateCompModuleset(ctx, name, caller.name, groupID)
-	if err != nil {
-		return httpProblem(c, compDesignerError(c, "PostComplianceModulesets", err))
-	}
-	a.afterRulesetChange(c, false)
-	a.compLog(c, "compliance.moduleset.add", "added moduleset %(modset_name)s", map[string]any{"modset_name": name}, "", "")
 	return a.modulesetResponse(c, id, nil)
 }
 
@@ -159,16 +143,11 @@ func (a *Api) PostComplianceModuleset(c echo.Context, modsetId string) error {
 	if name == "" {
 		return compInfo(c, "No fields to update")
 	}
-	if other, found, err := a.ODB.CompModulesetID(ctx, name); err != nil {
-		return httpProblem(c, compDesignerError(c, "PostComplianceModuleset", err))
-	} else if found && other != id {
-		return httpProblem(c, httpErrorf(http.StatusConflict, "a moduleset named '%s' already exists", name))
+	if err := a.compWrite(c, "PostComplianceModuleset", func(w *compWriter) error {
+		return w.renameModuleset(id, name)
+	}); err != nil {
+		return httpProblem(c, err)
 	}
-	if err := a.ODB.RenameCompModuleset(ctx, id, name); err != nil {
-		return httpProblem(c, compDesignerError(c, "PostComplianceModuleset", err))
-	}
-	a.afterRulesetChange(c, false)
-	a.compLog(c, "compliance.moduleset.change", "update properties %(data)s", map[string]any{"data": compJSON(map[string]any{"modset_name": name})}, "", "")
 	return a.modulesetResponse(c, id, nil)
 }
 
@@ -188,27 +167,13 @@ func (a *Api) PutComplianceModuleset(c echo.Context, modsetId string) error {
 	if action, _ := entry["action"].(string); action != "clone" {
 		return httpProblem(c, httpErrorf(http.StatusBadRequest, "unsupported action %q", action))
 	}
-	if err := checkCompManager(c); err != nil {
+	var cloneName string
+	if err := a.compWrite(c, "PutComplianceModuleset", func(w *compWriter) (err error) {
+		_, cloneName, err = w.cloneObject(cdb.CompModulesetKind, id, "")
+		return err
+	}); err != nil {
 		return httpProblem(c, err)
 	}
-	caller, err := a.formCaller(ctx, c)
-	if err != nil {
-		return httpProblem(c, compDesignerError(c, "PutComplianceModuleset", err))
-	}
-	groupID, err := a.ODB.DefaultGroupOrManager(ctx, authUserID(c))
-	if err != nil {
-		return httpProblem(c, compDesignerError(c, "PutComplianceModuleset", err))
-	}
-	name, err := a.ODB.CompObjectName(ctx, cdb.CompModulesetKind, id)
-	if err != nil {
-		return httpProblem(c, compDesignerError(c, "PutComplianceModuleset", err))
-	}
-	_, cloneName, err := a.ODB.CloneCompModuleset(ctx, id, caller.name, groupID)
-	if err != nil {
-		return httpProblem(c, compDesignerError(c, "PutComplianceModuleset", err))
-	}
-	a.afterRulesetChange(c, false)
-	a.compLog(c, "compliance.moduleset.clone", "cloned moduleset %(o)s from %(n)s", map[string]any{"n": name, "o": cloneName}, "", "")
 	return compInfo(c, "clone done. new moduleset name %s", cloneName)
 }
 
@@ -242,22 +207,11 @@ func (a *Api) DeleteComplianceModulesets(c echo.Context) error {
 // deleteModuleset deletes a moduleset and all its relations, as
 // delete_moduleset(): by a CompManager whose group is responsible for it.
 func (a *Api) deleteModuleset(c echo.Context, id int64) error {
-	ctx := c.Request().Context()
-	if err := checkCompManager(c); err != nil {
+	if err := a.compWrite(c, "DeleteComplianceModuleset", func(w *compWriter) error {
+		return w.deleteObject(cdb.CompModulesetKind, id)
+	}); err != nil {
 		return httpProblem(c, err)
 	}
-	if err := a.requireModulesetResponsible(ctx, c, id); err != nil {
-		return httpProblem(c, err)
-	}
-	name, err := a.ODB.CompObjectName(ctx, cdb.CompModulesetKind, id)
-	if err != nil {
-		return httpProblem(c, compDesignerError(c, "DeleteComplianceModuleset", err))
-	}
-	if err := a.ODB.DeleteCompModuleset(ctx, id); err != nil {
-		return httpProblem(c, compDesignerError(c, "DeleteComplianceModuleset", err))
-	}
-	a.afterRulesetChange(c, false)
-	a.compLog(c, "compliance.moduleset.delete", "deleted moduleset %(modset_name)s", map[string]any{"modset_name": name}, "", "")
 	return compInfo(c, "Moduleset %d deleted", id)
 }
 

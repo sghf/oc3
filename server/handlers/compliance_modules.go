@@ -120,26 +120,13 @@ func (a *Api) PostComplianceModulesetModules(c echo.Context, modsetId string) er
 	if err != nil {
 		return httpProblem(c, err)
 	}
-	name, ok := fields["modset_mod_name"].(string)
-	if !ok {
-		return httpProblem(c, httpErrorf(http.StatusBadRequest, "modset_mod_name is mandatory in the posted data"))
+	var id int64
+	if err := a.compWrite(c, "PostComplianceModulesetModules", func(w *compWriter) (err error) {
+		id, err = w.createModule(mid, fields)
+		return err
+	}); err != nil {
+		return httpProblem(c, err)
 	}
-	if _, found, err := a.ODB.CompModulesetModuleID(ctx, mid, name); err != nil {
-		return httpProblem(c, compDesignerError(c, "PostComplianceModulesetModules", err))
-	} else if found {
-		return httpProblem(c, httpErrorf(http.StatusConflict, "this module name already exists"))
-	}
-	caller, err := a.formCaller(ctx, c)
-	if err != nil {
-		return httpProblem(c, compDesignerError(c, "PostComplianceModulesetModules", err))
-	}
-	id, err := a.ODB.CreateCompModulesetModule(ctx, mid, fields, caller.name)
-	if err != nil {
-		return httpProblem(c, compDesignerError(c, "PostComplianceModulesetModules", err))
-	}
-	fields["modset_id"] = mid
-	a.compLog(c, "compliance.moduleset.module.create", "properties %(data)s", map[string]any{"data": compJSON(fields)}, "", "")
-	a.afterRulesetChange(c, false)
 	return a.moduleResponse(c, mid, id, nil)
 }
 
@@ -166,23 +153,11 @@ func (a *Api) PostComplianceModulesetModule(c echo.Context, modsetId, modId stri
 	if err != nil {
 		return httpProblem(c, err)
 	}
-	if name, ok := fields["modset_mod_name"].(string); ok {
-		if other, found, err := a.ODB.CompModulesetModuleID(ctx, mid, name); err != nil {
-			return httpProblem(c, compDesignerError(c, "PostComplianceModulesetModule", err))
-		} else if found && other != id {
-			return httpProblem(c, httpErrorf(http.StatusConflict, "this module name already exists"))
-		}
+	if err := a.compWrite(c, "PostComplianceModulesetModule", func(w *compWriter) error {
+		return w.updateModule(mid, id, fields)
+	}); err != nil {
+		return httpProblem(c, err)
 	}
-	caller, err := a.formCaller(ctx, c)
-	if err != nil {
-		return httpProblem(c, compDesignerError(c, "PostComplianceModulesetModule", err))
-	}
-	if err := a.ODB.UpdateCompModulesetModule(ctx, id, fields, caller.name); err != nil {
-		return httpProblem(c, compDesignerError(c, "PostComplianceModulesetModule", err))
-	}
-	fields["id"] = id
-	a.compLog(c, "compliance.moduleset.module.change", "changed properties %(data)s", map[string]any{"data": compJSON(fields)}, "", "")
-	a.afterRulesetChange(c, false)
 	return a.moduleResponse(c, mid, id, nil)
 }
 
@@ -201,19 +176,10 @@ func (a *Api) DeleteComplianceModulesetModule(c echo.Context, modsetId, modId st
 	if err != nil {
 		return httpProblem(c, err)
 	}
-	name, err := a.ODB.CompModulesetModuleName(ctx, id)
-	if err != nil {
-		return httpProblem(c, compDesignerError(c, "DeleteComplianceModulesetModule", err))
+	if err := a.compWrite(c, "DeleteComplianceModulesetModule", func(w *compWriter) error {
+		return w.deleteModule(mid, id)
+	}); err != nil {
+		return httpProblem(c, err)
 	}
-	modset, err := a.ODB.CompObjectName(ctx, cdb.CompModulesetKind, mid)
-	if err != nil {
-		return httpProblem(c, compDesignerError(c, "DeleteComplianceModulesetModule", err))
-	}
-	if err := a.ODB.DeleteCompModulesetModule(ctx, id); err != nil {
-		return httpProblem(c, compDesignerError(c, "DeleteComplianceModulesetModule", err))
-	}
-	a.compLog(c, "compliance.moduleset.module.delete", "deleted module %(mod_name)s from moduleset %(modset_name)s",
-		map[string]any{"mod_name": name, "modset_name": modset}, "", "")
-	a.afterRulesetChange(c, false)
 	return compInfo(c, "module deleted")
 }

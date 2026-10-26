@@ -201,11 +201,11 @@ func (oDb *DB) DeleteCompRuleset(ctx context.Context, id int64) error {
 	return nil
 }
 
-// CloneCompRuleset copies a ruleset as "<name>_clone": its type and publicity,
-// the filterset of a contextual ruleset, its variables (authored by author), its
-// children, under the responsibility and publication of groupID, as
-// clone_ruleset(). It returns the id and the name of the copy.
-func (oDb *DB) CloneCompRuleset(ctx context.Context, id int64, author string, groupID int64) (int64, string, error) {
+// CloneCompRuleset copies a ruleset as cloneName, "<name>_clone" when empty: its
+// type and publicity, the filterset of a contextual ruleset, its variables
+// (authored by author), its children, under the responsibility and publication
+// of groupID, as clone_ruleset(). It returns the id and the name of the copy.
+func (oDb *DB) CloneCompRuleset(ctx context.Context, id int64, author string, groupID int64, cloneName string) (int64, string, error) {
 	var name, rtype, public sql.NullString
 	err := oDb.DB.QueryRowContext(ctx, "SELECT ruleset_name, ruleset_type, ruleset_public FROM comp_rulesets WHERE id = ?", id).
 		Scan(&name, &rtype, &public)
@@ -214,7 +214,9 @@ func (oDb *DB) CloneCompRuleset(ctx context.Context, id int64, author string, gr
 	} else if err != nil {
 		return 0, "", fmt.Errorf("cloneCompRuleset: %w", err)
 	}
-	cloneName := name.String + "_clone"
+	if cloneName == "" {
+		cloneName = name.String + "_clone"
+	}
 	if _, found, err := oDb.CompRulesetID(ctx, cloneName); err != nil {
 		return 0, "", err
 	} else if found {

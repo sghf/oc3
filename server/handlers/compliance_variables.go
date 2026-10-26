@@ -168,37 +168,23 @@ func (a *Api) PostComplianceRulesetsVariables(c echo.Context) error {
 }
 
 func (a *Api) createOrUpdateVariable(c echo.Context, rid int64, entry map[string]any) error {
-	ctx := c.Request().Context()
 	if err := checkCompManager(c); err != nil {
 		return httpProblem(c, err)
 	}
-	if err := a.requireRulesetResponsible(ctx, c, rid); err != nil {
+	if err := a.requireRulesetResponsible(c.Request().Context(), c, rid); err != nil {
 		return httpProblem(c, err)
 	}
 	fields, err := variableFields(entry)
 	if err != nil {
 		return httpProblem(c, err)
 	}
-	name, ok := fields["var_name"].(string)
-	if !ok {
-		return httpProblem(c, httpErrorf(http.StatusBadRequest, "var_name is mandatory in the posted data"))
+	var vid int64
+	if err := a.compWrite(c, "PostComplianceRulesetVariables", func(w *compWriter) (err error) {
+		vid, err = w.createOrUpdateVariable(rid, fields)
+		return err
+	}); err != nil {
+		return httpProblem(c, err)
 	}
-	if vid, found, err := a.ODB.CompRulesetVariableID(ctx, rid, name); err != nil {
-		return httpProblem(c, compDesignerError(c, "PostComplianceRulesetVariables", err))
-	} else if found {
-		return a.updateVariable(c, rid, vid, fields)
-	}
-	caller, err := a.formCaller(ctx, c)
-	if err != nil {
-		return httpProblem(c, compDesignerError(c, "PostComplianceRulesetVariables", err))
-	}
-	vid, err := a.ODB.CreateCompRulesetVariable(ctx, rid, fields, caller.name)
-	if err != nil {
-		return httpProblem(c, compDesignerError(c, "PostComplianceRulesetVariables", err))
-	}
-	fields["ruleset_id"] = rid
-	a.compLog(c, "compliance.ruleset.variable.create", "properties %(data)s", map[string]any{"data": compJSON(fields)}, "", "")
-	a.afterRulesetChange(c, false)
 	return a.variableResponse(c, rid, vid, nil)
 }
 
@@ -229,29 +215,11 @@ func (a *Api) PostComplianceRulesetVariable(c echo.Context, rsetId, varId string
 }
 
 func (a *Api) updateVariable(c echo.Context, rid, vid int64, fields map[string]any) error {
-	ctx := c.Request().Context()
-	if name, ok := fields["var_name"].(string); ok {
-		if other, found, err := a.ODB.CompRulesetVariableID(ctx, rid, name); err != nil {
-			return httpProblem(c, compDesignerError(c, "PostComplianceRulesetVariable", err))
-		} else if found && other != vid {
-			return httpProblem(c, httpErrorf(http.StatusConflict, "'var_name' already exist in the same ruleset"))
-		}
+	if err := a.compWrite(c, "PostComplianceRulesetVariable", func(w *compWriter) error {
+		return w.updateVariable(rid, vid, fields)
+	}); err != nil {
+		return httpProblem(c, err)
 	}
-	before, err := a.ODB.CompRulesetVariableByID(ctx, vid)
-	if err != nil {
-		return httpProblem(c, compDesignerError(c, "PostComplianceRulesetVariable", err))
-	}
-	caller, err := a.formCaller(ctx, c)
-	if err != nil {
-		return httpProblem(c, compDesignerError(c, "PostComplianceRulesetVariable", err))
-	}
-	if err := a.ODB.UpdateCompRulesetVariable(ctx, vid, fields, caller.name); err != nil {
-		return httpProblem(c, compDesignerError(c, "PostComplianceRulesetVariable", err))
-	}
-	a.compLog(c, "compliance.ruleset.variable.change", "changed properties %(data)s", map[string]any{
-		"data": compJSON(map[string]any{"ruleset": before.RulesetName, "variable": before.Name, "changes": fields}),
-	}, "", "")
-	a.afterRulesetChange(c, false)
 	return a.variableResponse(c, rid, vid, nil)
 }
 
@@ -270,16 +238,11 @@ func (a *Api) DeleteComplianceRulesetVariable(c echo.Context, rsetId, varId stri
 	if err != nil {
 		return httpProblem(c, err)
 	}
-	v, err := a.ODB.CompRulesetVariableByID(ctx, vid)
-	if err != nil {
-		return httpProblem(c, compDesignerError(c, "DeleteComplianceRulesetVariable", err))
+	if err := a.compWrite(c, "DeleteComplianceRulesetVariable", func(w *compWriter) error {
+		return w.deleteVariable(rid, vid)
+	}); err != nil {
+		return httpProblem(c, err)
 	}
-	if err := a.ODB.DeleteCompRulesetVariable(ctx, vid); err != nil {
-		return httpProblem(c, compDesignerError(c, "DeleteComplianceRulesetVariable", err))
-	}
-	a.compLog(c, "compliance.ruleset.variable.delete", "deleted variable %(var_name)s from ruleset %(rset_name)s",
-		map[string]any{"var_name": v.Name, "rset_name": v.RulesetName}, "", "")
-	a.afterRulesetChange(c, false)
 	return compInfo(c, "variable deleted")
 }
 
@@ -310,52 +273,11 @@ func (a *Api) PutComplianceRulesetVariable(c echo.Context, rsetId, varId string)
 	if err != nil {
 		return httpProblem(c, err)
 	}
-	if err := checkCompManager(c); err != nil {
+	if err := a.compWrite(c, "PutComplianceRulesetVariable", func(w *compWriter) error {
+		return w.copyVariable(rid, vid, dstID, action == "move")
+	}); err != nil {
 		return httpProblem(c, err)
 	}
-	if action == "copy" {
-		err = a.requireRulesetPublished(ctx, c, rid)
-	} else {
-		err = a.requireRulesetResponsible(ctx, c, rid)
-	}
-	if err == nil {
-		err = a.requireRulesetResponsible(ctx, c, dstID)
-	}
-	if err != nil {
-		return httpProblem(c, err)
-	}
-	v, err := a.ODB.CompRulesetVariableByID(ctx, vid)
-	if err != nil {
-		return httpProblem(c, compDesignerError(c, "PutComplianceRulesetVariable", err))
-	}
-	// Names are unique in a ruleset: the historical handlers refuse a duplicate on
-	// creation and change, not on copy or move; refused here as well.
-	if _, found, err := a.ODB.CompRulesetVariableID(ctx, dstID, v.Name); err != nil {
-		return httpProblem(c, compDesignerError(c, "PutComplianceRulesetVariable", err))
-	} else if found {
-		return httpProblem(c, httpErrorf(http.StatusConflict, "the destination ruleset already has a variable named %s", v.Name))
-	}
-	dstName, err := a.ODB.CompRulesetNameByID(ctx, dstID)
-	if err != nil {
-		return httpProblem(c, compDesignerError(c, "PutComplianceRulesetVariable", err))
-	}
-	dict := map[string]any{"rset_name": v.RulesetName, "dst_rset_name": dstName, "var_name": v.Name}
-	if action == "copy" {
-		caller, err := a.formCaller(ctx, c)
-		if err != nil {
-			return httpProblem(c, compDesignerError(c, "PutComplianceRulesetVariable", err))
-		}
-		if _, err := a.ODB.CopyCompRulesetVariable(ctx, vid, dstID, caller.name); err != nil {
-			return httpProblem(c, compDesignerError(c, "PutComplianceRulesetVariable", err))
-		}
-		a.compLog(c, "compliance.variable.copy", "copy variable %(var_name)s from ruleset %(rset_name)s to %(dst_rset_name)s", dict, "", "")
-	} else {
-		if err := a.ODB.MoveCompRulesetVariable(ctx, vid, dstID); err != nil {
-			return httpProblem(c, compDesignerError(c, "PutComplianceRulesetVariable", err))
-		}
-		a.compLog(c, "compliance.variable.change", "move variable %(var_name)s from ruleset %(rset_name)s to %(dst_rset_name)s", dict, "", "")
-	}
-	a.afterRulesetChange(c, false)
 	return compInfo(c, "variable %s done", action)
 }
 

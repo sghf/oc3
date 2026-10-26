@@ -2,6 +2,7 @@ package serverhandlers
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -20,75 +21,21 @@ func (a *Api) compTeamList(c echo.Context, name string, k cdb.CompKind, objID in
 }
 
 // compTeamChange attaches or detaches a publication or responsible group of a
-// compliance object, as attach_group_to_ruleset() and detach_group_from_ruleset()
-// and their moduleset counterparts: by a CompManager responsible for the object.
-// A non-manager may attach only one of their groups; Everybody may not be made
-// responsible, nor be given the publication of a contextual ruleset.
+// compliance object, as compWriter.teamChange.
 func (a *Api) compTeamChange(c echo.Context, name string, k cdb.CompKind, objID int64, gtype, groupRef string, attach bool) error {
-	ctx := c.Request().Context()
-	if err := checkCompManager(c); err != nil {
+	err := a.compWrite(c, name, func(w *compWriter) error {
+		return w.teamChange(k, objID, gtype, groupRef, attach)
+	})
+	switch {
+	case errors.Is(err, errNothing):
+		return compInfo(c, "%s group already attached", gtype)
+	case err != nil:
 		return httpProblem(c, err)
-	}
-	if ok, err := a.ODB.CompObjectResponsible(ctx, k, objID, UserGroupsFromContext(c), IsManager(c)); err != nil {
-		return httpProblem(c, compDesignerError(c, name, err))
-	} else if !ok {
-		return httpProblem(c, httpErrorf(http.StatusForbidden, "%s not found or not owned by you", k.Name))
-	}
-	group, found, err := a.ODB.AuthGroupByIDOrRole(ctx, groupRef)
-	if err != nil {
-		return httpProblem(c, compDesignerError(c, name, err))
-	}
-	if !found {
-		return httpProblem(c, httpErrorf(http.StatusNotFound, "group %s not found", groupRef))
-	}
-	objName, err := a.ODB.CompObjectName(ctx, k, objID)
-	if err != nil {
-		return httpProblem(c, compDesignerError(c, name, err))
-	}
-	dict := map[string]any{"gtype": gtype, "role": group.Role}
-	nameKey := "rset_name"
-	if k.Name == "moduleset" {
-		nameKey = "modset_name"
-	}
-	dict[nameKey] = objName
-	if !attach {
-		if err := a.ODB.DetachCompTeam(ctx, k, objID, gtype, group.ID); err != nil {
-			return httpProblem(c, compDesignerError(c, name, err))
-		}
-		a.compLog(c, "compliance."+k.Name+".detach", "detach %(gtype)s group %(role)s from "+k.Name+" %("+nameKey+")s", dict, "", "")
-		a.afterRulesetChange(c, false)
+	case attach:
+		return compInfo(c, "group attached")
+	default:
 		return compInfo(c, "group detached")
 	}
-	if group.Role == "Everybody" {
-		if gtype == "responsible" {
-			return httpProblem(c, httpErrorf(http.StatusBadRequest, "Giving responsibility of a %s to Everybody is not allowed", k.Name))
-		}
-		if k.Name == "ruleset" {
-			if contextual, err := a.rulesetIsContextual(ctx, objID); err != nil {
-				return httpProblem(c, compDesignerError(c, name, err))
-			} else if contextual {
-				return httpProblem(c, httpErrorf(http.StatusBadRequest, "Publishing a contextual ruleset to Everybody is not allowed"))
-			}
-		}
-	}
-	if !IsManager(c) && !HasGroup(c, group.Role) {
-		return httpProblem(c, httpErrorf(http.StatusForbidden, "you can't attach a group you are not a member of"))
-	}
-	if attached, err := a.ODB.CompTeamAttached(ctx, k, objID, gtype, group.ID); err != nil {
-		return httpProblem(c, compDesignerError(c, name, err))
-	} else if attached {
-		return compInfo(c, "%s group already attached", gtype)
-	}
-	if err := a.ODB.AttachCompTeam(ctx, k, objID, gtype, group.ID); err != nil {
-		return httpProblem(c, compDesignerError(c, name, err))
-	}
-	a.compLog(c, "compliance."+k.Name+".change", "attach %(gtype)s group %(role)s to "+k.Name+" %("+nameKey+")s", dict, "", "")
-	a.afterRulesetChange(c, false)
-	return compInfo(c, "group attached")
-}
-
-func (a *Api) rulesetIsContextual(ctx context.Context, id int64) (bool, error) {
-	return a.ODB.RulesetIsContextual(ctx, id)
 }
 
 // compTeamBody reads the object and the group a bulk form names in its body.

@@ -263,6 +263,132 @@ func (e ComplianceAttachmentsInputAction) Valid() bool {
 	}
 }
 
+// Defines values for ComplianceDesignerKind.
+const (
+	CompDesignerModuleset ComplianceDesignerKind = "moduleset"
+	CompDesignerRuleset   ComplianceDesignerKind = "ruleset"
+)
+
+// Valid indicates whether the value is a known member of the ComplianceDesignerKind enum.
+func (e ComplianceDesignerKind) Valid() bool {
+	switch e {
+	case CompDesignerModuleset:
+		return true
+	case CompDesignerRuleset:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ComplianceDesignerOperationOp.
+const (
+	CompDesignerOpAddModule      ComplianceDesignerOperationOp = "add_module"
+	CompDesignerOpAddTeam        ComplianceDesignerOperationOp = "add_team"
+	CompDesignerOpAddVariable    ComplianceDesignerOperationOp = "add_variable"
+	CompDesignerOpClone          ComplianceDesignerOperationOp = "clone"
+	CompDesignerOpCopyVariable   ComplianceDesignerOperationOp = "copy_variable"
+	CompDesignerOpCreate         ComplianceDesignerOperationOp = "create"
+	CompDesignerOpDelete         ComplianceDesignerOperationOp = "delete"
+	CompDesignerOpDeleteModule   ComplianceDesignerOperationOp = "delete_module"
+	CompDesignerOpDeleteVariable ComplianceDesignerOperationOp = "delete_variable"
+	CompDesignerOpDetach         ComplianceDesignerOperationOp = "detach"
+	CompDesignerOpInclude        ComplianceDesignerOperationOp = "include"
+	CompDesignerOpMoveTeam       ComplianceDesignerOperationOp = "move_team"
+	CompDesignerOpRemoveTeam     ComplianceDesignerOperationOp = "remove_team"
+	CompDesignerOpRename         ComplianceDesignerOperationOp = "rename"
+	CompDesignerOpRenameModule   ComplianceDesignerOperationOp = "rename_module"
+	CompDesignerOpSetAutofix     ComplianceDesignerOperationOp = "set_autofix"
+	CompDesignerOpSetFilterset   ComplianceDesignerOperationOp = "set_filterset"
+	CompDesignerOpSetPublic      ComplianceDesignerOperationOp = "set_public"
+	CompDesignerOpSetType        ComplianceDesignerOperationOp = "set_type"
+	CompDesignerOpUpdateVariable ComplianceDesignerOperationOp = "update_variable"
+)
+
+// Valid indicates whether the value is a known member of the ComplianceDesignerOperationOp enum.
+func (e ComplianceDesignerOperationOp) Valid() bool {
+	switch e {
+	case CompDesignerOpAddModule:
+		return true
+	case CompDesignerOpAddTeam:
+		return true
+	case CompDesignerOpAddVariable:
+		return true
+	case CompDesignerOpClone:
+		return true
+	case CompDesignerOpCopyVariable:
+		return true
+	case CompDesignerOpCreate:
+		return true
+	case CompDesignerOpDelete:
+		return true
+	case CompDesignerOpDeleteModule:
+		return true
+	case CompDesignerOpDeleteVariable:
+		return true
+	case CompDesignerOpDetach:
+		return true
+	case CompDesignerOpInclude:
+		return true
+	case CompDesignerOpMoveTeam:
+		return true
+	case CompDesignerOpRemoveTeam:
+		return true
+	case CompDesignerOpRename:
+		return true
+	case CompDesignerOpRenameModule:
+		return true
+	case CompDesignerOpSetAutofix:
+		return true
+	case CompDesignerOpSetFilterset:
+		return true
+	case CompDesignerOpSetPublic:
+		return true
+	case CompDesignerOpSetType:
+		return true
+	case CompDesignerOpUpdateVariable:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ComplianceDesignerOperationRulesetType.
+const (
+	CompDesignerRulesetContextual ComplianceDesignerOperationRulesetType = "contextual"
+	CompDesignerRulesetExplicit   ComplianceDesignerOperationRulesetType = "explicit"
+)
+
+// Valid indicates whether the value is a known member of the ComplianceDesignerOperationRulesetType enum.
+func (e ComplianceDesignerOperationRulesetType) Valid() bool {
+	switch e {
+	case CompDesignerRulesetContextual:
+		return true
+	case CompDesignerRulesetExplicit:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ComplianceDesignerTeamRole.
+const (
+	CompDesignerPublication ComplianceDesignerTeamRole = "publication"
+	CompDesignerResponsible ComplianceDesignerTeamRole = "responsible"
+)
+
+// Valid indicates whether the value is a known member of the ComplianceDesignerTeamRole enum.
+func (e ComplianceDesignerTeamRole) Valid() bool {
+	switch e {
+	case CompDesignerPublication:
+		return true
+	case CompDesignerResponsible:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ComplianceVersionSource.
 const (
 	ComplianceVersionSourceDesigner  ComplianceVersionSource = "designer"
@@ -2525,6 +2651,112 @@ type ComplianceAttachmentsInputAction string
 type ComplianceAttachmentsResponse struct {
 	Data []ComplianceAttachmentOutcome `json:"data"`
 }
+
+// ComplianceDesignerCommitInput defines model for ComplianceDesignerCommitInput.
+type ComplianceDesignerCommitInput struct {
+	// BaselineMessage The message of the version recording the changes made elsewhere since the
+	// last version, if any. "Changes made outside the designer" by default.
+	BaselineMessage *string `json:"baseline_message,omitempty"`
+
+	// Message The message of the version recording the changes, its first line a summary.
+	Message    string                        `json:"message"`
+	Operations []ComplianceDesignerOperation `json:"operations"`
+}
+
+// ComplianceDesignerCommitResult defines model for ComplianceDesignerCommitResult.
+type ComplianceDesignerCommitResult struct {
+	// Applied The number of operations applied.
+	Applied int `json:"applied"`
+
+	// Ids The id of each object created, by its "tmp:" reference.
+	Ids map[string]int64 `json:"ids"`
+
+	// Version The version recording the changes; changed is false when none was.
+	Version *struct {
+		Changed bool   `json:"changed"`
+		Commit  string `json:"commit"`
+	} `json:"version,omitempty"`
+
+	// VersionError Why no version could be recorded, the changes being saved all the same.
+	VersionError *string `json:"version_error,omitempty"`
+}
+
+// ComplianceDesignerKind defines model for ComplianceDesignerKind.
+type ComplianceDesignerKind string
+
+// ComplianceDesignerOperation A change of the compliance designer. `ref` names the object it applies to, a
+// ruleset or a moduleset of kind `kind` (rulesets for the operations on
+// variables and on the ruleset type, publicity and filterset; modulesets for
+// those on modules). The other properties:
+//
+//   - create: `name`, `as`;
+//   - rename: `name`;
+//   - clone: `as`, `name` (the collector's "<name>_clone" when absent);
+//   - delete;
+//   - set_type: `ruleset_type`;
+//   - set_public: `ruleset_public`;
+//   - set_filterset: `filterset` (id or name), absent or empty to remove it;
+//     a filterset makes the ruleset contextual;
+//   - add_variable: `var_name`, `var_class`, `var_value`;
+//   - update_variable: `variable`, and the `var_name`, `var_class`, `var_value`
+//     changed;
+//   - delete_variable: `variable`;
+//   - copy_variable: `variable`, `dst` (a ruleset), `move`;
+//   - include, detach: `child_kind`, `child`, the parent being `ref`;
+//   - add_module: `name`;
+//   - rename_module: `module`, `name`;
+//   - set_autofix: `module`, `autofix`;
+//   - delete_module: `module`;
+//   - add_team, remove_team: `role`, `team` (a group id or role);
+//   - move_team: `role`, `to_role`, `team`.
+type ComplianceDesignerOperation struct {
+	// As The "tmp:" reference the next operations name the object created by.
+	As        *string                 `json:"as,omitempty"`
+	Autofix   *bool                   `json:"autofix,omitempty"`
+	Child     *string                 `json:"child,omitempty"`
+	ChildKind *ComplianceDesignerKind `json:"child_kind,omitempty"`
+
+	// Dst The ruleset a variable is copied or moved to.
+	Dst       *string                `json:"dst,omitempty"`
+	Filterset *string                `json:"filterset,omitempty"`
+	Kind      ComplianceDesignerKind `json:"kind"`
+
+	// Module The module, by id or name.
+	Module *string                       `json:"module,omitempty"`
+	Move   *bool                         `json:"move,omitempty"`
+	Name   *string                       `json:"name,omitempty"`
+	Op     ComplianceDesignerOperationOp `json:"op"`
+
+	// Ref The object, by id, name, or the "tmp:" reference an earlier operation gave it.
+	Ref           *string                                 `json:"ref,omitempty"`
+	Role          *ComplianceDesignerTeamRole             `json:"role,omitempty"`
+	RulesetPublic *bool                                   `json:"ruleset_public,omitempty"`
+	RulesetType   *ComplianceDesignerOperationRulesetType `json:"ruleset_type,omitempty"`
+	Team          *string                                 `json:"team,omitempty"`
+	ToRole        *ComplianceDesignerTeamRole             `json:"to_role,omitempty"`
+	VarClass      *string                                 `json:"var_class,omitempty"`
+	VarName       *string                                 `json:"var_name,omitempty"`
+	VarValue      *string                                 `json:"var_value,omitempty"`
+
+	// Variable The variable, by id or name.
+	Variable *string `json:"variable,omitempty"`
+}
+
+// ComplianceDesignerOperationOp defines model for ComplianceDesignerOperation.Op.
+type ComplianceDesignerOperationOp string
+
+// ComplianceDesignerOperationRulesetType defines model for ComplianceDesignerOperation.RulesetType.
+type ComplianceDesignerOperationRulesetType string
+
+// ComplianceDesignerRefusal defines model for ComplianceDesignerRefusal.
+type ComplianceDesignerRefusal struct {
+	// Index The index of the operation refused; absent when the body itself is.
+	Index *int   `json:"index,omitempty"`
+	Text  string `json:"text"`
+}
+
+// ComplianceDesignerTeamRole defines model for ComplianceDesignerTeamRole.
+type ComplianceDesignerTeamRole string
 
 // ComplianceExport The compliance export a version recorded, in the format of the import.
 type ComplianceExport struct {
@@ -14127,6 +14359,9 @@ type PostChecksSettingsJSONRequestBody = CheckSettingsRequest
 
 // PostComplianceAttachmentsJSONRequestBody defines body for PostComplianceAttachments for application/json ContentType.
 type PostComplianceAttachmentsJSONRequestBody = ComplianceAttachmentsInput
+
+// PostComplianceDesignerCommitsJSONRequestBody defines body for PostComplianceDesignerCommits for application/json ContentType.
+type PostComplianceDesignerCommitsJSONRequestBody = ComplianceDesignerCommitInput
 
 // PostComplianceHistoryJSONRequestBody defines body for PostComplianceHistory for application/json ContentType.
 type PostComplianceHistoryJSONRequestBody PostComplianceHistoryJSONBody

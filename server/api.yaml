@@ -18164,6 +18164,73 @@ paths:
         - basicAuth: [ ]
         - bearerAuth: [ ]
 
+  /compliance/designer/commits:
+    post:
+      operationId: PostComplianceDesignerCommits
+      description: |
+        Save the changes of the compliance designer, all or nothing: the operations
+        are applied in their order, in one transaction, each with the checks of its
+        single route, which see the changes of the operations before it. The first
+        refused rolls them all back: the answer is its status, with its index. An
+        operation with nothing to do (a group or a child already attached) is no
+        refusal.
+
+        An object created by an operation (create, clone) is named by the next ones
+        by the temporary reference the operation gives it in `as`, starting with
+        "tmp:"; the answer maps each to the id of the object created. Any other
+        object is named by its id or its name, as it is before the operation.
+
+        Around the changes, the compliance history records two versions: before,
+        the changes made elsewhere since its last version (`baseline_message`),
+        after, those of this commit (`message`). No version is recorded when
+        nothing changed. A failure to record a version does not undo the changes:
+        it is told in `version_error`. Requires the CompManager privilege.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ComplianceDesignerCommitInput'
+      tags:
+        - collector
+      responses:
+        200:
+          description: The operations are all applied.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComplianceDesignerCommitResult'
+        400:
+          description: The body is invalid, or an operation was refused as such.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComplianceDesignerRefusal'
+        401:
+          $ref: '#/components/responses/401'
+        403:
+          description: The user is no CompManager, or an operation was refused.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComplianceDesignerRefusal'
+        404:
+          description: An object an operation names does not exist.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComplianceDesignerRefusal'
+        409:
+          description: An operation conflicts with the current state, a name taken say.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComplianceDesignerRefusal'
+        500:
+          $ref: '#/components/responses/500'
+      security:
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
   /compliance/history:
     get:
       operationId: GetComplianceHistory
@@ -22059,6 +22126,170 @@ components:
           type: string
         updated:
           type: string
+
+    ComplianceDesignerCommitInput:
+      type: object
+      required:
+        - message
+        - operations
+      properties:
+        message:
+          type: string
+          description: The message of the version recording the changes, its first line a summary.
+        baseline_message:
+          type: string
+          description: |
+            The message of the version recording the changes made elsewhere since the
+            last version, if any. "Changes made outside the designer" by default.
+        operations:
+          type: array
+          minItems: 1
+          maxItems: 5000
+          items:
+            $ref: '#/components/schemas/ComplianceDesignerOperation'
+
+    ComplianceDesignerOperation:
+      type: object
+      description: |
+        A change of the compliance designer. `ref` names the object it applies to, a
+        ruleset or a moduleset of kind `kind` (rulesets for the operations on
+        variables and on the ruleset type, publicity and filterset; modulesets for
+        those on modules). The other properties:
+
+        - create: `name`, `as`;
+        - rename: `name`;
+        - clone: `as`, `name` (the collector's "<name>_clone" when absent);
+        - delete;
+        - set_type: `ruleset_type`;
+        - set_public: `ruleset_public`;
+        - set_filterset: `filterset` (id or name), absent or empty to remove it;
+          a filterset makes the ruleset contextual;
+        - add_variable: `var_name`, `var_class`, `var_value`;
+        - update_variable: `variable`, and the `var_name`, `var_class`, `var_value`
+          changed;
+        - delete_variable: `variable`;
+        - copy_variable: `variable`, `dst` (a ruleset), `move`;
+        - include, detach: `child_kind`, `child`, the parent being `ref`;
+        - add_module: `name`;
+        - rename_module: `module`, `name`;
+        - set_autofix: `module`, `autofix`;
+        - delete_module: `module`;
+        - add_team, remove_team: `role`, `team` (a group id or role);
+        - move_team: `role`, `to_role`, `team`.
+      required:
+        - op
+        - kind
+      properties:
+        op:
+          type: string
+          enum: [create, rename, clone, delete, set_type, set_public, set_filterset,
+            add_variable, update_variable, delete_variable, copy_variable, include, detach,
+            add_module, rename_module, set_autofix, delete_module, add_team, remove_team, move_team]
+          x-enum-varnames: [CompDesignerOpCreate, CompDesignerOpRename, CompDesignerOpClone,
+            CompDesignerOpDelete, CompDesignerOpSetType, CompDesignerOpSetPublic,
+            CompDesignerOpSetFilterset, CompDesignerOpAddVariable, CompDesignerOpUpdateVariable,
+            CompDesignerOpDeleteVariable, CompDesignerOpCopyVariable, CompDesignerOpInclude,
+            CompDesignerOpDetach, CompDesignerOpAddModule, CompDesignerOpRenameModule,
+            CompDesignerOpSetAutofix, CompDesignerOpDeleteModule, CompDesignerOpAddTeam,
+            CompDesignerOpRemoveTeam, CompDesignerOpMoveTeam]
+        kind:
+          $ref: '#/components/schemas/ComplianceDesignerKind'
+        ref:
+          type: string
+          description: The object, by id, name, or the "tmp:" reference an earlier operation gave it.
+        as:
+          type: string
+          description: The "tmp:" reference the next operations name the object created by.
+        name:
+          type: string
+        ruleset_type:
+          type: string
+          enum: [explicit, contextual]
+          x-enum-varnames: [CompDesignerRulesetExplicit, CompDesignerRulesetContextual]
+        ruleset_public:
+          type: boolean
+        filterset:
+          type: string
+        variable:
+          type: string
+          description: The variable, by id or name.
+        var_name:
+          type: string
+        var_class:
+          type: string
+        var_value:
+          type: string
+        dst:
+          type: string
+          description: The ruleset a variable is copied or moved to.
+        move:
+          type: boolean
+        child_kind:
+          $ref: '#/components/schemas/ComplianceDesignerKind'
+        child:
+          type: string
+        module:
+          type: string
+          description: The module, by id or name.
+        autofix:
+          type: boolean
+        role:
+          $ref: '#/components/schemas/ComplianceDesignerTeamRole'
+        to_role:
+          $ref: '#/components/schemas/ComplianceDesignerTeamRole'
+        team:
+          type: string
+
+    ComplianceDesignerKind:
+      type: string
+      enum: [ruleset, moduleset]
+      x-enum-varnames: [CompDesignerRuleset, CompDesignerModuleset]
+
+    ComplianceDesignerTeamRole:
+      type: string
+      enum: [publication, responsible]
+      x-enum-varnames: [CompDesignerPublication, CompDesignerResponsible]
+
+    ComplianceDesignerCommitResult:
+      type: object
+      required:
+        - applied
+        - ids
+      properties:
+        applied:
+          type: integer
+          description: The number of operations applied.
+        ids:
+          type: object
+          description: The id of each object created, by its "tmp:" reference.
+          additionalProperties:
+            type: integer
+            format: int64
+        version:
+          type: object
+          description: The version recording the changes; changed is false when none was.
+          required:
+            - commit
+            - changed
+          properties:
+            commit:
+              type: string
+            changed:
+              type: boolean
+        version_error:
+          type: string
+          description: Why no version could be recorded, the changes being saved all the same.
+
+    ComplianceDesignerRefusal:
+      type: object
+      required:
+        - text
+      properties:
+        text:
+          type: string
+        index:
+          type: integer
+          description: The index of the operation refused; absent when the body itself is.
 
     ComplianceVersion:
       type: object

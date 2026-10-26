@@ -3,6 +3,7 @@ package serverhandlers
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"slices"
 	"strconv"
@@ -66,7 +67,6 @@ func (a *Api) GetComplianceHistory(c echo.Context, params server.GetComplianceHi
 // compliance export as a version, authored by the caller, with their message.
 func (a *Api) PostComplianceHistory(c echo.Context) error {
 	log := echolog.GetLogHandler(c, "PostComplianceHistory")
-	ctx := c.Request().Context()
 	if err := checkCompManager(c); err != nil {
 		return httpProblem(c, err)
 	}
@@ -78,20 +78,40 @@ func (a *Api) PostComplianceHistory(c echo.Context) error {
 	if message == "" {
 		return JSONProblemf(c, http.StatusBadRequest, "message is mandatory")
 	}
+	source := ""
+	if body.Source != nil {
+		source = string(*body.Source)
+	}
+	complianceHistoryMu.Lock()
+	defer complianceHistoryMu.Unlock()
+	commit, changed, err := a.recordComplianceVersion(c, message, source)
+	if err != nil {
+		log.Error("cannot record the compliance version", logkey.Error, err)
+		return JSONProblemf(c, http.StatusInternalServerError, "cannot record the compliance version")
+	}
+	return c.JSON(http.StatusOK, map[string]any{"commit": commit, "changed": changed})
+}
+
+// recordComplianceVersion records the compliance export, as the collector holds
+// it now, as a version of the compliance history, authored by the caller, with
+// message and the source of the changes ("designer", "elsewhere", or none). It
+// tells whether a version was recorded: none is when nothing changed. The caller
+// holds complianceHistoryMu.
+func (a *Api) recordComplianceVersion(c echo.Context, message, source string) (string, bool, error) {
+	ctx := c.Request().Context()
 	subject, _, _ := strings.Cut(message, "\n")
 	// What the version records, kept as a trailer: the history tells the
 	// designer's commits from the changes made elsewhere without reading prose.
-	if body.Source != nil && *body.Source != "" {
-		message += "\n\n" + complianceSourceTrailer + string(*body.Source)
+	if source != "" {
+		message += "\n\n" + complianceSourceTrailer + source
 	}
 	caller, err := a.formCaller(ctx, c)
 	if err != nil {
-		return httpProblem(c, err)
+		return "", false, err
 	}
 	export, err := a.ODB.ExportCompAll(ctx)
 	if err != nil {
-		log.Error("cannot export the compliance objects", logkey.Error, err)
-		return JSONProblemf(c, http.StatusInternalServerError, "cannot export the compliance objects")
+		return "", false, fmt.Errorf("export the compliance objects: %w", err)
 	}
 	// Indented, one property per line: a diff between versions reads line by line.
 	// No HTML escaping: a filter reads ">=", not "\u003e=".
@@ -100,21 +120,17 @@ func (a *Api) PostComplianceHistory(c echo.Context) error {
 	enc.SetEscapeHTML(false)
 	enc.SetIndent("", "  ")
 	if err := enc.Encode(export); err != nil {
-		return JSONProblemf(c, http.StatusInternalServerError, "cannot encode the compliance export")
+		return "", false, fmt.Errorf("encode the compliance export: %w", err)
 	}
-	content := buf.String()
-	complianceHistoryMu.Lock()
-	commit, changed, err := complianceTrack().CommitMessage(complianceHistoryRepo, content, caller.author(), message)
-	complianceHistoryMu.Unlock()
+	commit, changed, err := complianceTrack().CommitMessage(complianceHistoryRepo, buf.String(), caller.author(), message)
 	if err != nil {
-		log.Error("cannot record the compliance version", logkey.Error, err)
-		return JSONProblemf(c, http.StatusInternalServerError, "cannot record the compliance version")
+		return "", false, err
 	}
 	if changed {
 		a.compLog(c, "compliance.history.commit", "recorded the compliance version %(commit)s: %(subject)s",
 			map[string]any{"commit": shortCommit(commit), "subject": subject}, "", "")
 	}
-	return c.JSON(http.StatusOK, map[string]any{"commit": commit, "changed": changed})
+	return commit, changed, nil
 }
 
 // shortCommit is the abbreviated commit id git prints.
