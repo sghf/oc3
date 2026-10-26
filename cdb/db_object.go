@@ -349,32 +349,28 @@ func (oDb *DB) ObjectsPing(ctx context.Context, ids []string) (updates bool, err
 // pushes and api changes, and must not be overwritten by a stale cached value.
 func (oDb *DB) ObjectStatusUpdate(ctx context.Context, l ...*DBObject) error {
 	defer logDuration("ObjectStatusUpdate", time.Now())
-	const (
-		insertColList = "(`svc_id`,`svc_availstatus`,`svc_status`,`svc_placement`,`svc_frozen`,`svc_provisioned`,`svc_status_updated`, `updated`)"
-
-		valueList = "(?, ?, ?, ?, ?, ?, NOW(), ?)"
-
-		onDuplicateAssignment = "" +
-			"`svc_availstatus`=VALUES(`svc_availstatus`)," +
-			"`svc_status`=VALUES(`svc_status`)," +
-			"`svc_placement`=VALUES(`svc_placement`)," +
-			"`svc_frozen`=VALUES(`svc_frozen`)," +
-			"`svc_provisioned`=VALUES(`svc_provisioned`)," +
-			"`svc_status_updated`=VALUES(`svc_status_updated`)"
-	)
 	if len(l) == 0 {
 		return nil
 	}
-	placeholders := strings.Repeat(valueList+", ", len(l)-1) + valueList
-	query := fmt.Sprintf("INSERT INTO `services` %s VALUES %s ON DUPLICATE KEY UPDATE %s", insertColList, placeholders, onDuplicateAssignment)
-
-	args := make([]any, 0, 7*len(l))
-	for _, o := range l {
-		args = append(args, o.SvcID, o.AvailStatus, o.OverallStatus, o.Placement, o.Frozen, o.Provisioned, o.Updated)
+	rows := make([][]any, len(l))
+	for i, o := range l {
+		rows[i] = []any{o.SvcID, o.AvailStatus, o.OverallStatus, o.Placement, o.Frozen, o.Provisioned, o.Updated}
 	}
-	if count, err := oDb.execCountContext(ctx, query, args...); err != nil {
+	given, args := givenRows([]string{"svc_id", "svc_availstatus", "svc_status", "svc_placement", "svc_frozen", "svc_provisioned", "updated"}, rows)
+	changed, inserted, err := oDb.upsertRows(ctx, rowsUpsert{
+		table:   "services",
+		source:  "SELECT r.*, NOW() AS svc_status_updated FROM (" + given + ") r",
+		args:    args,
+		columns: []string{"svc_id", "svc_availstatus", "svc_status", "svc_placement", "svc_frozen", "svc_provisioned", "updated", "svc_status_updated"},
+		// The unique key k_svc_id.
+		match: "t.svc_id = s.svc_id",
+		update: []string{"svc_availstatus = s.svc_availstatus", "svc_status = s.svc_status", "svc_placement = s.svc_placement",
+			"svc_frozen = s.svc_frozen", "svc_provisioned = s.svc_provisioned", "svc_status_updated = s.svc_status_updated"},
+	})
+	if err != nil {
 		return err
-	} else if count > 0 {
+	}
+	if count := changed + inserted; count > 0 {
 		oDb.SetChange("services")
 		oDb.Metrics.ObjectStatusUpdate.Add(float64(count))
 	}
@@ -411,11 +407,7 @@ func (oDb *DB) ObjectUpdateLog(ctx context.Context, svcID string, avail string) 
 		) ENGINE=InnoDB AUTO_INCREMENT=665687 DEFAULT CHARSET=utf8
 	*/
 	const (
-		qGetLogLast = "SELECT `svc_availstatus`, `svc_begin` FROM `services_log_last` WHERE `svc_id` = ?"
-		qSetLogLast = "" +
-			"INSERT INTO `services_log_last` (`svc_id`, `svc_begin`, `svc_end`, `svc_availstatus`)" +
-			" VALUES (?, NOW(), NOW(), ?)" +
-			" ON DUPLICATE KEY UPDATE `svc_begin` = NOW(), `svc_end` = NOW(), `svc_availstatus` = ?"
+		qGetLogLast                                  = "SELECT `svc_availstatus`, `svc_begin` FROM `services_log_last` WHERE `svc_id` = ?"
 		qExtendIntervalOfCurrentAvail                = "UPDATE `services_log_last` SET `svc_end` = NOW() WHERE `svc_id` = ?"
 		qSaveIntervalOfPreviousAvailBeforeTransition = "" +
 			"INSERT INTO `services_log` (`svc_id`, `svc_begin`, `svc_end`, `svc_availstatus`)" +
@@ -427,7 +419,14 @@ func (oDb *DB) ObjectUpdateLog(ctx context.Context, svcID string, avail string) 
 		previousBegin time.Time
 	)
 	setLogLast := func() error {
-		_, err := oDb.ExecContext(ctx, qSetLogLast, svcID, avail, avail)
+		_, _, err := oDb.upsertRows(ctx, rowsUpsert{
+			table:   "services_log_last",
+			source:  "SELECT ? AS svc_id, NOW() AS svc_begin, NOW() AS svc_end, ? AS svc_availstatus",
+			args:    []any{svcID, avail},
+			columns: []string{"svc_id", "svc_begin", "svc_end", "svc_availstatus"},
+			match:   "t.svc_id = s.svc_id",
+			update:  []string{"svc_begin = s.svc_begin", "svc_end = s.svc_end", "svc_availstatus = s.svc_availstatus"},
+		})
 		if err != nil {
 			return fmt.Errorf("objectUpdateLog can't update services_log_last %s: %w", svcID, err)
 		}
@@ -508,23 +507,23 @@ func (oDb *DB) ObjectStatusLogLastFromObjectIDs(ctx context.Context, objectIDs .
 
 func (oDb *DB) ObjectStatusLogLastUpdate(ctx context.Context, l ...*DBObjectStatusLog) error {
 	defer logDuration("ObjectStatusLogLastUpdate", time.Now())
-	const (
-		insertColList         = "(`svc_id`, `svc_availstatus`, `svc_begin`, `svc_end`)"
-		valueList             = "(?, ?, NOW(), NOW())"
-		onDuplicateAssignment = "`svc_availstatus` = VALUES(`svc_availstatus`), `svc_begin` = VALUES(`svc_begin`), `svc_end` = VALUES(`svc_end`)"
-	)
 	if len(l) == 0 {
 		return nil
 	}
-	placeholders := strings.Repeat(valueList+", ", len(l)-1) + valueList
-
-	query := fmt.Sprintf("INSERT INTO `services_log_last` %s VALUES %s ON DUPLICATE KEY UPDATE %s", insertColList, placeholders, onDuplicateAssignment)
-	args := make([]any, 0, 2*len(l))
-	for _, v := range l {
-		args = append(args, v.SvcID, v.AvailStatus)
+	rows := make([][]any, len(l))
+	for i, v := range l {
+		rows[i] = []any{v.SvcID, v.AvailStatus}
 	}
-
-	_, err := oDb.ExecContext(ctx, query, args...)
+	given, args := givenRows([]string{"svc_id", "svc_availstatus"}, rows)
+	_, _, err := oDb.upsertRows(ctx, rowsUpsert{
+		table:   "services_log_last",
+		source:  "SELECT r.*, NOW() AS svc_begin, NOW() AS svc_end FROM (" + given + ") r",
+		args:    args,
+		columns: []string{"svc_id", "svc_availstatus", "svc_begin", "svc_end"},
+		// The unique key uk.
+		match:  "t.svc_id = s.svc_id",
+		update: []string{"svc_availstatus = s.svc_availstatus", "svc_begin = s.svc_begin", "svc_end = s.svc_end"},
+	})
 	return err
 }
 
@@ -578,18 +577,22 @@ func (oDb *DB) ObjectStatusLogUpdate(ctx context.Context, l ...*DBObjectStatusLo
 //
 // If candidate app is not valid, node app will be used (see appFromNodeAndCandidateApp)
 func (oDb *DB) insertOrUpdateObjectForNodeAndCandidateApp(ctx context.Context, objectName string, svcID, candidateApp string, node *DBNode) error {
-	const query = "" +
-		"INSERT INTO `services` (`svcname`, `cluster_id`, `svc_id`, `svc_app`, `svc_env`, `updated`)" +
-		" VALUES (?, ?, ?, ?, ?, NOW())" +
-		" ON DUPLICATE KEY UPDATE" +
-		"    `svcname` = ?, `cluster_id` = ?, `svc_app` = ?, `svc_env` = ?, `updated` = Now()"
 	app, err := oDb.AppFromNodeAndCandidateApp(ctx, candidateApp, node)
 	if err != nil {
 		return fmt.Errorf("get application from candidate %s with node_id %s: %w", candidateApp, node.NodeID, err)
 	}
-	if count, err := oDb.execCountContext(ctx, query, objectName, node.ClusterID, svcID, app, node.NodeEnv, objectName, node.ClusterID, app, node.NodeEnv); err != nil {
+	changed, inserted, err := oDb.upsertRows(ctx, rowsUpsert{
+		table:   "services",
+		source:  "SELECT ? AS svcname, ? AS cluster_id, ? AS svc_id, ? AS svc_app, ? AS svc_env, NOW() AS updated",
+		args:    []any{objectName, node.ClusterID, svcID, app, node.NodeEnv},
+		columns: []string{"svcname", "cluster_id", "svc_id", "svc_app", "svc_env", "updated"},
+		// The unique key k_svc_id.
+		match:  "t.svc_id = s.svc_id",
+		update: []string{"svcname = s.svcname", "cluster_id = s.cluster_id", "svc_app = s.svc_app", "svc_env = s.svc_env", "updated = s.updated"},
+	})
+	if err != nil {
 		return fmt.Errorf("createServiceFromObjectAndCandidateApp %s %s: %w", objectName, svcID, err)
-	} else if count > 0 {
+	} else if changed+inserted > 0 {
 		oDb.SetChange("services")
 		oDb.Metrics.ObjectConfigInsert.Inc()
 	}
@@ -599,17 +602,6 @@ func (oDb *DB) insertOrUpdateObjectForNodeAndCandidateApp(ctx context.Context, o
 // InsertOrUpdateObjectConfig will insert or update object config with svcID.
 // It also sets svc_config_updated and updated to NOW().
 func (oDb *DB) InsertOrUpdateObjectConfig(ctx context.Context, c *DBObjectConfig) (bool, error) {
-	const query = "" +
-		"INSERT INTO `services` (`svcname`, `cluster_id`, `svc_id`, `svc_nodes`, `svc_drpnode`, `svc_drpnodes`" +
-		" , `svc_app`, `svc_env`, `svc_comment`, `svc_flex_min_nodes`, `svc_flex_max_nodes`, `svc_flex_target`" +
-		" , `svc_ha`, `svc_topology`, `svc_config`, `svc_config_updated`, `updated`)" +
-		" VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,NOW(),NOW())" +
-		" ON DUPLICATE KEY UPDATE  `svcname`=VALUES(`svcname`), `cluster_id`=VALUES(`cluster_id`)" + "" +
-		"   , `svc_nodes`=VALUES(`svc_nodes`), `svc_drpnode`=VALUES(`svc_drpnode`), `svc_drpnodes`=VALUES(`svc_drpnodes`)" +
-		"   , `svc_app`=VALUES(`svc_app`), `svc_env`=VALUES(`svc_env`), `svc_comment`=VALUES(`svc_comment`)" + "" +
-		"   , `svc_flex_min_nodes`=VALUES(`svc_flex_min_nodes`), `svc_flex_max_nodes`=VALUES(`svc_flex_max_nodes`)" +
-		"   , `svc_flex_target`=VALUES(`svc_flex_target`), `svc_ha`=VALUES(`svc_ha`), `svc_topology`=VALUES(`svc_topology`), `svc_config`=VALUES(`svc_config`)" +
-		"   , `svc_config_updated`=VALUES(`svc_config_updated`), `updated`=VALUES(`updated`)"
 	var nodes, drpNode, drpNodes, app, env any
 	if c.Nodes != nil {
 		nodes = *c.Nodes
@@ -626,10 +618,29 @@ func (oDb *DB) InsertOrUpdateObjectConfig(ctx context.Context, c *DBObjectConfig
 	if c.Env != nil {
 		env = *c.Env
 	}
-	count, err := oDb.execCountContext(ctx, query, c.Name, c.ClusterID, c.SvcID, nodes, drpNode, drpNodes, app, env, c.Comment, c.FlexMin, c.FlexMax, c.FlexTarget, c.HA, c.Topology, c.Config)
+	columns := []string{"svcname", "cluster_id", "svc_id", "svc_nodes", "svc_drpnode", "svc_drpnodes",
+		"svc_app", "svc_env", "svc_comment", "svc_flex_min_nodes", "svc_flex_max_nodes", "svc_flex_target",
+		"svc_ha", "svc_topology", "svc_config"}
+	given, args := givenRows(columns, [][]any{{c.Name, c.ClusterID, c.SvcID, nodes, drpNode, drpNodes, app, env, c.Comment, c.FlexMin, c.FlexMax, c.FlexTarget, c.HA, c.Topology, c.Config}})
+	update := []string{"svc_config_updated = s.svc_config_updated", "updated = s.updated"}
+	for _, col := range columns {
+		if col != "svc_id" {
+			update = append(update, col+" = s."+col)
+		}
+	}
+	changed, inserted, err := oDb.upsertRows(ctx, rowsUpsert{
+		table:   "services",
+		source:  "SELECT r.*, NOW() AS svc_config_updated, NOW() AS updated FROM (" + given + ") r",
+		args:    args,
+		columns: append(columns, "svc_config_updated", "updated"),
+		// The unique key k_svc_id.
+		match:  "t.svc_id = s.svc_id",
+		update: update,
+	})
 	if err != nil {
 		return false, fmt.Errorf("update services config: %w", err)
 	}
+	count := changed + inserted
 	if count > 0 {
 		oDb.Metrics.ObjectConfigUpdate.Inc()
 	}

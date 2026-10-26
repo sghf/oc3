@@ -204,23 +204,23 @@ func (oDb *DB) HBLogLastFromClusterID(ctx context.Context, clusterID string) ([]
 
 func (oDb *DB) HBLogLastUpdate(ctx context.Context, l ...*DBHeartbeatLog) error {
 	defer logDuration("HBLogLastUpdate", time.Now())
-	const (
-		insertColList         = "(`cluster_id`, `node_id`, `peer_node_id`, `name`, `state`, `beating`, `begin`, `end`)"
-		valueList             = "(?, ?, ?, ?, ?, ?, NOW(), NOW())"
-		onDuplicateAssignment = "`cluster_id`= VALUES(`cluster_id`), `state` = VALUES(`state`), `beating` = VALUES(`beating`), `begin` = VALUES(`begin`), `end` = VALUES(`end`)"
-	)
 	if len(l) == 0 {
 		return nil
 	}
-	placeholders := strings.Repeat(valueList+", ", len(l)-1) + valueList
-
-	query := fmt.Sprintf("INSERT INTO `hbmon_log_last` %s VALUES %s ON DUPLICATE KEY UPDATE %s", insertColList, placeholders, onDuplicateAssignment)
-	args := make([]any, 0, 6*len(l))
-	for _, v := range l {
-		args = append(args, v.ClusterID, v.NodeID, v.PeerNodeID, v.Name, v.State, v.Beating)
+	rows := make([][]any, len(l))
+	for i, v := range l {
+		rows[i] = []any{v.ClusterID, v.NodeID, v.PeerNodeID, v.Name, v.State, v.Beating}
 	}
-
-	_, err := oDb.ExecContext(ctx, query, args...)
+	given, args := givenRows([]string{"cluster_id", "node_id", "peer_node_id", "name", "state", "beating"}, rows)
+	_, _, err := oDb.upsertRows(ctx, rowsUpsert{
+		table:   "hbmon_log_last",
+		source:  "SELECT r.*, NOW() AS `begin`, NOW() AS `end` FROM (" + given + ") r",
+		args:    args,
+		columns: []string{"cluster_id", "node_id", "peer_node_id", "name", "state", "beating", "`begin`", "`end`"},
+		// The unique key k_node_peer_name.
+		match:  "t.node_id = s.node_id AND t.peer_node_id = s.peer_node_id AND t.name = s.name",
+		update: []string{"cluster_id = s.cluster_id", "state = s.state", "beating = s.beating", "`begin` = s.`begin`", "`end` = s.`end`"},
+	})
 	return err
 }
 

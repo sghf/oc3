@@ -359,30 +359,30 @@ func (oDb *DB) SvcmonLogLastFromObjectIDs(ctx context.Context, objectIDs ...stri
 
 func (oDb *DB) SvcmonLogLastUpdate(ctx context.Context, l ...*DBInstanceStatusLog) error {
 	defer logDuration("SvcmonLogLastUpdate", time.Now())
-	const (
-		insertColList = "" +
-			"(`svc_id`, `node_id`, `mon_availstatus`, `mon_overallstatus`, `mon_syncstatus`, `mon_ipstatus`, `mon_fsstatus`," +
-			" `mon_diskstatus`, `mon_sharestatus`, `mon_containerstatus`, `mon_appstatus`, `mon_begin`, `mon_end`)"
-		valueList             = "(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, NOW(), NOW())"
-		onDuplicateAssignment = "mon_availstatus=VALUES(mon_availstatus), mon_overallstatus=VALUES(mon_overallstatus), " +
-			"mon_syncstatus=VALUES(mon_syncstatus), mon_ipstatus=VALUES(mon_ipstatus), mon_fsstatus=VALUES(mon_fsstatus), " +
-			"mon_diskstatus=VALUES(mon_diskstatus), mon_sharestatus=VALUES(mon_sharestatus), " +
-			"mon_containerstatus=VALUES(mon_containerstatus), mon_appstatus=VALUES(mon_appstatus), mon_begin=VALUES(mon_begin), " +
-			"mon_end=VALUES(mon_end)"
-	)
 	if len(l) == 0 {
 		return nil
 	}
-	placeholders := strings.Repeat(valueList+", ", len(l)-1) + valueList
-
-	query := fmt.Sprintf("INSERT INTO `svcmon_log_last` %s VALUES %s ON DUPLICATE KEY UPDATE %s", insertColList, placeholders, onDuplicateAssignment)
-	args := make([]any, 0, 12*len(l))
-	for _, v := range l {
-		args = append(args, v.SvcID, v.NodeID, v.MonAvailStatus, v.MonOverallStatus, v.MonSyncStatus, v.MonIpStatus,
-			v.MonFsStatus, v.MonDiskStatus, v.MonShareStatus, v.MonContainerStatus, v.MonAppStatus)
+	columns := []string{"svc_id", "node_id", "mon_availstatus", "mon_overallstatus", "mon_syncstatus", "mon_ipstatus", "mon_fsstatus",
+		"mon_diskstatus", "mon_sharestatus", "mon_containerstatus", "mon_appstatus"}
+	rows := make([][]any, len(l))
+	for i, v := range l {
+		rows[i] = []any{v.SvcID, v.NodeID, v.MonAvailStatus, v.MonOverallStatus, v.MonSyncStatus, v.MonIpStatus,
+			v.MonFsStatus, v.MonDiskStatus, v.MonShareStatus, v.MonContainerStatus, v.MonAppStatus}
 	}
-
-	_, err := oDb.ExecContext(ctx, query, args...)
+	given, args := givenRows(columns, rows)
+	update := []string{"mon_begin = s.mon_begin", "mon_end = s.mon_end"}
+	for _, c := range columns[2:] {
+		update = append(update, c+" = s."+c)
+	}
+	_, _, err := oDb.upsertRows(ctx, rowsUpsert{
+		table:   "svcmon_log_last",
+		source:  "SELECT r.*, NOW() AS mon_begin, NOW() AS mon_end FROM (" + given + ") r",
+		args:    args,
+		columns: append(columns, "mon_begin", "mon_end"),
+		// The unique key uk.
+		match:  "t.node_id = s.node_id AND t.svc_id = s.svc_id",
+		update: update,
+	})
 	return err
 }
 

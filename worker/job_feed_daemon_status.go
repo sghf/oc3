@@ -81,7 +81,11 @@ type (
 
 		objmonLogByObjectID   map[string]*cdb.DBObjectStatusLog
 		svcmonLogByInstanceID map[string]*cdb.DBInstanceStatusLog
-		resmonLogByResID      map[string]*cdb.DBResmonLog
+
+		// withResources are the instances, as "svc_id@node_id", having
+		// resources in resmon.
+		withResources    map[string]struct{}
+		resmonLogByResID map[string]*cdb.DBResmonLog
 
 		heartbeats []heartbeatData
 
@@ -123,6 +127,7 @@ func newDaemonStatus(nodeID string) *jobFeedDaemonStatus {
 
 		objmonLogByObjectID:   make(map[string]*cdb.DBObjectStatusLog),
 		svcmonLogByInstanceID: make(map[string]*cdb.DBInstanceStatusLog),
+		withResources:         make(map[string]struct{}),
 		resmonLogByResID:      make(map[string]*cdb.DBResmonLog),
 	}
 }
@@ -516,6 +521,13 @@ func (d *jobFeedDaemonStatus) dbFindInstances(ctx context.Context) error {
 	for nodeID := range d.byNodeID {
 		nodeIDs = append(nodeIDs, nodeID)
 	}
+	if l, err := d.oDb.ResmonInstancesFromObjectIDs(ctx, nodeIDs, objectIDs...); err != nil {
+		return fmt.Errorf("dbFindInstances ResmonInstancesFromObjectIDs: %w", err)
+	} else {
+		for _, id := range l {
+			d.withResources[id] = struct{}{}
+		}
+	}
 	if resmonLogLastL, err := d.oDb.ResmonLogLastFromObjectIDs(ctx, nodeIDs, objectIDs...); err != nil {
 		return fmt.Errorf("dbFindInstances ResmonLogLastFromObjectIDs: %w", err)
 	} else {
@@ -687,10 +699,14 @@ func (d *jobFeedDaemonStatus) dbUpdateInstances(ctx context.Context) error {
 			// timestamps renewed, as in the legacy collector: rewriting its rows
 			// at each report would consume an auto-increment value per row. One
 			// not yet recorded, or of an object with no status yet, is written
-			// in full.
+			// in full, as is one whose resources are missing from resmon
+			// (purged while the instance was absent from a report): renewing
+			// timestamps would not bring them back.
 			_, isChanged := d.changes[objectName+"@"+nodename]
 			_, isKnown := d.byInstanceID[objID+"@"+nodeID]
-			if !isChanged && isKnown && obj.AvailStatus != "undef" {
+			_, hasResources := d.withResources[objID+"@"+nodeID]
+			isComplete := hasResources || len(iStatus.resources) == 0
+			if !isChanged && isKnown && isComplete && obj.AvailStatus != "undef" {
 				objectIDsToPingByNodeID[nodeID] = append(objectIDsToPingByNodeID[nodeID], objID)
 				continue
 			}
