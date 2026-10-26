@@ -178,29 +178,15 @@ func (oDb *DB) UserPrefs(ctx context.Context, idOrEmail string, p ListParams) (s
 	return prefs.String, prefs.Valid, nil
 }
 
-// SaveUserPrefs stores the preferences document of a user, updating the existing
-// user_prefs row or inserting one.
-//
-// The select-then-write mirrors web2py's update_or_insert: user_prefs.user_id
-// carries no unique index, so ON DUPLICATE KEY cannot be relied upon. Call it on
-// a transaction-scoped *DB so the read and the write cannot interleave.
+// SaveUserPrefs writes the preferences of a user, one row per user, created at
+// the first save. One statement, the unique key uk_user_id (migration 0020)
+// deciding between the insert and the update: two first saves sent together no
+// longer both insert, the second refused by the key.
 func (oDb *DB) SaveUserPrefs(ctx context.Context, userID int64, prefs string) error {
-	const selectQuery = "SELECT id FROM user_prefs WHERE user_id = ? LIMIT 1"
-	var rowID sql.NullInt64
-	err := oDb.DB.QueryRowContext(ctx, selectQuery, userID).Scan(&rowID)
-	switch {
-	case errors.Is(err, sql.ErrNoRows):
-		const insertQuery = "INSERT INTO user_prefs (user_id, prefs) VALUES (?, ?)"
-		if _, err := oDb.DB.ExecContext(ctx, insertQuery, userID, prefs); err != nil {
-			return fmt.Errorf("saveUserPrefs insert: %w", err)
-		}
-	case err != nil:
-		return fmt.Errorf("saveUserPrefs select: %w", err)
-	default:
-		const updateQuery = "UPDATE user_prefs SET prefs = ? WHERE id = ?"
-		if _, err := oDb.DB.ExecContext(ctx, updateQuery, prefs, rowID.Int64); err != nil {
-			return fmt.Errorf("saveUserPrefs update: %w", err)
-		}
+	const query = "INSERT INTO user_prefs (user_id, prefs) VALUES (?, ?)" +
+		" ON DUPLICATE KEY UPDATE prefs = VALUES(prefs)"
+	if _, err := oDb.DB.ExecContext(ctx, query, userID, prefs); err != nil {
+		return fmt.Errorf("saveUserPrefs: %w", err)
 	}
 	oDb.SetChange("user_prefs")
 	return nil
