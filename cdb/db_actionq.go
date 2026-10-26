@@ -86,6 +86,9 @@ const (
 	ActionQTypeFeed = "feed"
 )
 
+// ActionQSetNow sets @now, which ActionQPushPullSetDequeuedToNow and
+// ActionQPushPullGetQueued read: a variable of the database session, so the
+// three are to be called on one transaction, the runner's poll.
 func (oDb *DB) ActionQSetNow(ctx context.Context) error {
 	const query = `SET @now := NOW();`
 	_, err := oDb.ExecContext(ctx, query)

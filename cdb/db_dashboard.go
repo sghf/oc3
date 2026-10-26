@@ -869,8 +869,10 @@ func (oDb *DB) DashboardUpdateInstancesNotUpdated(ctx context.Context, maxAge ti
 }
 
 func (oDb *DB) DashboardUpdateNodeMaintenanceExpired(ctx context.Context) error {
-	request := `SET @now = NOW()`
-	if _, err := oDb.ExecContext(ctx, request); err != nil {
+	// One instant for the alerts written and the purge of the others: an
+	// alert written in this run is not purged.
+	now, err := oDb.databaseNow(ctx)
+	if err != nil {
 		return err
 	}
 
@@ -881,17 +883,18 @@ func (oDb *DB) DashboardUpdateNodeMaintenanceExpired(ctx context.Context) error 
 		  1 AS dash_severity,
 		  "" AS dash_fmt,
 		  "" AS dash_dict,
-		  @now AS dash_created,
+		  ? AS dash_created,
 		  "" AS dash_dict_md5,
 		  node_env AS dash_env,
-		  @now AS dash_updated,
+		  ? AS dash_updated,
 		  node_id,
 		  NULL AS dash_instance
 		FROM nodes
 		WHERE
 		  maintenance_end IS NOT NULL AND
 		  maintenance_end != "0000-00-00 00:00:00" AND
-		  maintenance_end < @now`,
+		  maintenance_end < ?`,
+		args:    []any{now, now, now},
 		columns: positionalAlertColumns,
 		update:  []string{"dash_updated = s.dash_updated"},
 	}
@@ -901,16 +904,16 @@ func (oDb *DB) DashboardUpdateNodeMaintenanceExpired(ctx context.Context) error 
 		oDb.SetChange("dashboard")
 	}
 
-	request = `
+	request := `
 		DELETE FROM dashboard
 		WHERE
 		  dash_type="node maintenance expired" AND
 		  (
-		    dash_updated < @now or
+		    dash_updated < ? or
 		    dash_updated IS NULL
 		  )
 	`
-	if count, err := oDb.execCountContext(ctx, request); err != nil {
+	if count, err := oDb.execCountContext(ctx, request, now); err != nil {
 		return err
 	} else if count > 0 {
 		oDb.SetChange("dashboard")
@@ -919,8 +922,10 @@ func (oDb *DB) DashboardUpdateNodeMaintenanceExpired(ctx context.Context) error 
 }
 
 func (oDb *DB) DashboardUpdateNodeCloseToMaintenanceEnd(ctx context.Context) error {
-	request := `SET @now = NOW()`
-	if _, err := oDb.ExecContext(ctx, request); err != nil {
+	// One instant for the alerts written and the purge of the others: an
+	// alert written in this run is not purged.
+	now, err := oDb.databaseNow(ctx)
+	if err != nil {
 		return err
 	}
 
@@ -931,18 +936,19 @@ func (oDb *DB) DashboardUpdateNodeCloseToMaintenanceEnd(ctx context.Context) err
 		  0 AS dash_severity,
 		  "" AS dash_fmt,
 		  "" AS dash_dict,
-		  @now AS dash_created,
+		  ? AS dash_created,
 		  "" AS dash_dict_md5,
 		  node_env AS dash_env,
-		  @now AS dash_updated,
+		  ? AS dash_updated,
 		  node_id,
 		  NULL AS dash_instance
 		FROM nodes
 		WHERE
 		  maintenance_end IS NOT NULL AND
 		  maintenance_end != "0000-00-00 00:00:00" AND
-		  maintenance_end > DATE_SUB(@now, INTERVAL 30 DAY) AND
-		  maintenance_end > @now`,
+		  maintenance_end > DATE_SUB(?, INTERVAL 30 DAY) AND
+		  maintenance_end > ?`,
+		args:    []any{now, now, now, now},
 		columns: positionalAlertColumns,
 		update:  []string{"dash_updated = s.dash_updated"},
 	}
@@ -952,16 +958,16 @@ func (oDb *DB) DashboardUpdateNodeCloseToMaintenanceEnd(ctx context.Context) err
 		oDb.SetChange("dashboard")
 	}
 
-	request = `
+	request := `
 		DELETE FROM dashboard
 		WHERE
 		  dash_type="node close to maintenance end" AND
 		  (
-		    dash_updated < @now or
+		    dash_updated < ? or
 		    dash_updated IS NULL
 		  )
 	`
-	if count, err := oDb.execCountContext(ctx, request); err != nil {
+	if count, err := oDb.execCountContext(ctx, request, now); err != nil {
 		return err
 	} else if count > 0 {
 		oDb.SetChange("dashboard")
@@ -970,8 +976,10 @@ func (oDb *DB) DashboardUpdateNodeCloseToMaintenanceEnd(ctx context.Context) err
 }
 
 func (oDb *DB) DashboardUpdateNodeWithoutMaintenanceEnd(ctx context.Context) error {
-	request := `SET @now = NOW()`
-	if _, err := oDb.ExecContext(ctx, request); err != nil {
+	// One instant for the alerts written and the purge of the others: an
+	// alert written in this run is not purged.
+	now, err := oDb.databaseNow(ctx)
+	if err != nil {
 		return err
 	}
 
@@ -982,22 +990,23 @@ func (oDb *DB) DashboardUpdateNodeWithoutMaintenanceEnd(ctx context.Context) err
 		  0 AS dash_severity,
 		  "" AS dash_fmt,
 		  "" AS dash_dict,
-		  @now AS dash_created,
+		  ? AS dash_created,
 		  "" AS dash_dict_md5,
 		  node_env AS dash_env,
-		  @now AS dash_updated,
+		  ? AS dash_updated,
 		  node_id,
 		  NULL AS dash_instance
 		FROM nodes
 		WHERE
                  (warranty_end IS NULL OR
                   warranty_end = "0000-00-00 00:00:00" OR
-                  warranty_end < @now) AND
+                  warranty_end < ?) AND
                  (maintenance_end IS NULL OR
                   maintenance_end = "0000-00-00 00:00:00") AND
                  model not like "%virt%" AND
                  model not like "%Not Specified%" AND
                  model not like "%KVM%"`,
+		args:    []any{now, now, now},
 		columns: positionalAlertColumns,
 		update:  []string{"dash_updated = s.dash_updated"},
 	}
@@ -1007,16 +1016,16 @@ func (oDb *DB) DashboardUpdateNodeWithoutMaintenanceEnd(ctx context.Context) err
 		oDb.SetChange("dashboard")
 	}
 
-	request = `
+	request := `
 		DELETE FROM dashboard
 		WHERE
 		  dash_type="node without maintenance end date" AND
 		  (
-		    dash_updated < @now or
+		    dash_updated < ? or
 		    dash_updated IS NULL
 		  )
 	`
-	if count, err := oDb.execCountContext(ctx, request); err != nil {
+	if count, err := oDb.execCountContext(ctx, request, now); err != nil {
 		return err
 	} else if count > 0 {
 		oDb.SetChange("dashboard")
@@ -1087,8 +1096,9 @@ func (oDb *DB) DashboardUpdateAppWithoutResponsible(ctx context.Context) error {
 }
 
 func (oDb *DB) DashboardUpdatePkgDiffForNode(ctx context.Context, nodeID string) error {
-	request := `SET @now = NOW()`
-	_, err := oDb.ExecContext(ctx, request)
+	// One instant for the alerts written and the purge of the others: an
+	// alert written in this run is not purged.
+	now, err := oDb.databaseNow(ctx)
 	if err != nil {
 		return err
 	}
@@ -1219,10 +1229,10 @@ func (oDb *DB) DashboardUpdatePkgDiffForNode(ctx context.Context, nodeID string)
 				"%(n)s package differences in cluster %(nodes)s" AS dash_fmt,
 				? AS dash_dict,
 				? AS dash_dict_md5,
-				@now AS dash_created,
-				@now AS dash_updated,
+				? AS dash_created,
+				? AS dash_updated,
 				? AS dash_env`,
-			args:    []any{svcID, sev, dashDictJSON, dashDictMD5, monSvctype},
+			args:    []any{svcID, sev, dashDictJSON, dashDictMD5, now, now, monSvctype},
 			columns: []string{"dash_type", "svc_id", "node_id", "dash_severity", "dash_fmt", "dash_dict", "dash_dict_md5", "dash_created", "dash_updated", "dash_env"},
 			update: []string{"dash_severity = s.dash_severity", "dash_fmt = s.dash_fmt", "dash_dict = s.dash_dict",
 				"dash_dict_md5 = s.dash_dict_md5", "dash_updated = s.dash_updated", "dash_env = s.dash_env"},
@@ -1276,10 +1286,10 @@ func (oDb *DB) DashboardUpdatePkgDiffForNode(ctx context.Context, nodeID string)
 			DELETE FROM dashboard
 			WHERE svc_id IN (%s)
 			AND dash_type = "package differences in cluster"
-			AND dash_updated < @now
+			AND dash_updated < ?
 		`, Placeholders(len(svcIDs)))
 
-		_, err := oDb.ExecContext(ctx, query, svcIDs...)
+		_, err := oDb.ExecContext(ctx, query, append(svcIDs, now)...)
 		if err != nil {
 			return fmt.Errorf("failed to delete old dashboard entries: %v", err)
 		}
@@ -1302,9 +1312,11 @@ func (oDb *DB) DashboardUpdateCompModDiff(ctx context.Context) error {
 }
 
 func (oDb *DB) DashboardUpdateCompModDiffForSvc(ctx context.Context, svcID string) error {
-	_, err := oDb.ExecContext(ctx, "SET @now = NOW()")
+	// One instant for the alert written and the purge of the others: an
+	// alert written in this run is not purged.
+	now, err := oDb.databaseNow(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to set @now: %v", err)
+		return err
 	}
 
 	defer func() {
@@ -1313,8 +1325,8 @@ func (oDb *DB) DashboardUpdateCompModDiffForSvc(ctx context.Context, svcID strin
 			WHERE
 				dash_type = "compliance moduleset attachment differences in cluster" AND
 				svc_id = ? AND
-				dash_updated < @now
-		`, svcID)
+				dash_updated < ?
+		`, svcID, now)
 		if err != nil {
 			slog.Warn(fmt.Sprintf("failed to clean up old dashboard entries: %v", err))
 		}
@@ -1419,10 +1431,10 @@ func (oDb *DB) DashboardUpdateCompModDiffForSvc(ctx context.Context, svcID strin
 			'%(n)d differences in cluster %(nodes)s' AS dash_fmt,
 			? AS dash_dict,
 			? AS dash_dict_md5,
-			@now AS dash_created,
-			@now AS dash_updated,
+			? AS dash_created,
+			? AS dash_updated,
 			? AS dash_env`,
-		args:    []any{svcID, sev, dashDictJSON, dashDictMD5, monSvctype.String},
+		args:    []any{svcID, sev, dashDictJSON, dashDictMD5, now, now, monSvctype.String},
 		columns: []string{"dash_type", "svc_id", "node_id", "dash_severity", "dash_fmt", "dash_dict", "dash_dict_md5", "dash_created", "dash_updated", "dash_env"},
 		update:  []string{"dash_updated = s.dash_updated"},
 	})
@@ -1469,9 +1481,11 @@ func (oDb *DB) DashboardUpdateCompRsetDiff(ctx context.Context) error {
 }
 
 func (oDb *DB) DashboardUpdateCompRsetDiffForSvc(ctx context.Context, svcID string) error {
-	_, err := oDb.ExecContext(ctx, "SET @now = NOW()")
+	// One instant for the alert written and the purge of the others: an
+	// alert written in this run is not purged.
+	now, err := oDb.databaseNow(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to set @now: %v", err)
+		return err
 	}
 
 	defer func() {
@@ -1480,8 +1494,8 @@ func (oDb *DB) DashboardUpdateCompRsetDiffForSvc(ctx context.Context, svcID stri
 			WHERE
 				dash_type = "compliance ruleset attachment differences in cluster" AND
 				svc_id = ? AND
-				dash_updated < @now
-		`, svcID)
+				dash_updated < ?
+		`, svcID, now)
 		if err != nil {
 			slog.Warn(fmt.Sprintf("failed to clean up old dashboard entries: %v", err))
 		}
@@ -1588,10 +1602,10 @@ func (oDb *DB) DashboardUpdateCompRsetDiffForSvc(ctx context.Context, svcID stri
 			'%(n)d differences in cluster %(nodes)s' AS dash_fmt,
 			? AS dash_dict,
 			? AS dash_dict_md5,
-			@now AS dash_created,
-			@now AS dash_updated,
+			? AS dash_created,
+			? AS dash_updated,
 			? AS dash_env`,
-		args:    []any{svcID, sev, dashDictJSON, dashDictMD5, monSvctype.String},
+		args:    []any{svcID, sev, dashDictJSON, dashDictMD5, now, now, monSvctype.String},
 		columns: []string{"dash_type", "svc_id", "node_id", "dash_severity", "dash_fmt", "dash_dict", "dash_dict_md5", "dash_created", "dash_updated", "dash_env"},
 		update:  []string{"dash_updated = s.dash_updated"},
 	})

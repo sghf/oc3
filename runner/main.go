@@ -166,36 +166,64 @@ func (d *ActionDaemon) Run() error {
 
 	var nowErrorLogger, setDequeuedToNowErrorLogger, getQueuedErrorLogger dedupLog
 	pollWaitingActions := func() {
-		// define SQL @now as the time we start processing the queue
-		err := odb.ActionQSetNow(d.Ctx)
-		dbRequests.WithLabelValues("set_now").Inc()
+		// The three steps share @now, a variable of the database session: they
+		// run in one transaction, on one connection. Issued on odb, shared
+		// with the workers, each could take another connection of the pool,
+		// where @now is unset or left by an earlier poll: the actions marked
+		// would never be read, or those of an earlier poll read again.
+		tx, _, endTx, err := odb.BeginTxWithControl(d.Ctx, slog.Default(), nil)
 		if err != nil {
-			nowErrorLogger.warnf("set now: %s", err)
+			nowErrorLogger.warnf("begin transaction: %s", err)
 			dbErrors.WithLabelValues("set_now").Inc()
 			return
 		}
-		nowErrorLogger.reset()
+		lines, ok := func() ([]cdb.ActionQueueEntry, bool) {
+			// Rolls back unless committed below.
+			defer endTx()
 
-		// mark all waiting actions with type push or pull as dequeued at @now
-		err = odb.ActionQPushPullSetDequeuedToNow(d.Ctx)
-		dbRequests.WithLabelValues("set_dequeued_to_now").Inc()
-		if err != nil {
-			setDequeuedToNowErrorLogger.warnf("set dequeued to now: %s", err)
-			dbErrors.WithLabelValues("set_dequeued_to_now").Inc()
-			return
-		}
-		setDequeuedToNowErrorLogger.reset()
+			// define SQL @now as the time we start processing the queue
+			err := tx.ActionQSetNow(d.Ctx)
+			dbRequests.WithLabelValues("set_now").Inc()
+			if err != nil {
+				nowErrorLogger.warnf("set now: %s", err)
+				dbErrors.WithLabelValues("set_now").Inc()
+				return nil, false
+			}
+			nowErrorLogger.reset()
 
-		// fetch all actions with type push or pull marked as dequeued at @now
-		lines, err := odb.ActionQPushPullGetQueued(d.Ctx)
-		dbRequests.WithLabelValues("get_queued").Inc()
-		if err != nil {
-			getQueuedErrorLogger.warnf("get queued: %s", err)
-			dbErrors.WithLabelValues("get_queued").Inc()
+			// mark all waiting actions with type push or pull as dequeued at @now
+			err = tx.ActionQPushPullSetDequeuedToNow(d.Ctx)
+			dbRequests.WithLabelValues("set_dequeued_to_now").Inc()
+			if err != nil {
+				setDequeuedToNowErrorLogger.warnf("set dequeued to now: %s", err)
+				dbErrors.WithLabelValues("set_dequeued_to_now").Inc()
+				return nil, false
+			}
+			setDequeuedToNowErrorLogger.reset()
+
+			// fetch all actions with type push or pull marked as dequeued at @now
+			lines, err := tx.ActionQPushPullGetQueued(d.Ctx)
+			dbRequests.WithLabelValues("get_queued").Inc()
+			if err != nil {
+				getQueuedErrorLogger.warnf("get queued: %s", err)
+				dbErrors.WithLabelValues("get_queued").Inc()
+				return nil, false
+			}
+			getQueuedErrorLogger.reset()
+
+			// Dispatched only once the marks are committed: dispatched, then
+			// rolled back, they would be dispatched again by the next poll.
+			if err := tx.Commit(); err != nil {
+				getQueuedErrorLogger.warnf("commit: %s", err)
+				dbErrors.WithLabelValues("get_queued").Inc()
+				return nil, false
+			}
+			return lines, true
+		}()
+		if !ok {
 			return
 		}
 		queueQueued.Add(float64(len(lines)))
-		getQueuedErrorLogger.reset()
 
 		// dispatch each action push or pull to a worker
 		for _, line := range lines {

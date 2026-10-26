@@ -192,6 +192,20 @@ func (oDb *DB) Rollback() error {
 	return tx.Rollback()
 }
 
+// databaseNow returns the time of the database, to pass as a parameter to the
+// statements of a run that must share one instant. A user variable set by
+// "SET @now = NOW()" would not do: without a transaction each statement may
+// take another connection of the pool, where @now is unset or left by an
+// earlier run. Read from the database rather than taken from the clock of the
+// process, it is formatted back as it was read, whatever the time zone of the
+// connection.
+func (oDb *DB) databaseNow(ctx context.Context) (now time.Time, err error) {
+	if err = oDb.DB.QueryRowContext(ctx, "SELECT NOW()").Scan(&now); err != nil {
+		err = fmt.Errorf("databaseNow: %w", err)
+	}
+	return
+}
+
 func (oDb *DB) SetChange(s ...string) {
 	oDb.Session.SetChanges(s...)
 }
