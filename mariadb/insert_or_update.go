@@ -2,7 +2,6 @@ package mariadb
 
 import (
 	"context"
-	"database/sql"
 	"fmt"
 	"log/slog"
 	"slices"
@@ -10,9 +9,20 @@ import (
 )
 
 type (
+	// InsertOrUpdate writes rows in a table: those whose unique key matches a
+	// row of the table update it in place, the others are inserted.
+	//
+	// An INSERT ... ON DUPLICATE KEY UPDATE would consume an auto-increment
+	// value for each row given, a row only updated included: the feeds send the
+	// same rows again and again. The rows already there are updated by an
+	// UPDATE, which consumes none, then only the missing ones inserted.
 	InsertOrUpdate struct {
-		Table    string
-		Keys     []string
+		Table string
+
+		// Keys are the columns of the unique key of the table the rows are
+		// matched on, not updated.
+		Keys []string
+
 		Mappings Mappings
 		Data     any
 
@@ -20,67 +30,92 @@ type (
 		Log bool
 
 		names        []string
-		placeholders []string
+		placeholders [][]string
 		updates      []string
 		values       []any
 	}
 )
 
-func (t *InsertOrUpdate) ExecContext(ctx context.Context, db ExecContexter) (sql.Result, error) {
+// Exec writes the rows and returns the count of rows changed and of rows
+// inserted.
+func (t *InsertOrUpdate) Exec(ctx context.Context, db ExecContexter) (changed, inserted int64, err error) {
+	if len(t.Keys) == 0 {
+		return 0, 0, fmt.Errorf("insert or update %s: no unique key", t.Table)
+	}
 	if err := t.load(); err != nil {
-		return nil, err
+		return 0, 0, err
 	}
 	if len(t.values) == 0 {
-		return nil, nil
+		return 0, 0, nil
 	}
-	query := t.SQL()
-	if t.Log {
-		slog.Info(fmt.Sprintf("InsertOrUpdate.ExecContext table: %s SQL: %s VALUES:%#v", t.Table, query, t.values))
+	// The rows given, as a derived table s.
+	rows := make([]string, len(t.placeholders))
+	for i, placeholders := range t.placeholders {
+		if i == 0 {
+			named := make([]string, len(placeholders))
+			for j, placeholder := range placeholders {
+				named[j] = placeholder + " AS " + t.names[j]
+			}
+			placeholders = named
+		}
+		rows[i] = "SELECT " + strings.Join(placeholders, ", ")
 	}
-	return db.ExecContext(ctx, query, t.values...)
+	source := strings.Join(rows, " UNION ALL ")
+	// Null-safe: a key column may be NULL, which a unique key does not match.
+	match := make([]string, len(t.Keys))
+	for i, k := range t.Keys {
+		match[i] = fmt.Sprintf("t.%s <=> s.%s", k, k)
+	}
+	matchClause := strings.Join(match, " AND ")
+
+	if len(t.updates) > 0 {
+		assignments := make([]string, len(t.updates))
+		for i, c := range t.updates {
+			assignments[i] = fmt.Sprintf("t.%s = s.%s", c, c)
+		}
+		query := fmt.Sprintf("UPDATE %s t JOIN (%s) s ON %s SET %s", t.Table, source, matchClause, strings.Join(assignments, ", "))
+		if changed, err = t.exec(ctx, db, query); err != nil {
+			return 0, 0, fmt.Errorf("insert or update %s: update: %w", t.Table, err)
+		}
+	}
+
+	selected := make([]string, len(t.names))
+	for i, c := range t.names {
+		selected[i] = "s." + c
+	}
+	// A row inserted meanwhile by another writer takes the values given.
+	onDuplicate := fmt.Sprintf("%s.%s = %s.%s", t.Table, t.Keys[0], t.Table, t.Keys[0])
+	if len(t.updates) > 0 {
+		assignments := make([]string, len(t.updates))
+		for i, c := range t.updates {
+			assignments[i] = fmt.Sprintf("%s = VALUES(%s)", c, c)
+		}
+		onDuplicate = strings.Join(assignments, ", ")
+	}
+	query := fmt.Sprintf("INSERT INTO %s (%s) SELECT %s FROM (%s) s WHERE NOT EXISTS (SELECT 1 FROM %s t WHERE %s) ON DUPLICATE KEY UPDATE %s",
+		t.Table, strings.Join(t.names, ", "), strings.Join(selected, ", "), source, t.Table, matchClause, onDuplicate)
+	if inserted, err = t.exec(ctx, db, query); err != nil {
+		return 0, 0, fmt.Errorf("insert or update %s: insert: %w", t.Table, err)
+	}
+	return changed, inserted, nil
 }
 
-// ExecContextAndCountRowsAffected will ExecContext and returns the result.RowsAffected
-func (t *InsertOrUpdate) ExecContextAndCountRowsAffected(ctx context.Context, db ExecContexter) (int64, error) {
-	result, err := t.ExecContext(ctx, db)
+func (t *InsertOrUpdate) exec(ctx context.Context, db ExecContexter, query string) (int64, error) {
+	if t.Log {
+		slog.Info(fmt.Sprintf("InsertOrUpdate table: %s SQL: %s VALUES:%#v", t.Table, query, t.values))
+	}
+	result, err := db.ExecContext(ctx, query, t.values...)
 	if err != nil {
 		return 0, err
-	}
-	if result == nil {
-		// len data may be 0, so no rows affected.
-		return 0, nil
 	}
 	return result.RowsAffected()
 }
 
-func (t *InsertOrUpdate) QueryContext(ctx context.Context, db QueryContexter) (*sql.Rows, error) {
-	if err := t.load(); err != nil {
-		return nil, err
-	}
-	if len(t.values) == 0 {
-		return nil, nil
-	}
-	query := t.SQL()
-	if t.Log {
-		slog.Info(fmt.Sprintf("InsertOrUpdate.QueryContext table: %s SQL: %s VALUES:%#v", t.Table, query, t.values))
-	}
-	return db.QueryContext(ctx, query, t.values...)
-}
-
-func (t *InsertOrUpdate) SQL() string {
-	s := fmt.Sprintf(
-		"INSERT INTO %s (%s) VALUES %s",
-		t.Table,
-		strings.Join(t.names, ", "),
-		strings.Join(t.placeholders, ", "),
-	)
-	if len(t.updates) > 0 {
-		s += fmt.Sprintf(
-			" ON DUPLICATE KEY UPDATE %s",
-			strings.Join(t.updates, ", "),
-		)
-	}
-	return s
+// ExecContextAndCountRowsAffected writes the rows and returns the count of
+// rows changed or inserted.
+func (t *InsertOrUpdate) ExecContextAndCountRowsAffected(ctx context.Context, db ExecContexter) (int64, error) {
+	changed, inserted, err := t.Exec(ctx, db)
+	return changed + inserted, err
 }
 
 func (t *InsertOrUpdate) load() error {
@@ -124,7 +159,7 @@ func (t *InsertOrUpdate) loadMap(data map[string]any) error {
 		} else {
 			t.names = append(t.names, mapping.To)
 			if !slices.Contains(t.Keys, mapping.To) {
-				t.updates = append(t.updates, fmt.Sprintf("%s = VALUES(%s)", mapping.To, mapping.To))
+				t.updates = append(t.updates, mapping.To)
 			}
 			value = v
 		}
@@ -148,7 +183,7 @@ func (t *InsertOrUpdate) loadMap(data map[string]any) error {
 			t.values = append(t.values, value)
 		}
 	}
-	t.placeholders = append(t.placeholders, fmt.Sprintf("(%s)", strings.Join(placeholders, ", ")))
+	t.placeholders = append(t.placeholders, placeholders)
 	return nil
 }
 
@@ -163,7 +198,7 @@ func (t *InsertOrUpdate) loadSlice(data []any) error {
 		}
 		t.names = append(t.names, mapping.To)
 		if !slices.Contains(t.Keys, mapping.To) {
-			t.updates = append(t.updates, fmt.Sprintf("%s = VALUES(%s)", mapping.To, mapping.To))
+			t.updates = append(t.updates, mapping.To)
 		}
 	}
 
@@ -210,7 +245,7 @@ func (t *InsertOrUpdate) loadSlice(data []any) error {
 				t.values = append(t.values, value)
 			}
 		}
-		t.placeholders = append(t.placeholders, fmt.Sprintf("(%s)", strings.Join(placeholders, ", ")))
+		t.placeholders = append(t.placeholders, placeholders)
 	}
 	return nil
 }
