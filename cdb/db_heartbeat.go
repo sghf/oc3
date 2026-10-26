@@ -126,27 +126,34 @@ func (oDb *DB) hbByClusterID(ctx context.Context, clusterID string) ([]DBHeartbe
 
 func (oDb *DB) HBUpdate(ctx context.Context, l ...*DBHeartbeat) error {
 	defer logDuration("HBUpdate", time.Now())
-	const (
-		insertColList         = "(`cluster_id`, `node_id`, `peer_node_id`, `driver`, `name`, `desc`, `state`, `beating`, `last_beating`, `updated`)"
-		valueList             = "(?, ?, ?, ?, ?, ?, ?, ?, ?, NOW())"
-		onDuplicateAssignment = "`cluster_id` = VALUES(`cluster_id`),`driver`=VALUES(`driver`),`desc`=VALUES(`desc`),`state`=VALUES(`state`),`beating`=VALUES(`beating`),`last_beating`=VALUES(`last_beating`),`updated`=VALUES(`updated`)"
-	)
 	if len(l) == 0 {
 		return nil
 	}
-	placeholders := strings.Repeat(valueList+", ", len(l)-1) + valueList
-	args := make([]any, 0, 9*len(l))
-	for _, v := range l {
-		args = append(args, v.ClusterID, v.NodeID, v.PeerNodeID, v.Driver, v.Name, v.Desc, v.State, v.Beating, v.LastBeating)
+	columns := []string{"cluster_id", "node_id", "peer_node_id", "name", "driver", "`desc`", "state", "beating", "last_beating"}
+	rows := make([][]any, len(l))
+	for i, v := range l {
+		rows[i] = []any{v.ClusterID, v.NodeID, v.PeerNodeID, v.Name, v.Driver, v.Desc, v.State, v.Beating, v.LastBeating}
 	}
-
-	query := fmt.Sprintf("INSERT INTO `hbmon` %s VALUES %s ON DUPLICATE KEY UPDATE %s",
-		insertColList, placeholders, onDuplicateAssignment)
-
-	// TODO check vs v2
-	if count, err := oDb.execCountContext(ctx, query, args...); err != nil {
+	given, args := givenRows(columns, rows)
+	update := []string{"updated = s.updated"}
+	for _, c := range columns {
+		if c != "node_id" && c != "peer_node_id" && c != "name" {
+			update = append(update, c+" = s."+c)
+		}
+	}
+	changed, inserted, err := oDb.upsertRows(ctx, rowsUpsert{
+		table:   "hbmon",
+		source:  "SELECT r.*, NOW() AS updated FROM (" + given + ") r",
+		args:    args,
+		columns: append(columns, "updated"),
+		// The unique key k_node_peer_name.
+		match:  "t.node_id = s.node_id AND t.peer_node_id = s.peer_node_id AND t.name = s.name",
+		update: update,
+	})
+	if err != nil {
 		return err
-	} else if count > 0 {
+	}
+	if count := changed + inserted; count > 0 {
 		oDb.SetChange("hbmon")
 		oDb.Metrics.HbStatusUpdate.Add(float64(count))
 	}
