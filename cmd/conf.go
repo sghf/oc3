@@ -76,6 +76,9 @@ func setDefaultServerConfig() {
 	// One git repository holding the compliance export, committed at each commit
 	// of the compliance designer.
 	viper.SetDefault(s+".directories.compliance", "/oc3/uploads/compliance")
+	// The bare git repository of the compliance modules, archived for the agents
+	// (om node updatecomp).
+	viper.SetDefault(s+".directories.compliance_modules", "/oc3/uploads/compliance_modules.git")
 	// The javascript sandbox running the manglers of the form rest outputs.
 	viper.SetDefault(s+".forms.nodejs", "/usr/bin/nodejs")
 	viper.SetDefault(s+".forms.vm2", "/usr/local/bin/vm2")

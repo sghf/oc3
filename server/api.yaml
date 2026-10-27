@@ -16588,6 +16588,716 @@ paths:
         - basicAuth: [ ]
         - bearerAuth: [ ]
 
+  /compliance/modules:
+    get:
+      operationId: GetComplianceModules
+      description: |
+        List the compliance modules of the repository oc3 keeps them in, by order
+        then name: the entries of the compliance directory of the agents named
+        S<order>-<name>, an executable script or a directory holding main or
+        scripts/main. Each with the last commit that changed it.
+      tags:
+        - collector
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComplianceModuleList'
+        401:
+          $ref: '#/components/responses/401'
+        500:
+          $ref: '#/components/responses/500'
+      security:
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
+    post:
+      operationId: PostComplianceModules
+      description: |
+        Create a compliance module, S<order>-<name>, in a commit authored by the user:
+        a script (kind script, the default), one executable file starting with #!; or
+        a directory (kind directory) holding files, one of them its entry, main or
+        scripts/main, executable. The name starts with a letter, followed by letters,
+        digits and _.+- (64 at most); the order is 0 to 99999. A file holds 1 MiB at
+        most, a directory 500 files and 10 MiB. A module of that name, whatever its
+        order, is a 409, as is a change of the repository made meanwhile. Requires
+        the CompManager privilege. Logged.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ComplianceModuleCreate'
+      tags:
+        - collector
+      responses:
+        201:
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComplianceModuleDetail'
+        400:
+          $ref: '#/components/responses/400'
+        401:
+          $ref: '#/components/responses/401'
+        403:
+          $ref: '#/components/responses/403'
+        409:
+          $ref: '#/components/responses/409'
+        500:
+          $ref: '#/components/responses/500'
+      security:
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
+  /compliance/modules_import:
+    post:
+      operationId: PostComplianceModulesImport
+      description: |
+        Create a directory module from an archive, a .tar.gz or a .zip, holding its
+        files; an archive holding one directory at its root is read from inside it.
+        Only regular files are taken: a link, a device or a path out of the module
+        is refused. The rules of a directory module apply. Requires the CompManager
+        privilege. Logged.
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [name, order, archive]
+              properties:
+                name:
+                  type: string
+                order:
+                  type: integer
+                message:
+                  type: string
+                archive:
+                  type: string
+                  format: binary
+      tags:
+        - collector
+      responses:
+        201:
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComplianceModuleDetail'
+        400:
+          $ref: '#/components/responses/400'
+        401:
+          $ref: '#/components/responses/401'
+        403:
+          $ref: '#/components/responses/403'
+        409:
+          $ref: '#/components/responses/409'
+        413:
+          description: The archive is larger than 20 MiB.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        500:
+          $ref: '#/components/responses/500'
+      security:
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
+  /compliance/modules/{name}:
+    get:
+      operationId: GetComplianceModule
+      description: |
+        Display a compliance module: its files, its last 100 commits, and the
+        modulesets naming it.
+      parameters:
+        - in: path
+          name: name
+          required: true
+          description: The name of the module, without its order
+          schema:
+            type: string
+      tags:
+        - collector
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComplianceModuleDetail'
+        401:
+          $ref: '#/components/responses/401'
+        404:
+          $ref: '#/components/responses/404'
+        500:
+          $ref: '#/components/responses/500'
+      security:
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
+  /compliance/modules/{name}/file:
+    get:
+      operationId: GetComplianceModuleFile
+      description: |
+        Return the content of a file of a compliance module, the first 1 MiB of it.
+      parameters:
+        - in: path
+          name: name
+          required: true
+          description: The name of the module, without its order
+          schema:
+            type: string
+        - in: query
+          name: path
+          required: false
+          description: The path of the file in the module, as the module lists it; empty for a script module
+          schema:
+            type: string
+      tags:
+        - collector
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComplianceModuleFileContent'
+        401:
+          $ref: '#/components/responses/401'
+        404:
+          $ref: '#/components/responses/404'
+        500:
+          $ref: '#/components/responses/500'
+      security:
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
+    put:
+      operationId: PutComplianceModuleFile
+      description: |
+        Create or replace a file of a module, in a commit authored by the user: the
+        script of a script module (path empty, kept executable), or a file of a
+        directory module. base is the revision the change was made from, the last
+        commit of the module as read: the module changed since is a 412. Requires the
+        CompManager privilege. Logged.
+      parameters:
+        - in: path
+          name: name
+          required: true
+          description: The name of the module, without its order
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ComplianceModuleFileWrite'
+      tags:
+        - collector
+      responses:
+        200:
+          description: The module as changed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComplianceModuleDetail'
+        400:
+          $ref: '#/components/responses/400'
+        401:
+          $ref: '#/components/responses/401'
+        403:
+          $ref: '#/components/responses/403'
+        404:
+          $ref: '#/components/responses/404'
+        409:
+          $ref: '#/components/responses/409'
+        412:
+          description: The module changed since the revision given, base.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        500:
+          $ref: '#/components/responses/500'
+      security:
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
+    delete:
+      operationId: DeleteComplianceModuleFile
+      description: |
+        Remove a file of a directory module, in a commit authored by the user; its
+        entry cannot go. base is the revision the change was made from. Requires the
+        CompManager privilege. Logged.
+      parameters:
+        - in: path
+          name: name
+          required: true
+          description: The name of the module, without its order
+          schema:
+            type: string
+        - in: query
+          name: path
+          required: true
+          schema:
+            type: string
+        - in: query
+          name: base
+          required: true
+          description: The last commit of the module as read
+          schema:
+            type: string
+        - in: query
+          name: message
+          required: false
+          description: The message of the commit
+          schema:
+            type: string
+      tags:
+        - collector
+      responses:
+        200:
+          description: The module as changed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComplianceModuleDetail'
+        400:
+          $ref: '#/components/responses/400'
+        401:
+          $ref: '#/components/responses/401'
+        403:
+          $ref: '#/components/responses/403'
+        404:
+          $ref: '#/components/responses/404'
+        409:
+          $ref: '#/components/responses/409'
+        412:
+          description: The module changed since the revision given, base.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        500:
+          $ref: '#/components/responses/500'
+      security:
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
+  /compliance/modules/{name}/move:
+    post:
+      operationId: PostComplianceModuleMove
+      description: |
+        Rename a file of a directory module, in a commit authored by the user. base is
+        the revision the change was made from. Requires the CompManager privilege.
+        Logged.
+      parameters:
+        - in: path
+          name: name
+          required: true
+          description: The name of the module, without its order
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ComplianceModuleFileMove'
+      tags:
+        - collector
+      responses:
+        200:
+          description: The module as changed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComplianceModuleDetail'
+        400:
+          $ref: '#/components/responses/400'
+        401:
+          $ref: '#/components/responses/401'
+        403:
+          $ref: '#/components/responses/403'
+        404:
+          $ref: '#/components/responses/404'
+        409:
+          $ref: '#/components/responses/409'
+        412:
+          description: The module changed since the revision given, base.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        500:
+          $ref: '#/components/responses/500'
+      security:
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
+  /compliance/modules/{name}/convert:
+    post:
+      operationId: PostComplianceModuleConvert
+      description: |
+        Turn a script module into a directory module whose entry, scripts/main, is the
+        script, in a commit authored by the user. base is the revision the change was
+        made from. Requires the CompManager privilege. Logged.
+      parameters:
+        - in: path
+          name: name
+          required: true
+          description: The name of the module, without its order
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ComplianceModuleChange'
+      tags:
+        - collector
+      responses:
+        200:
+          description: The module as changed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComplianceModuleDetail'
+        400:
+          $ref: '#/components/responses/400'
+        401:
+          $ref: '#/components/responses/401'
+        403:
+          $ref: '#/components/responses/403'
+        404:
+          $ref: '#/components/responses/404'
+        409:
+          $ref: '#/components/responses/409'
+        412:
+          description: The module changed since the revision given, base.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        500:
+          $ref: '#/components/responses/500'
+      security:
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
+  /compliance/modules/{name}/restore:
+    post:
+      operationId: PostComplianceModuleRestore
+      description: |
+        Bring a module back to one of its versions, rev, a commit of its history: a
+        new commit authored by the user, from the revision base, the history keeping
+        every version. The rules of a module apply to the version restored. Requires
+        the CompManager privilege. Logged.
+      parameters:
+        - in: path
+          name: name
+          required: true
+          description: The name of the module, without its order
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ComplianceModuleRestore'
+      tags:
+        - collector
+      responses:
+        200:
+          description: The module as changed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComplianceModuleDetail'
+        400:
+          $ref: '#/components/responses/400'
+        401:
+          $ref: '#/components/responses/401'
+        403:
+          $ref: '#/components/responses/403'
+        404:
+          $ref: '#/components/responses/404'
+        409:
+          $ref: '#/components/responses/409'
+        412:
+          description: The module changed since the revision given, base.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        500:
+          $ref: '#/components/responses/500'
+      security:
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
+  /compliance/modules/{name}/versions/{rev}/diff:
+    get:
+      operationId: GetComplianceModuleVersionDiff
+      description: |
+        What changed in a module since one of its versions, rev, a commit of its
+        history: file by file, from rev to the current version, each with its unified
+        diff (hunks only, 256 KiB at most).
+      parameters:
+        - in: path
+          name: name
+          required: true
+          description: The name of the module, without its order
+          schema:
+            type: string
+        - in: path
+          name: rev
+          required: true
+          description: A commit of the history of the module
+          schema:
+            type: string
+      tags:
+        - collector
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComplianceModuleVersionDiff'
+        400:
+          $ref: '#/components/responses/400'
+        401:
+          $ref: '#/components/responses/401'
+        404:
+          $ref: '#/components/responses/404'
+        500:
+          $ref: '#/components/responses/500'
+      security:
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
+  /compliance/modules/{name}/rename:
+    post:
+      operationId: PostComplianceModuleRename
+      description: |
+        Give a module another name or order, its entry becoming S<order>-<name>, in a
+        commit authored by the user, from the revision base. The modulesets naming the
+        module name it under the new name. The name of another module is a 409.
+        Requires the CompManager privilege. Logged.
+      parameters:
+        - in: path
+          name: name
+          required: true
+          description: The name of the module, without its order
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ComplianceModuleRename'
+      tags:
+        - collector
+      responses:
+        200:
+          description: The module as changed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComplianceModuleDetail'
+        400:
+          $ref: '#/components/responses/400'
+        401:
+          $ref: '#/components/responses/401'
+        403:
+          $ref: '#/components/responses/403'
+        404:
+          $ref: '#/components/responses/404'
+        409:
+          $ref: '#/components/responses/409'
+        412:
+          description: The module changed since the revision given, base.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        500:
+          $ref: '#/components/responses/500'
+      security:
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
+  /compliance/modules/{name}/mode:
+    post:
+      operationId: PostComplianceModuleMode
+      description: |
+        Make a file of a directory module executable, or not, in a commit authored by
+        the user, from the revision base: a binary file, say. The entry stays
+        executable. Requires the CompManager privilege. Logged.
+      parameters:
+        - in: path
+          name: name
+          required: true
+          description: The name of the module, without its order
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ComplianceModuleFileMode'
+      tags:
+        - collector
+      responses:
+        200:
+          description: The module as changed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComplianceModuleDetail'
+        400:
+          $ref: '#/components/responses/400'
+        401:
+          $ref: '#/components/responses/401'
+        403:
+          $ref: '#/components/responses/403'
+        404:
+          $ref: '#/components/responses/404'
+        409:
+          $ref: '#/components/responses/409'
+        412:
+          description: The module changed since the revision given, base.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        500:
+          $ref: '#/components/responses/500'
+      security:
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
+  /compliance/modules/{name}/archive:
+    get:
+      operationId: GetComplianceModuleArchive
+      description: |
+        The module as a gzipped tarball rooted at its entry, S<order>-<name>: what an
+        upload replacing it takes back.
+      parameters:
+        - in: path
+          name: name
+          required: true
+          description: The name of the module, without its order
+          schema:
+            type: string
+      tags:
+        - collector
+      responses:
+        200:
+          description: The archive.
+          content:
+            application/gzip:
+              schema:
+                type: string
+                format: binary
+        401:
+          $ref: '#/components/responses/401'
+        404:
+          $ref: '#/components/responses/404'
+        500:
+          $ref: '#/components/responses/500'
+      security:
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
+    put:
+      operationId: PutComplianceModuleArchive
+      description: |
+        Replace every file of a module with those of an archive, a .tar.gz or a .zip,
+        in a commit authored by the user: a script module becomes a directory. The
+        rules of a directory module apply. base is the revision the change was made
+        from. Requires the CompManager privilege. Logged.
+      parameters:
+        - in: path
+          name: name
+          required: true
+          description: The name of the module, without its order
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required: [base, archive]
+              properties:
+                base:
+                  type: string
+                message:
+                  type: string
+                archive:
+                  type: string
+                  format: binary
+      tags:
+        - collector
+      responses:
+        200:
+          description: The module as changed.
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComplianceModuleDetail'
+        400:
+          $ref: '#/components/responses/400'
+        401:
+          $ref: '#/components/responses/401'
+        403:
+          $ref: '#/components/responses/403'
+        404:
+          $ref: '#/components/responses/404'
+        409:
+          $ref: '#/components/responses/409'
+        412:
+          description: The module changed since the revision given, base.
+          content:
+            application/problem+json:
+              schema:
+                $ref: '#/components/schemas/Problem'
+        500:
+          $ref: '#/components/responses/500'
+      security:
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
+  /compliance/modules_repo/current:
+    get:
+      operationId: GetComplianceModulesArchive
+      description: |
+        The compliance modules as the agents install them: a gzipped tarball of the
+        repository, rooted at compliance/, its files owned by root. Set node.repocomp
+        to the URL of /compliance/modules_repo for om node updatecomp to fetch it.
+        For an authenticated node, or user. 404 before the first module.
+      tags:
+        - collector
+      responses:
+        200:
+          description: The archive.
+          headers:
+            X-Compliance-Modules-Commit:
+              description: The commit of the repository archived.
+              schema:
+                type: string
+          content:
+            application/gzip:
+              schema:
+                type: string
+                format: binary
+        401:
+          $ref: '#/components/responses/401'
+        404:
+          $ref: '#/components/responses/404'
+        500:
+          $ref: '#/components/responses/500'
+      security:
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
   /compliance/modulesets:
     get:
       operationId: GetComplianceModulesets
@@ -20340,6 +21050,299 @@ components:
         modset_updated:
           type: string
 
+    ComplianceModuleCommit:
+      type: object
+      required: [id, author, date, subject]
+      properties:
+        id:
+          type: string
+        author:
+          type: string
+          description: '"Name <email>"'
+        date:
+          type: string
+          description: ISO 8601
+        subject:
+          type: string
+    ComplianceModule:
+      type: object
+      required: [name, path, order, kind, entry, runnable, issue]
+      properties:
+        name:
+          type: string
+        path:
+          type: string
+          description: The name of its entry in the compliance directory, S<order>-<name>
+        order:
+          type: integer
+        kind:
+          type: string
+          enum: [script, directory]
+          x-enum-varnames: [ComplianceModuleKindScript, ComplianceModuleKindDirectory]
+        entry:
+          type: string
+          description: The file the agent runs, relative to path; empty for a script, and for a directory holding neither main nor scripts/main
+        runnable:
+          type: boolean
+          description: Whether an agent can run it, an executable file
+        issue:
+          $ref: '#/components/schemas/ComplianceModuleIssue'
+        changed:
+          $ref: '#/components/schemas/ComplianceModuleCommit'
+    ComplianceModuleIssue:
+      type: string
+      description: |
+        Why an agent cannot run the module, empty when it can: not_executable, the
+        file to run is not; no_entry, a directory holding neither main nor
+        scripts/main; two_entries, a directory holding both, which the agents refuse
+        to choose between.
+      enum: ["", not_executable, no_entry, two_entries]
+      x-enum-varnames: [ComplianceModuleIssueNone, ComplianceModuleIssueNotExecutable, ComplianceModuleIssueNoEntry, ComplianceModuleIssueTwoEntries]
+    ComplianceModuleList:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/ComplianceModule'
+    ComplianceModuleFile:
+      type: object
+      required: [path, size, executable]
+      properties:
+        path:
+          type: string
+          description: Relative to the module, empty for a script
+        size:
+          type: integer
+          format: int64
+        executable:
+          type: boolean
+    ComplianceModuleModuleset:
+      type: object
+      required: [id, name]
+      properties:
+        id:
+          type: integer
+        name:
+          type: string
+    ComplianceModuleDetail:
+      type: object
+      required: [name, path, order, kind, entry, runnable, issue, files, history, modulesets]
+      properties:
+        name:
+          type: string
+        path:
+          type: string
+        order:
+          type: integer
+        kind:
+          type: string
+          enum: [script, directory]
+          x-enum-varnames: [ComplianceModuleDetailKindScript, ComplianceModuleDetailKindDirectory]
+        entry:
+          type: string
+        runnable:
+          type: boolean
+        issue:
+          $ref: '#/components/schemas/ComplianceModuleIssue'
+        changed:
+          $ref: '#/components/schemas/ComplianceModuleCommit'
+        files:
+          type: array
+          items:
+            $ref: '#/components/schemas/ComplianceModuleFile'
+        history:
+          type: array
+          items:
+            $ref: '#/components/schemas/ComplianceModuleCommit'
+        modulesets:
+          type: array
+          description: The modulesets naming the module, visible to the user or not
+          items:
+            $ref: '#/components/schemas/ComplianceModuleModuleset'
+    ComplianceModuleFileContent:
+      type: object
+      required: [path, content, truncated, binary]
+      properties:
+        path:
+          type: string
+        content:
+          type: string
+          description: The text of the file; empty for a binary file
+        truncated:
+          type: boolean
+          description: Cut at 1 MiB
+        binary:
+          type: boolean
+    ComplianceModuleCreate:
+      type: object
+      required: [name, order]
+      properties:
+        name:
+          type: string
+        order:
+          type: integer
+        kind:
+          type: string
+          enum: [script, directory]
+          x-enum-varnames: [ComplianceModuleCreateKindScript, ComplianceModuleCreateKindDirectory]
+          description: script by default
+        content:
+          type: string
+          description: 'The script of a script module, starting with "#!"'
+        files:
+          type: array
+          description: The files of a directory module
+          items:
+            $ref: '#/components/schemas/ComplianceModuleFileInput'
+        message:
+          type: string
+          description: The message of the commit; "add <name>" when empty
+    ComplianceModuleFileInput:
+      type: object
+      required: [path, content]
+      properties:
+        path:
+          type: string
+          description: Relative to the module
+        content:
+          type: string
+        encoding:
+          type: string
+          enum: [text, base64]
+          x-enum-varnames: [ComplianceModuleFileInputEncodingText, ComplianceModuleFileInputEncodingBase64]
+          description: text by default; base64 for a binary file
+        executable:
+          type: boolean
+    ComplianceModuleFileWrite:
+      type: object
+      required: [path, content, base]
+      properties:
+        path:
+          type: string
+          description: Relative to the module; empty for the script of a script module
+        content:
+          type: string
+        encoding:
+          type: string
+          enum: [text, base64]
+          x-enum-varnames: [ComplianceModuleFileWriteEncodingText, ComplianceModuleFileWriteEncodingBase64]
+          description: text by default; base64 for a binary file
+        executable:
+          type: boolean
+        base:
+          type: string
+          description: The last commit of the module as read
+        message:
+          type: string
+          description: The message of the commit
+    ComplianceModuleFileMove:
+      type: object
+      required: [from, to, base]
+      properties:
+        from:
+          type: string
+        to:
+          type: string
+        base:
+          type: string
+          description: The last commit of the module as read
+        message:
+          type: string
+          description: The message of the commit
+    ComplianceModuleChange:
+      type: object
+      required: [base]
+      properties:
+        base:
+          type: string
+          description: The last commit of the module as read
+        message:
+          type: string
+          description: The message of the commit
+    ComplianceModuleRename:
+      type: object
+      required: [name, order, base]
+      properties:
+        name:
+          type: string
+          description: The new name, or the same
+        order:
+          type: integer
+          description: The new order, or the same
+        base:
+          type: string
+          description: The last commit of the module as read
+        message:
+          type: string
+          description: The message of the commit
+    ComplianceModuleFileMode:
+      type: object
+      required: [path, executable, base]
+      properties:
+        path:
+          type: string
+        executable:
+          type: boolean
+        base:
+          type: string
+          description: The last commit of the module as read
+        message:
+          type: string
+          description: The message of the commit
+    ComplianceModuleRestore:
+      type: object
+      required: [rev, base]
+      properties:
+        rev:
+          type: string
+          description: The version to restore, a commit of the history of the module
+        base:
+          type: string
+          description: The last commit of the module as read
+        message:
+          type: string
+          description: The message of the commit
+    ComplianceModuleFileDiff:
+      type: object
+      required: [path, status, binary, added, deleted, diff, truncated]
+      properties:
+        path:
+          type: string
+          description: Relative to the module, empty for the script of a script module
+        status:
+          type: string
+          enum: [added, removed, modified]
+          x-enum-varnames: [ComplianceModuleFileDiffStatusAdded, ComplianceModuleFileDiffStatusRemoved, ComplianceModuleFileDiffStatusModified]
+          description: added, in the current version only; removed, in the earlier one only
+        binary:
+          type: boolean
+        was_executable:
+          type: boolean
+          description: For a file whose mode changed, executable in the earlier version
+        is_executable:
+          type: boolean
+          description: For a file whose mode changed, executable now
+        added:
+          type: integer
+        deleted:
+          type: integer
+        diff:
+          type: string
+          description: The unified diff from the earlier version to the current one, hunks only
+        truncated:
+          type: boolean
+    ComplianceModuleVersionDiff:
+      type: object
+      required: [version, files]
+      properties:
+        version:
+          $ref: '#/components/schemas/ComplianceModuleCommit'
+        files:
+          type: array
+          items:
+            $ref: '#/components/schemas/ComplianceModuleFileDiff'
     ModulesetListResponse:
       type: object
       required:

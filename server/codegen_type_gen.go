@@ -389,6 +389,141 @@ func (e ComplianceDesignerTeamRole) Valid() bool {
 	}
 }
 
+// Defines values for ComplianceModuleKind.
+const (
+	ComplianceModuleKindDirectory ComplianceModuleKind = "directory"
+	ComplianceModuleKindScript    ComplianceModuleKind = "script"
+)
+
+// Valid indicates whether the value is a known member of the ComplianceModuleKind enum.
+func (e ComplianceModuleKind) Valid() bool {
+	switch e {
+	case ComplianceModuleKindDirectory:
+		return true
+	case ComplianceModuleKindScript:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ComplianceModuleCreateKind.
+const (
+	ComplianceModuleCreateKindDirectory ComplianceModuleCreateKind = "directory"
+	ComplianceModuleCreateKindScript    ComplianceModuleCreateKind = "script"
+)
+
+// Valid indicates whether the value is a known member of the ComplianceModuleCreateKind enum.
+func (e ComplianceModuleCreateKind) Valid() bool {
+	switch e {
+	case ComplianceModuleCreateKindDirectory:
+		return true
+	case ComplianceModuleCreateKindScript:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ComplianceModuleDetailKind.
+const (
+	ComplianceModuleDetailKindDirectory ComplianceModuleDetailKind = "directory"
+	ComplianceModuleDetailKindScript    ComplianceModuleDetailKind = "script"
+)
+
+// Valid indicates whether the value is a known member of the ComplianceModuleDetailKind enum.
+func (e ComplianceModuleDetailKind) Valid() bool {
+	switch e {
+	case ComplianceModuleDetailKindDirectory:
+		return true
+	case ComplianceModuleDetailKindScript:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ComplianceModuleFileDiffStatus.
+const (
+	ComplianceModuleFileDiffStatusAdded    ComplianceModuleFileDiffStatus = "added"
+	ComplianceModuleFileDiffStatusModified ComplianceModuleFileDiffStatus = "modified"
+	ComplianceModuleFileDiffStatusRemoved  ComplianceModuleFileDiffStatus = "removed"
+)
+
+// Valid indicates whether the value is a known member of the ComplianceModuleFileDiffStatus enum.
+func (e ComplianceModuleFileDiffStatus) Valid() bool {
+	switch e {
+	case ComplianceModuleFileDiffStatusAdded:
+		return true
+	case ComplianceModuleFileDiffStatusModified:
+		return true
+	case ComplianceModuleFileDiffStatusRemoved:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ComplianceModuleFileInputEncoding.
+const (
+	ComplianceModuleFileInputEncodingBase64 ComplianceModuleFileInputEncoding = "base64"
+	ComplianceModuleFileInputEncodingText   ComplianceModuleFileInputEncoding = "text"
+)
+
+// Valid indicates whether the value is a known member of the ComplianceModuleFileInputEncoding enum.
+func (e ComplianceModuleFileInputEncoding) Valid() bool {
+	switch e {
+	case ComplianceModuleFileInputEncodingBase64:
+		return true
+	case ComplianceModuleFileInputEncodingText:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ComplianceModuleFileWriteEncoding.
+const (
+	ComplianceModuleFileWriteEncodingBase64 ComplianceModuleFileWriteEncoding = "base64"
+	ComplianceModuleFileWriteEncodingText   ComplianceModuleFileWriteEncoding = "text"
+)
+
+// Valid indicates whether the value is a known member of the ComplianceModuleFileWriteEncoding enum.
+func (e ComplianceModuleFileWriteEncoding) Valid() bool {
+	switch e {
+	case ComplianceModuleFileWriteEncodingBase64:
+		return true
+	case ComplianceModuleFileWriteEncodingText:
+		return true
+	default:
+		return false
+	}
+}
+
+// Defines values for ComplianceModuleIssue.
+const (
+	ComplianceModuleIssueNoEntry       ComplianceModuleIssue = "no_entry"
+	ComplianceModuleIssueNone          ComplianceModuleIssue = ""
+	ComplianceModuleIssueNotExecutable ComplianceModuleIssue = "not_executable"
+	ComplianceModuleIssueTwoEntries    ComplianceModuleIssue = "two_entries"
+)
+
+// Valid indicates whether the value is a known member of the ComplianceModuleIssue enum.
+func (e ComplianceModuleIssue) Valid() bool {
+	switch e {
+	case ComplianceModuleIssueNoEntry:
+		return true
+	case ComplianceModuleIssueNone:
+		return true
+	case ComplianceModuleIssueNotExecutable:
+		return true
+	case ComplianceModuleIssueTwoEntries:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for ComplianceVersionSource.
 const (
 	ComplianceVersionSourceDesigner  ComplianceVersionSource = "designer"
@@ -2892,6 +3027,251 @@ type ComplianceLogRow struct {
 	// ServicesSvcname The name of the service, joined; null for a run on the node itself.
 	ServicesSvcname *string `json:"services.svcname,omitempty"`
 	SvcId           *string `json:"svc_id,omitempty"`
+}
+
+// ComplianceModule defines model for ComplianceModule.
+type ComplianceModule struct {
+	Changed *ComplianceModuleCommit `json:"changed,omitempty"`
+
+	// Entry The file the agent runs, relative to path; empty for a script, and for a directory holding neither main nor scripts/main
+	Entry string `json:"entry"`
+
+	// Issue Why an agent cannot run the module, empty when it can: not_executable, the
+	// file to run is not; no_entry, a directory holding neither main nor
+	// scripts/main; two_entries, a directory holding both, which the agents refuse
+	// to choose between.
+	Issue ComplianceModuleIssue `json:"issue"`
+	Kind  ComplianceModuleKind  `json:"kind"`
+	Name  string                `json:"name"`
+	Order int                   `json:"order"`
+
+	// Path The name of its entry in the compliance directory, S<order>-<name>
+	Path string `json:"path"`
+
+	// Runnable Whether an agent can run it, an executable file
+	Runnable bool `json:"runnable"`
+}
+
+// ComplianceModuleKind defines model for ComplianceModule.Kind.
+type ComplianceModuleKind string
+
+// ComplianceModuleChange defines model for ComplianceModuleChange.
+type ComplianceModuleChange struct {
+	// Base The last commit of the module as read
+	Base string `json:"base"`
+
+	// Message The message of the commit
+	Message *string `json:"message,omitempty"`
+}
+
+// ComplianceModuleCommit defines model for ComplianceModuleCommit.
+type ComplianceModuleCommit struct {
+	// Author "Name <email>"
+	Author string `json:"author"`
+
+	// Date ISO 8601
+	Date    string `json:"date"`
+	Id      string `json:"id"`
+	Subject string `json:"subject"`
+}
+
+// ComplianceModuleCreate defines model for ComplianceModuleCreate.
+type ComplianceModuleCreate struct {
+	// Content The script of a script module, starting with "#!"
+	Content *string `json:"content,omitempty"`
+
+	// Files The files of a directory module
+	Files *[]ComplianceModuleFileInput `json:"files,omitempty"`
+
+	// Kind script by default
+	Kind *ComplianceModuleCreateKind `json:"kind,omitempty"`
+
+	// Message The message of the commit; "add <name>" when empty
+	Message *string `json:"message,omitempty"`
+	Name    string  `json:"name"`
+	Order   int     `json:"order"`
+}
+
+// ComplianceModuleCreateKind script by default
+type ComplianceModuleCreateKind string
+
+// ComplianceModuleDetail defines model for ComplianceModuleDetail.
+type ComplianceModuleDetail struct {
+	Changed *ComplianceModuleCommit  `json:"changed,omitempty"`
+	Entry   string                   `json:"entry"`
+	Files   []ComplianceModuleFile   `json:"files"`
+	History []ComplianceModuleCommit `json:"history"`
+
+	// Issue Why an agent cannot run the module, empty when it can: not_executable, the
+	// file to run is not; no_entry, a directory holding neither main nor
+	// scripts/main; two_entries, a directory holding both, which the agents refuse
+	// to choose between.
+	Issue ComplianceModuleIssue      `json:"issue"`
+	Kind  ComplianceModuleDetailKind `json:"kind"`
+
+	// Modulesets The modulesets naming the module, visible to the user or not
+	Modulesets []ComplianceModuleModuleset `json:"modulesets"`
+	Name       string                      `json:"name"`
+	Order      int                         `json:"order"`
+	Path       string                      `json:"path"`
+	Runnable   bool                        `json:"runnable"`
+}
+
+// ComplianceModuleDetailKind defines model for ComplianceModuleDetail.Kind.
+type ComplianceModuleDetailKind string
+
+// ComplianceModuleFile defines model for ComplianceModuleFile.
+type ComplianceModuleFile struct {
+	Executable bool `json:"executable"`
+
+	// Path Relative to the module, empty for a script
+	Path string `json:"path"`
+	Size int64  `json:"size"`
+}
+
+// ComplianceModuleFileContent defines model for ComplianceModuleFileContent.
+type ComplianceModuleFileContent struct {
+	Binary bool `json:"binary"`
+
+	// Content The text of the file; empty for a binary file
+	Content string `json:"content"`
+	Path    string `json:"path"`
+
+	// Truncated Cut at 1 MiB
+	Truncated bool `json:"truncated"`
+}
+
+// ComplianceModuleFileDiff defines model for ComplianceModuleFileDiff.
+type ComplianceModuleFileDiff struct {
+	Added   int  `json:"added"`
+	Binary  bool `json:"binary"`
+	Deleted int  `json:"deleted"`
+
+	// Diff The unified diff from the earlier version to the current one, hunks only
+	Diff string `json:"diff"`
+
+	// IsExecutable For a file whose mode changed, executable now
+	IsExecutable *bool `json:"is_executable,omitempty"`
+
+	// Path Relative to the module, empty for the script of a script module
+	Path string `json:"path"`
+
+	// Status added, in the current version only; removed, in the earlier one only
+	Status    ComplianceModuleFileDiffStatus `json:"status"`
+	Truncated bool                           `json:"truncated"`
+
+	// WasExecutable For a file whose mode changed, executable in the earlier version
+	WasExecutable *bool `json:"was_executable,omitempty"`
+}
+
+// ComplianceModuleFileDiffStatus added, in the current version only; removed, in the earlier one only
+type ComplianceModuleFileDiffStatus string
+
+// ComplianceModuleFileInput defines model for ComplianceModuleFileInput.
+type ComplianceModuleFileInput struct {
+	Content string `json:"content"`
+
+	// Encoding text by default; base64 for a binary file
+	Encoding   *ComplianceModuleFileInputEncoding `json:"encoding,omitempty"`
+	Executable *bool                              `json:"executable,omitempty"`
+
+	// Path Relative to the module
+	Path string `json:"path"`
+}
+
+// ComplianceModuleFileInputEncoding text by default; base64 for a binary file
+type ComplianceModuleFileInputEncoding string
+
+// ComplianceModuleFileMode defines model for ComplianceModuleFileMode.
+type ComplianceModuleFileMode struct {
+	// Base The last commit of the module as read
+	Base       string `json:"base"`
+	Executable bool   `json:"executable"`
+
+	// Message The message of the commit
+	Message *string `json:"message,omitempty"`
+	Path    string  `json:"path"`
+}
+
+// ComplianceModuleFileMove defines model for ComplianceModuleFileMove.
+type ComplianceModuleFileMove struct {
+	// Base The last commit of the module as read
+	Base string `json:"base"`
+	From string `json:"from"`
+
+	// Message The message of the commit
+	Message *string `json:"message,omitempty"`
+	To      string  `json:"to"`
+}
+
+// ComplianceModuleFileWrite defines model for ComplianceModuleFileWrite.
+type ComplianceModuleFileWrite struct {
+	// Base The last commit of the module as read
+	Base    string `json:"base"`
+	Content string `json:"content"`
+
+	// Encoding text by default; base64 for a binary file
+	Encoding   *ComplianceModuleFileWriteEncoding `json:"encoding,omitempty"`
+	Executable *bool                              `json:"executable,omitempty"`
+
+	// Message The message of the commit
+	Message *string `json:"message,omitempty"`
+
+	// Path Relative to the module; empty for the script of a script module
+	Path string `json:"path"`
+}
+
+// ComplianceModuleFileWriteEncoding text by default; base64 for a binary file
+type ComplianceModuleFileWriteEncoding string
+
+// ComplianceModuleIssue Why an agent cannot run the module, empty when it can: not_executable, the
+// file to run is not; no_entry, a directory holding neither main nor
+// scripts/main; two_entries, a directory holding both, which the agents refuse
+// to choose between.
+type ComplianceModuleIssue string
+
+// ComplianceModuleList defines model for ComplianceModuleList.
+type ComplianceModuleList struct {
+	Data []ComplianceModule `json:"data"`
+}
+
+// ComplianceModuleModuleset defines model for ComplianceModuleModuleset.
+type ComplianceModuleModuleset struct {
+	Id   int    `json:"id"`
+	Name string `json:"name"`
+}
+
+// ComplianceModuleRename defines model for ComplianceModuleRename.
+type ComplianceModuleRename struct {
+	// Base The last commit of the module as read
+	Base string `json:"base"`
+
+	// Message The message of the commit
+	Message *string `json:"message,omitempty"`
+
+	// Name The new name, or the same
+	Name string `json:"name"`
+
+	// Order The new order, or the same
+	Order int `json:"order"`
+}
+
+// ComplianceModuleRestore defines model for ComplianceModuleRestore.
+type ComplianceModuleRestore struct {
+	// Base The last commit of the module as read
+	Base string `json:"base"`
+
+	// Message The message of the commit
+	Message *string `json:"message,omitempty"`
+
+	// Rev The version to restore, a commit of the history of the module
+	Rev string `json:"rev"`
+}
+
+// ComplianceModuleVersionDiff defines model for ComplianceModuleVersionDiff.
+type ComplianceModuleVersionDiff struct {
+	Files   []ComplianceModuleFileDiff `json:"files"`
+	Version ComplianceModuleCommit     `json:"version"`
 }
 
 // ComplianceStatusCounts Check runs by state: ok, not ok and not applicable among the runs of the last
@@ -7098,6 +7478,38 @@ type GetComplianceLogsParams struct {
 type GetComplianceLogParams struct {
 	// Props A list of properties to include in each data dictionnary.
 	Props *InQueryProps `form:"props,omitempty" json:"props,omitempty"`
+}
+
+// PutComplianceModuleArchiveMultipartBody defines parameters for PutComplianceModuleArchive.
+type PutComplianceModuleArchiveMultipartBody struct {
+	Archive openapi_types.File `json:"archive"`
+	Base    string             `json:"base"`
+	Message *string            `json:"message,omitempty"`
+}
+
+// DeleteComplianceModuleFileParams defines parameters for DeleteComplianceModuleFile.
+type DeleteComplianceModuleFileParams struct {
+	Path string `form:"path" json:"path"`
+
+	// Base The last commit of the module as read
+	Base string `form:"base" json:"base"`
+
+	// Message The message of the commit
+	Message *string `form:"message,omitempty" json:"message,omitempty"`
+}
+
+// GetComplianceModuleFileParams defines parameters for GetComplianceModuleFile.
+type GetComplianceModuleFileParams struct {
+	// Path The path of the file in the module, as the module lists it; empty for a script module
+	Path *string `form:"path,omitempty" json:"path,omitempty"`
+}
+
+// PostComplianceModulesImportMultipartBody defines parameters for PostComplianceModulesImport.
+type PostComplianceModulesImportMultipartBody struct {
+	Archive openapi_types.File `json:"archive"`
+	Message *string            `json:"message,omitempty"`
+	Name    string             `json:"name"`
+	Order   int                `json:"order"`
 }
 
 // DeleteComplianceModulesetsJSONBody defines parameters for DeleteComplianceModulesets.
@@ -14633,6 +15045,33 @@ type PostComplianceHistoryJSONRequestBody PostComplianceHistoryJSONBody
 
 // PostComplianceImportJSONRequestBody defines body for PostComplianceImport for application/json ContentType.
 type PostComplianceImportJSONRequestBody PostComplianceImportJSONBody
+
+// PostComplianceModulesJSONRequestBody defines body for PostComplianceModules for application/json ContentType.
+type PostComplianceModulesJSONRequestBody = ComplianceModuleCreate
+
+// PutComplianceModuleArchiveMultipartRequestBody defines body for PutComplianceModuleArchive for multipart/form-data ContentType.
+type PutComplianceModuleArchiveMultipartRequestBody PutComplianceModuleArchiveMultipartBody
+
+// PostComplianceModuleConvertJSONRequestBody defines body for PostComplianceModuleConvert for application/json ContentType.
+type PostComplianceModuleConvertJSONRequestBody = ComplianceModuleChange
+
+// PutComplianceModuleFileJSONRequestBody defines body for PutComplianceModuleFile for application/json ContentType.
+type PutComplianceModuleFileJSONRequestBody = ComplianceModuleFileWrite
+
+// PostComplianceModuleModeJSONRequestBody defines body for PostComplianceModuleMode for application/json ContentType.
+type PostComplianceModuleModeJSONRequestBody = ComplianceModuleFileMode
+
+// PostComplianceModuleMoveJSONRequestBody defines body for PostComplianceModuleMove for application/json ContentType.
+type PostComplianceModuleMoveJSONRequestBody = ComplianceModuleFileMove
+
+// PostComplianceModuleRenameJSONRequestBody defines body for PostComplianceModuleRename for application/json ContentType.
+type PostComplianceModuleRenameJSONRequestBody = ComplianceModuleRename
+
+// PostComplianceModuleRestoreJSONRequestBody defines body for PostComplianceModuleRestore for application/json ContentType.
+type PostComplianceModuleRestoreJSONRequestBody = ComplianceModuleRestore
+
+// PostComplianceModulesImportMultipartRequestBody defines body for PostComplianceModulesImport for multipart/form-data ContentType.
+type PostComplianceModulesImportMultipartRequestBody PostComplianceModulesImportMultipartBody
 
 // DeleteComplianceModulesetsJSONRequestBody defines body for DeleteComplianceModulesets for application/json ContentType.
 type DeleteComplianceModulesetsJSONRequestBody DeleteComplianceModulesetsJSONBody
