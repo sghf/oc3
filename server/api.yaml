@@ -12774,7 +12774,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ListResponse'
+                $ref: '#/components/schemas/ResinfoListResponse'
         404:
           $ref: '#/components/responses/404'
         500:
@@ -25424,6 +25424,48 @@ components:
                   type: integer
         meta:
           $ref: '#/components/schemas/ListMeta'
+
+    ResinfoListResponse:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          oneOf:
+            - type: array
+              items:
+                $ref: '#/components/schemas/ResinfoRow'
+            - type: object
+              additionalProperties:
+                type: object
+                additionalProperties:
+                  type: integer
+        meta:
+          $ref: '#/components/schemas/ListMeta'
+
+    ResinfoRow:
+      type: object
+      description: |
+        A key/value pair a resource of a service declares on one of its nodes. Every
+        property is optional: the `props` query parameter selects which columns the
+        server returns.
+      properties:
+        id:
+          type: integer
+        svc_id:
+          type: string
+        node_id:
+          type: string
+        rid:
+          type: string
+        res_key:
+          type: string
+        res_value:
+          type: string
+        topology:
+          type: string
+        updated:
+          type: string
 
     AppRow:
       type: object

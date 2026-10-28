@@ -5112,6 +5112,37 @@ type ReportRow struct {
 	ReportYaml *string `json:"report_yaml,omitempty"`
 }
 
+// ResinfoListResponse defines model for ResinfoListResponse.
+type ResinfoListResponse struct {
+	Data ResinfoListResponse_Data `json:"data"`
+	Meta *ListMeta                `json:"meta,omitempty"`
+}
+
+// ResinfoListResponseData0 defines model for .
+type ResinfoListResponseData0 = []ResinfoRow
+
+// ResinfoListResponseData1 defines model for .
+type ResinfoListResponseData1 map[string]map[string]int
+
+// ResinfoListResponse_Data defines model for ResinfoListResponse.Data.
+type ResinfoListResponse_Data struct {
+	union json.RawMessage
+}
+
+// ResinfoRow A key/value pair a resource of a service declares on one of its nodes. Every
+// property is optional: the `props` query parameter selects which columns the
+// server returns.
+type ResinfoRow struct {
+	Id       *int    `json:"id,omitempty"`
+	NodeId   *string `json:"node_id,omitempty"`
+	ResKey   *string `json:"res_key,omitempty"`
+	ResValue *string `json:"res_value,omitempty"`
+	Rid      *string `json:"rid,omitempty"`
+	SvcId    *string `json:"svc_id,omitempty"`
+	Topology *string `json:"topology,omitempty"`
+	Updated  *string `json:"updated,omitempty"`
+}
+
 // ResourceListResponse defines model for ResourceListResponse.
 type ResourceListResponse struct {
 	Data ResourceListResponse_Data `json:"data"`
@@ -18080,6 +18111,68 @@ func (t ReportListResponse_Data) MarshalJSON() ([]byte, error) {
 }
 
 func (t *ReportListResponse_Data) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsResinfoListResponseData0 returns the union data inside the ResinfoListResponse_Data as a ResinfoListResponseData0
+func (t ResinfoListResponse_Data) AsResinfoListResponseData0() (ResinfoListResponseData0, error) {
+	var body ResinfoListResponseData0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromResinfoListResponseData0 overwrites any union data inside the ResinfoListResponse_Data as the provided ResinfoListResponseData0
+func (t *ResinfoListResponse_Data) FromResinfoListResponseData0(v ResinfoListResponseData0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeResinfoListResponseData0 performs a merge with any union data inside the ResinfoListResponse_Data, using the provided ResinfoListResponseData0
+func (t *ResinfoListResponse_Data) MergeResinfoListResponseData0(v ResinfoListResponseData0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsResinfoListResponseData1 returns the union data inside the ResinfoListResponse_Data as a ResinfoListResponseData1
+func (t ResinfoListResponse_Data) AsResinfoListResponseData1() (ResinfoListResponseData1, error) {
+	var body ResinfoListResponseData1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromResinfoListResponseData1 overwrites any union data inside the ResinfoListResponse_Data as the provided ResinfoListResponseData1
+func (t *ResinfoListResponse_Data) FromResinfoListResponseData1(v ResinfoListResponseData1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeResinfoListResponseData1 performs a merge with any union data inside the ResinfoListResponse_Data, using the provided ResinfoListResponseData1
+func (t *ResinfoListResponse_Data) MergeResinfoListResponseData1(v ResinfoListResponseData1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t ResinfoListResponse_Data) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *ResinfoListResponse_Data) UnmarshalJSON(b []byte) error {
 	err := t.union.UnmarshalJSON(b)
 	return err
 }
