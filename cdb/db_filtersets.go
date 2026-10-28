@@ -649,6 +649,9 @@ func (oDb *DB) GetVFiltersets(ctx context.Context, fsetID int) (l []VFilterset, 
 				v_gen_filtersets
 			WHERE
 				fset_id=?
+				-- A filterset without entries has one row of NULLs in the
+				-- view, a left join: it is not an entry.
+				AND join_id IS NOT NULL
 			ORDER BY
 				f_order, f_id
 		`
@@ -671,94 +674,16 @@ func (oDb *DB) GetVFiltersets(ctx context.Context, fsetID int) (l []VFilterset, 
 	return
 }
 
+// ResolveFilterset returns the node ids (refField "node_id") or the service
+// ids ("svc_id") a filterset selects, as filterset_encap_query_id
+// (init/models/views.py:144) computes them: its entries in f_order, the first
+// taken as is, each next one intersected (AND) or united (OR) with the result
+// so far. An encapsulated filterset is resolved as a whole, then its entry's
+// NOT takes the complement of what it selects among all the nodes or services.
+// A filterset without entries selects nothing.
 func (oDb *DB) ResolveFilterset(ctx context.Context, fsetID int, refField string) (l []string, err error) {
-	var (
-		query  string
-		args   []any
-		encap  func(VFilterset) error
-		direct func(VFilterset) error
-	)
-	direct = func(e VFilterset) error {
-		if e.FOp == nil || e.FValue == nil || e.FTable == nil || e.FField == nil {
-			return nil
-		}
-		var q, not, pre, sub string
-		switch e.FLogOp {
-		case "AND NOT", "OR NOT":
-			not = "NOT"
-		}
-		switch refField {
-		case "svc_id":
-			pre = fmt.Sprintf(`SELECT svc_id FROM services WHERE svc_id != "" AND svc_id %s IN`, not)
-			switch *e.FTable {
-			case "nodes", "node_ip", "node_hba", "packages", "patches", "diskinfo":
-				sub = fmt.Sprintf("SELECT svc_id FROM services JOIN svcmon USING (svc_id) JOIN %s USING (node_id)", *e.FTable)
-			case "apps":
-				sub = fmt.Sprintf("SELECT svc_id FROM services JOIN apps ON apps.app = services.svc_app")
-			case "services":
-				sub = fmt.Sprintf("SELECT svc_id FROM services")
-			default:
-				sub = fmt.Sprintf("SELECT svc_id FROM services JOIN %s USING (svc_id)", *e.FTable)
-			}
-		case "node_id":
-			pre = fmt.Sprintf(`SELECT node_id FROM nodes WHERE node_id != "" AND node_id %s IN`, not)
-			switch *e.FTable {
-			case "services":
-				sub = fmt.Sprintf("SELECT node_id FROM nodes JOIN svcmon USING (node_id) JOIN %s USING (svc_id)", *e.FTable)
-			case "apps":
-				sub = fmt.Sprintf("SELECT node_id FROM nodes JOIN apps ON apps.app = nodes.app")
-			case "nodes":
-				sub = fmt.Sprintf("SELECT node_id FROM nodes")
-			default:
-				sub = fmt.Sprintf("SELECT node_id FROM nodes JOIN %s USING (node_id)", *e.FTable)
-			}
-		}
-		switch *e.FOp {
-		case "=", "<=", ">=", "<", ">", "!=", "LIKE", "NOT LIKE":
-			q = fmt.Sprintf(`%s (%s WHERE %s.%s %s ?)`, pre, sub, *e.FTable, *e.FField, *e.FOp)
-			args = append(args, *e.FValue)
-		case "IN", "NOT IN":
-			values := strings.Split(*e.FValue, ",")
-			q = fmt.Sprintf(`%s (%s WHERE %s.%s %s (%s))`, pre, sub, *e.FTable, *e.FField, *e.FOp, Placeholders(len(values)))
-			for _, v := range values {
-				args = append(args, v)
-			}
-		default:
-			return fmt.Errorf("unexpected f_op: %s", *e.FOp)
-		}
-		if query == "" {
-			query += q
-			return nil
-		}
-		switch e.FLogOp {
-		case "OR NOT", "OR":
-			query = fmt.Sprintf("(%s) UNION %s", query, q)
-		case "AND NOT", "AND":
-			query = fmt.Sprintf("(%s) INTERSECT %s", query, q)
-		default:
-			return fmt.Errorf("unexpected f_log_op: %s", e.FLogOp)
-		}
-		return nil
-	}
-	encap = func(e VFilterset) error {
-		l, err := oDb.GetVFiltersets(ctx, *e.EncapFsetID)
-		if err != nil {
-			return err
-		}
-		for _, e := range l {
-			if e.EncapFsetID == nil {
-				if err := direct(e); err != nil {
-					return err
-				}
-			} else {
-				if err := encap(e); err != nil {
-					return err
-				}
-			}
-		}
-		return nil
-	}
-	if err := encap(VFilterset{FLogOp: "AND", EncapFsetID: &fsetID}); err != nil {
+	query, args, err := filtersetQuery(ctx, oDb.GetVFiltersets, fsetID, refField, map[int]bool{})
+	if err != nil {
 		return nil, err
 	}
 	slog.Debug(fmt.Sprintf("%d: %s, %v", fsetID, query, args))
@@ -782,6 +707,144 @@ func (oDb *DB) ResolveFilterset(ctx context.Context, fsetID int, refField string
 		return
 	}
 	return
+}
+
+// filtersetQuery builds the query of the ids a filterset selects, "" when it
+// has no usable entry, the entries of each filterset read by entriesOf. path
+// holds the filtersets being resolved, encapsulating this one: a filterset
+// found again in it encapsulates itself, an error.
+func filtersetQuery(ctx context.Context, entriesOf func(context.Context, int) ([]VFilterset, error), fsetID int, refField string, path map[int]bool) (string, []any, error) {
+	if path[fsetID] {
+		return "", nil, fmt.Errorf("filterset %d encapsulates itself", fsetID)
+	}
+	path[fsetID] = true
+	defer delete(path, fsetID)
+	entries, err := entriesOf(ctx, fsetID)
+	if err != nil {
+		return "", nil, err
+	}
+	var (
+		query string
+		args  []any
+	)
+	encapDone := map[int]bool{}
+	for _, e := range entries {
+		var (
+			part     string
+			partArgs []any
+		)
+		if e.EncapFsetID != nil {
+			// Once each, as the historical collector does.
+			if encapDone[*e.EncapFsetID] {
+				continue
+			}
+			encapDone[*e.EncapFsetID] = true
+			if part, partArgs, err = filtersetQuery(ctx, entriesOf, *e.EncapFsetID, refField, path); err != nil {
+				return "", nil, err
+			}
+			if part == "" {
+				part = noIDQuery(refField)
+			}
+			if negatedLogOp(e.FLogOp) {
+				part = complementQuery(refField, part)
+			}
+		} else {
+			if part, partArgs, err = filterQuery(e, refField); err != nil {
+				return "", nil, err
+			}
+			if part == "" {
+				continue
+			}
+		}
+		if query == "" {
+			query, args = part, partArgs
+			continue
+		}
+		switch e.FLogOp {
+		case "OR NOT", "OR":
+			query = fmt.Sprintf("(%s) UNION (%s)", query, part)
+		case "AND NOT", "AND":
+			query = fmt.Sprintf("(%s) INTERSECT (%s)", query, part)
+		default:
+			return "", nil, fmt.Errorf("unexpected f_log_op: %s", e.FLogOp)
+		}
+		args = append(args, partArgs...)
+	}
+	return query, args, nil
+}
+
+// filterQuery builds the query of the ids a filter entry of a filterset
+// selects, "" when the entry names no filter. Its NOT keeps the ids the filter
+// does not select.
+func filterQuery(e VFilterset, refField string) (string, []any, error) {
+	if e.FOp == nil || e.FValue == nil || e.FTable == nil || e.FField == nil {
+		return "", nil, nil
+	}
+	var not, pre, sub string
+	if negatedLogOp(e.FLogOp) {
+		not = "NOT"
+	}
+	switch refField {
+	case "svc_id":
+		pre = fmt.Sprintf(`SELECT svc_id FROM services WHERE svc_id != "" AND svc_id %s IN`, not)
+		switch *e.FTable {
+		case "nodes", "node_ip", "node_hba", "packages", "patches", "diskinfo":
+			sub = fmt.Sprintf("SELECT svc_id FROM services JOIN svcmon USING (svc_id) JOIN %s USING (node_id)", *e.FTable)
+		case "apps":
+			sub = "SELECT svc_id FROM services JOIN apps ON apps.app = services.svc_app"
+		case "services":
+			sub = "SELECT svc_id FROM services"
+		default:
+			sub = fmt.Sprintf("SELECT svc_id FROM services JOIN %s USING (svc_id)", *e.FTable)
+		}
+	case "node_id":
+		pre = fmt.Sprintf(`SELECT node_id FROM nodes WHERE node_id != "" AND node_id %s IN`, not)
+		switch *e.FTable {
+		case "services":
+			sub = fmt.Sprintf("SELECT node_id FROM nodes JOIN svcmon USING (node_id) JOIN %s USING (svc_id)", *e.FTable)
+		case "apps":
+			sub = "SELECT node_id FROM nodes JOIN apps ON apps.app = nodes.app"
+		case "nodes":
+			sub = "SELECT node_id FROM nodes"
+		default:
+			sub = fmt.Sprintf("SELECT node_id FROM nodes JOIN %s USING (node_id)", *e.FTable)
+		}
+	}
+	switch *e.FOp {
+	case "=", "<=", ">=", "<", ">", "!=", "LIKE", "NOT LIKE":
+		return fmt.Sprintf(`%s (%s WHERE %s.%s %s ?)`, pre, sub, *e.FTable, *e.FField, *e.FOp), []any{*e.FValue}, nil
+	case "IN", "NOT IN":
+		values := strings.Split(*e.FValue, ",")
+		args := make([]any, len(values))
+		for i, v := range values {
+			args[i] = v
+		}
+		return fmt.Sprintf(`%s (%s WHERE %s.%s %s (%s))`, pre, sub, *e.FTable, *e.FField, *e.FOp, Placeholders(len(values))), args, nil
+	default:
+		return "", nil, fmt.Errorf("unexpected f_op: %s", *e.FOp)
+	}
+}
+
+// negatedLogOp tells the entries whose selection is negated, "AND NOT" and
+// "OR NOT".
+func negatedLogOp(logOp string) bool {
+	return logOp == "AND NOT" || logOp == "OR NOT"
+}
+
+// noIDQuery is a query of the ids of refField selecting none.
+func noIDQuery(refField string) string {
+	if refField == "svc_id" {
+		return "SELECT svc_id FROM services WHERE 1=0"
+	}
+	return "SELECT node_id FROM nodes WHERE 1=0"
+}
+
+// complementQuery is the query of the ids of refField query does not select.
+func complementQuery(refField, query string) string {
+	if refField == "svc_id" {
+		return fmt.Sprintf(`SELECT svc_id FROM services WHERE svc_id != "" AND svc_id NOT IN (%s)`, query)
+	}
+	return fmt.Sprintf(`SELECT node_id FROM nodes WHERE node_id != "" AND node_id NOT IN (%s)`, query)
 }
 
 func (oDb *DB) ResolveFiltersets(ctx context.Context) (FiltersetIDsMap, error) {
