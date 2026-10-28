@@ -14181,6 +14181,135 @@ paths:
         - basicAuth: [ ]
         - bearerAuth: [ ]
 
+  /users/{user_id}/nodes:
+    get:
+      operationId: GetUserNodes
+      description: |
+        List the nodes the user is responsible for: those whose team_responsible
+        is one of the user's groups. The node selector of the forms
+        (__node_selector__) lists /users/self/nodes.
+        Managers and UserManager see every user's; other users only those of
+        the users sharing one of their organisational groups, and their own.
+      parameters:
+        - in: path
+          name: user_id
+          required: true
+          description: |
+            User identifier: auth_user.id, the user email when it contains an
+            "@", or "self" for the authenticated user.
+          schema:
+            type: string
+        - $ref: '#/components/parameters/inQueryProps'
+        - $ref: '#/components/parameters/inQueryLimit'
+        - $ref: '#/components/parameters/inQueryOffset'
+        - $ref: '#/components/parameters/inQueryMeta'
+        - $ref: '#/components/parameters/inQueryStats'
+        - $ref: '#/components/parameters/inQueryOrderby'
+        - $ref: '#/components/parameters/inQueryFilter'
+        - $ref: '#/components/parameters/inQueryGroupby'
+      tags:
+        - collector
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListResponse'
+        401:
+          $ref: '#/components/responses/401'
+        500:
+          $ref: '#/components/responses/500'
+      security:
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
+
+  /users/{user_id}/services:
+    get:
+      operationId: GetUserServices
+      description: |
+        List the services the user is responsible for: those of the applications
+        one of the user's groups is responsible for, each once. The service
+        selector of the forms (__service_selector__) lists /users/self/services.
+        Managers and UserManager see every user's; other users only those of
+        the users sharing one of their organisational groups, and their own.
+      parameters:
+        - in: path
+          name: user_id
+          required: true
+          description: |
+            User identifier: auth_user.id, the user email when it contains an
+            "@", or "self" for the authenticated user.
+          schema:
+            type: string
+        - $ref: '#/components/parameters/inQueryProps'
+        - $ref: '#/components/parameters/inQueryLimit'
+        - $ref: '#/components/parameters/inQueryOffset'
+        - $ref: '#/components/parameters/inQueryMeta'
+        - $ref: '#/components/parameters/inQueryStats'
+        - $ref: '#/components/parameters/inQueryOrderby'
+        - $ref: '#/components/parameters/inQueryFilter'
+        - $ref: '#/components/parameters/inQueryGroupby'
+      tags:
+        - collector
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ListResponse'
+        401:
+          $ref: '#/components/responses/401'
+        500:
+          $ref: '#/components/responses/500'
+      security:
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
+
+  /users/{user_id}/primary_group:
+    get:
+      operationId: GetUserPrimaryGroup
+      description: |
+        List the primary group of the user, none or one, as a list of groups.
+        The __user_primary_group__ default of the forms reads the role of
+        /users/self/primary_group.
+        Managers and UserManager see every user's; other users only those of
+        the users sharing one of their organisational groups, and their own.
+      parameters:
+        - in: path
+          name: user_id
+          required: true
+          description: |
+            User identifier: auth_user.id, the user email when it contains an
+            "@", or "self" for the authenticated user.
+          schema:
+            type: string
+        - $ref: '#/components/parameters/inQueryProps'
+        - $ref: '#/components/parameters/inQueryLimit'
+        - $ref: '#/components/parameters/inQueryOffset'
+        - $ref: '#/components/parameters/inQueryMeta'
+        - $ref: '#/components/parameters/inQueryStats'
+        - $ref: '#/components/parameters/inQueryOrderby'
+        - $ref: '#/components/parameters/inQueryFilter'
+        - $ref: '#/components/parameters/inQueryGroupby'
+      tags:
+        - collector
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GroupListResponse'
+        401:
+          $ref: '#/components/responses/401'
+        500:
+          $ref: '#/components/responses/500'
+      security:
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
+
   /users/{user_id}/groups/{group_id}:
     post:
       operationId: PostUserGroup
