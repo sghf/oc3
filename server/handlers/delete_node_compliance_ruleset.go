@@ -66,5 +66,6 @@ func (a *Api) detachNodeRuleset(c echo.Context, nodeId string, rsetId string) co
 		return compFailf(http.StatusInternalServerError, "cannot detach ruleset %s from node %s", rsetId, nodeId)
 	}
 
+	a.compAttachLog(c, ctx, log, "ruleset", rsetId, nodeId, "", false)
 	return compDone(fmt.Sprintf("ruleset %s detached from node %s", rsetId, nodeId))
 }

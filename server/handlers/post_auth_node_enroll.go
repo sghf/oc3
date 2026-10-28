@@ -118,6 +118,7 @@ func (a *Api) postAuthNodeEnroll(c echo.Context, log *slog.Logger, body server.P
 		return JSONProblemf(c, http.StatusBadRequest, "uuid is required to register a joining node")
 	}
 	enrollerNodeID, _ := c.Get(XNodeID).(string)
+	enroller, _ := c.Get(XNodename).(string)
 	clusterID, _ := c.Get(XClusterID).(string)
 	app, _ := c.Get(XApp).(string)
 	if clusterID == "" {
@@ -159,9 +160,13 @@ func (a *Api) postAuthNodeEnroll(c echo.Context, log *slog.Logger, body server.P
 	switch {
 	case errors.Is(err, errEnrollNotRegistered):
 		log.Info("enroll refused", "nodename", e.nodename, logkey.Error, err)
+		a.nodeRegisterLog(c, ctx, log, "warning", "node %(node)s enrollment by node %(enroller)s refused: %(reason)s", "",
+			map[string]any{"node": e.nodename, "enroller": enroller, "reason": err.Error()})
 		return JSONProblem(c, http.StatusForbidden, err.Error())
 	case errors.Is(err, errEnrollAmbiguous):
 		log.Warn("enroll refused", "nodename", e.nodename, logkey.Error, err)
+		a.nodeRegisterLog(c, ctx, log, "warning", "node %(node)s enrollment by node %(enroller)s refused: %(reason)s", "",
+			map[string]any{"node": e.nodename, "enroller": enroller, "reason": err.Error()})
 		return JSONProblem(c, http.StatusConflict, err.Error())
 	case err != nil:
 		log.Error("failed to enroll node", "nodename", e.nodename, logkey.Error, err)
@@ -171,6 +176,8 @@ func (a *Api) postAuthNodeEnroll(c echo.Context, log *slog.Logger, body server.P
 		log.Debug("enroll node can't notify changes", logkey.Error, err)
 	}
 	log.Info("node is enrolled", "nodename", e.nodename, logkey.NodeID, nodeID, "cluster_id", clusterID, "app", app)
+	a.nodeRegisterLog(c, ctx, log, "info", "node %(node)s enrolled into cluster %(cluster_id)s by node %(enroller)s", nodeID,
+		map[string]any{"node": e.nodename, "cluster_id": clusterID, "enroller": enroller})
 	return c.JSON(http.StatusOK, map[string]any{
 		"uuid": nodeUUID,
 		"info": "node is enrolled",

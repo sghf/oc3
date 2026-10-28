@@ -80,5 +80,6 @@ func (a *Api) attachNodeRuleset(c echo.Context, nodeId string, rsetId string) co
 		return compFailf(http.StatusInternalServerError, "cannot attach ruleset %s to node %s", rsetId, node.NodeID)
 	}
 
+	a.compAttachLog(c, ctx, log, "ruleset", rsetId, node.NodeID, "", true)
 	return compDone(fmt.Sprintf("ruleset %s(%s) attached", rset, rsetId))
 }

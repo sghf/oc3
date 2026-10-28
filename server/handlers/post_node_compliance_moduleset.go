@@ -73,5 +73,6 @@ func (a *Api) attachNodeModuleset(c echo.Context, nodeId string, msetId string) 
 		return compFailf(http.StatusInternalServerError, "cannot attach moduleset %s to node %s", msetId, nodeId)
 	}
 
+	a.compAttachLog(c, ctx, log, "moduleset", msetId, nodeId, "", true)
 	return compDone(fmt.Sprintf("moduleset %s attached to node %s", msetId, nodeId))
 }

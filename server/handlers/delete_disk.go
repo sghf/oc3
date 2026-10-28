@@ -6,6 +6,7 @@ import (
 
 	"github.com/labstack/echo/v4"
 
+	"github.com/opensvc/oc3/cdb"
 	"github.com/opensvc/oc3/util/echolog"
 	"github.com/opensvc/oc3/util/logkey"
 )
@@ -63,6 +64,11 @@ func (a *Api) deleteDiskByID(c echo.Context, handlerName, diskId string) error {
 		return JSONProblemf(c, http.StatusInternalServerError, "cannot delete disk")
 	}
 
+	a.auditLog(c, ctx, log, cdb.LogEntry{
+		Action: "disk.delete",
+		Fmt:    "disk %(disk_id)s of array %(disk_arrayid)s deleted",
+		Dict:   map[string]any{"disk_id": diskId, "disk_arrayid": disk.ArrayID},
+	})
 	if err := odb.Session.NotifyChanges(ctx); err != nil {
 		log.Error("cannot notify changes", logkey.Error, err)
 	}

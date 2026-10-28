@@ -82,5 +82,6 @@ func (a *Api) detachServiceRuleset(c echo.Context, svcId string, rsetId string, 
 		return compFailf(http.StatusInternalServerError, "cannot detach ruleset %s from service %s", rsetId, svc.SvcID)
 	}
 
+	a.compAttachLog(c, ctx, log, "ruleset", rsetId, "", svc.SvcID, false)
 	return compDone(fmt.Sprintf("ruleset %s detached from service %s", rsetId, svc.SvcID))
 }

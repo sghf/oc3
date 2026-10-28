@@ -82,5 +82,6 @@ func (a *Api) detachServiceModuleset(c echo.Context, svcId string, msetId string
 		return compFailf(http.StatusInternalServerError, "cannot detach moduleset %s from service %s", msetId, svc.SvcID)
 	}
 
+	a.compAttachLog(c, ctx, log, "moduleset", msetId, "", svc.SvcID, false)
 	return compDone(fmt.Sprintf("moduleset %s detached from service %s", msetId, svc.SvcID))
 }

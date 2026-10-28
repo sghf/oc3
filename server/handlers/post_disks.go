@@ -95,6 +95,15 @@ func (a *Api) PostDisks(c echo.Context) error {
 		return JSONProblemf(c, http.StatusInternalServerError, "cannot upsert disk")
 	}
 
+	// The disks an array proxy feeds are not logged, one entry per disk at each
+	// run, as the historical collector does not; a user setting one is.
+	if IsAuthByUser(c) {
+		a.auditLog(c, ctx, log, cdb.LogEntry{
+			Action: "disk.change",
+			Fmt:    "disk %(disk_id)s of array %(disk_arrayid)s set: %(data)s",
+			Dict:   map[string]any{"disk_id": body.DiskId, "disk_arrayid": body.DiskArrayid, "data": fields},
+		})
+	}
 	if err := odb.Session.NotifyChanges(ctx); err != nil {
 		log.Error("cannot notify changes", logkey.Error, err)
 	}

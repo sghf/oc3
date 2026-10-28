@@ -400,7 +400,7 @@ func TestBackchannelLogout(t *testing.T) {
 		return p.sign(c, "RS256")
 	}
 
-	a, _ := o.CreateSession(ctx, Session{UserID: 1, Issuer: p.srv.URL, Subject: "user-1", SID: "sid-1"})
+	a, _ := o.CreateSession(ctx, Session{UserID: 1, Email: "user-1@example.com", Issuer: p.srv.URL, Subject: "user-1", SID: "sid-1"})
 	b, _ := o.CreateSession(ctx, Session{UserID: 1, Issuer: p.srv.URL, Subject: "user-1", SID: "sid-2"})
 
 	for name, raw := range map[string]string{
@@ -416,8 +416,8 @@ func TestBackchannelLogout(t *testing.T) {
 	}
 
 	// By sid: only that sign-in ends.
-	if n, err := o.BackchannelLogout(ctx, logoutToken(nil)); err != nil || n != 1 {
-		t.Fatalf("by sid: %d %v", n, err)
+	if emails, err := o.BackchannelLogout(ctx, logoutToken(nil)); err != nil || len(emails) != 1 || emails[0] != "user-1@example.com" {
+		t.Fatalf("by sid: %v %v", emails, err)
 	}
 	if s, _ := o.LoadSession(ctx, a); s != nil {
 		t.Fatal("session of sid-1 still alive")
@@ -426,8 +426,8 @@ func TestBackchannelLogout(t *testing.T) {
 		t.Fatal("session of sid-2 ended by the logout of sid-1")
 	}
 	// By sub: every sign-in of the user ends.
-	if n, err := o.BackchannelLogout(ctx, logoutToken(func(c map[string]any) { delete(c, "sid") })); err != nil || n != 1 {
-		t.Fatalf("by sub: %d %v", n, err)
+	if emails, err := o.BackchannelLogout(ctx, logoutToken(func(c map[string]any) { delete(c, "sid") })); err != nil || len(emails) != 1 {
+		t.Fatalf("by sub: %v %v", emails, err)
 	}
 	if s, _ := o.LoadSession(ctx, b); s != nil {
 		t.Fatal("session of the user still alive after logout by sub")

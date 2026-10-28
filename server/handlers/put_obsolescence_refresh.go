@@ -6,6 +6,7 @@ import (
 
 	"github.com/labstack/echo/v4"
 
+	"github.com/opensvc/oc3/cdb"
 	"github.com/opensvc/oc3/util/echolog"
 	"github.com/opensvc/oc3/util/logkey"
 )
@@ -39,6 +40,10 @@ func (a *Api) PutObsolescenceRefresh(c echo.Context) error {
 		return JSONProblemf(c, http.StatusInternalServerError, "cannot refresh obsolescence settings")
 	}
 
+	a.auditLog(c, ctx, log, cdb.LogEntry{
+		Action: "obsolescence.refresh",
+		Fmt:    "obsolescence settings refreshed: os names and hardware models gathered, alerts and node dates updated",
+	})
 	if err := odb.Session.NotifyChanges(ctx); err != nil {
 		log.Error("cannot notify changes", logkey.Error, err)
 	}

@@ -62,5 +62,6 @@ func (a *Api) detachNodeModuleset(c echo.Context, nodeId string, msetId string) 
 		return compFailf(http.StatusInternalServerError, "cannot detach moduleset %s from node %s", msetId, nodeId)
 	}
 
+	a.compAttachLog(c, ctx, log, "moduleset", msetId, nodeId, "", false)
 	return compDone(fmt.Sprintf("moduleset %s detached from node %s", msetId, nodeId))
 }

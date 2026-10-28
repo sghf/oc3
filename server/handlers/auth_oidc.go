@@ -395,7 +395,8 @@ func (a *Api) PostAuthBackchannelLogout(c echo.Context) error {
 	if a.OIDC == nil {
 		return JSONProblem(c, http.StatusNotFound, "OpenID Connect sign-in is not enabled")
 	}
-	n, err := a.OIDC.BackchannelLogout(c.Request().Context(), c.FormValue("logout_token"))
+	ctx := c.Request().Context()
+	emails, err := a.OIDC.BackchannelLogout(ctx, c.FormValue("logout_token"))
 	if errors.Is(err, xauth.ErrNotReady) {
 		return JSONProblem(c, http.StatusServiceUnavailable, "the identity provider is not reachable yet")
 	}
@@ -403,7 +404,24 @@ func (a *Api) PostAuthBackchannelLogout(c echo.Context) error {
 		log.Warn("back-channel logout refused", logkey.Error, err)
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "invalid_request"})
 	}
-	log.Info("back-channel logout", "sessions", n)
+	log.Info("back-channel logout", "sessions", len(emails))
+	// Each user whose sessions the provider ended, once: signed out as by
+	// POST /auth/logout, by the provider rather than the user.
+	seen := map[string]bool{}
+	for _, email := range emails {
+		if seen[email] {
+			continue
+		}
+		seen[email] = true
+		if logErr := a.ODB.Log(ctx, cdb.LogEntry{
+			Action: "user.logout",
+			User:   email,
+			Fmt:    "signed out by the identity provider (back-channel logout)",
+			Level:  "info",
+		}); logErr != nil {
+			log.Error("cannot write audit log", logkey.Error, logErr)
+		}
+	}
 	return c.NoContent(http.StatusOK)
 }
 

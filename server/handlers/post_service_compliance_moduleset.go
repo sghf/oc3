@@ -93,5 +93,6 @@ func (a *Api) attachServiceModuleset(c echo.Context, svcId string, msetId string
 		return compFailf(http.StatusInternalServerError, "cannot attach moduleset %s to service %s", msetId, svc.SvcID)
 	}
 
+	a.compAttachLog(c, ctx, log, "moduleset", msetId, "", svc.SvcID, true)
 	return compDone(fmt.Sprintf("moduleset %s attached to service %s", msetId, svc.SvcID))
 }

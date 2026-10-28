@@ -304,20 +304,34 @@ func (o *OIDC) DeleteSession(ctx context.Context, id string) (*Session, error) {
 }
 
 // deleteIndexed ends every session an index lists.
-func (o *OIDC) deleteIndexed(ctx context.Context, index string) (int, error) {
+func (o *OIDC) deleteIndexed(ctx context.Context, index string) ([]string, error) {
 	keys, err := o.redis.SMembers(ctx, index).Result()
 	if err != nil {
-		return 0, err
+		return nil, err
 	}
-	n := 0
+	var emails []string
 	if len(keys) > 0 {
-		count, err := o.redis.Del(ctx, keys...).Result()
+		// Read before deleted, for the audit log to say whose sessions ended;
+		// a session gone meanwhile is not counted.
+		values, err := o.redis.MGet(ctx, keys...).Result()
 		if err != nil {
-			return 0, err
+			return nil, err
 		}
-		n = int(count)
+		for _, v := range values {
+			raw, ok := v.(string)
+			if !ok {
+				continue
+			}
+			var s Session
+			if json.Unmarshal([]byte(raw), &s) == nil {
+				emails = append(emails, s.Email)
+			}
+		}
+		if err := o.redis.Del(ctx, keys...).Err(); err != nil {
+			return nil, err
+		}
 	}
-	return n, o.redis.Del(ctx, index).Err()
+	return emails, o.redis.Del(ctx, index).Err()
 }
 
 // LogoutURL is the provider's end-session URL for a session (RP-initiated
@@ -348,15 +362,15 @@ const backchannelEvent = "http://schemas.openid.net/event/backchannel-logout"
 
 // BackchannelLogout verifies a logout token sent by the provider (OpenID Connect
 // Back-Channel Logout 1.0) and ends the sessions it names, by sid or else by sub.
-// It returns how many sessions ended.
-func (o *OIDC) BackchannelLogout(ctx context.Context, raw string) (int, error) {
+// It returns the email of the user of each session ended.
+func (o *OIDC) BackchannelLogout(ctx context.Context, raw string) ([]string, error) {
 	if !o.Ready() {
-		return 0, ErrNotReady
+		return nil, ErrNotReady
 	}
 	_, _, _, verifier, _ := o.verifiers()
 	token, err := verifier.Verify(ctx, raw)
 	if err != nil {
-		return 0, fmt.Errorf("logout token: %w", err)
+		return nil, fmt.Errorf("logout token: %w", err)
 	}
 	var claims struct {
 		Sub    string         `json:"sub"`
@@ -366,23 +380,23 @@ func (o *OIDC) BackchannelLogout(ctx context.Context, raw string) (int, error) {
 		Exp    *int64         `json:"exp"`
 	}
 	if err := token.Claims(&claims); err != nil {
-		return 0, fmt.Errorf("logout token claims: %w", err)
+		return nil, fmt.Errorf("logout token claims: %w", err)
 	}
 	if _, ok := claims.Events[backchannelEvent]; !ok {
-		return 0, errors.New("logout token: no back-channel logout event")
+		return nil, errors.New("logout token: no back-channel logout event")
 	}
 	if claims.Nonce != nil {
-		return 0, errors.New("logout token: a nonce is forbidden")
+		return nil, errors.New("logout token: a nonce is forbidden")
 	}
 	if claims.Sub == "" && claims.SID == "" {
-		return 0, errors.New("logout token: neither sub nor sid")
+		return nil, errors.New("logout token: neither sub nor sid")
 	}
 	now := time.Now()
 	if token.IssuedAt.IsZero() || token.IssuedAt.After(now.Add(time.Minute)) || now.Sub(token.IssuedAt) > 10*time.Minute {
-		return 0, errors.New("logout token: iat missing or not recent")
+		return nil, errors.New("logout token: iat missing or not recent")
 	}
 	if claims.Exp != nil && now.After(time.Unix(*claims.Exp, 0).Add(time.Minute)) {
-		return 0, errors.New("logout token: expired")
+		return nil, errors.New("logout token: expired")
 	}
 	if claims.SID != "" {
 		return o.deleteIndexed(ctx, hashKey("sid", token.Issuer+"\x00"+claims.SID))

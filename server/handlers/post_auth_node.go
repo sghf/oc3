@@ -160,6 +160,8 @@ func (a *Api) PostAuthNode(c echo.Context) error {
 		// Already registered: resend uuid
 		// TODO: add metrics
 		log.Debug("node is already registered", logkey.NodeID, nodeID)
+		a.nodeRegisterLog(c, ctx, log, "info", "node %(node)s registered again. resend uuid.", nodeID,
+			map[string]any{"node": nodename})
 		return c.JSON(http.StatusOK, map[string]any{
 			"uuid": authNodes[0].UUID,
 			"info": "node is already registered",
@@ -173,6 +175,8 @@ func (a *Api) PostAuthNode(c echo.Context) error {
 		}
 		// TODO: add metrics
 		log.Debug("node is registered", logkey.NodeID, nodeID)
+		a.nodeRegisterLog(c, ctx, log, "info", "node %(node)s registered", nodeID,
+			map[string]any{"node": nodename})
 		return c.JSON(http.StatusOK, map[string]any{
 			"uuid": u,
 			"info": "node is registered",
@@ -181,6 +185,8 @@ func (a *Api) PostAuthNode(c echo.Context) error {
 		// Multiple registrations: bug?
 		// TODO: add metrics
 		log.Warn("node double registration attempt", logkey.NodeID, nodeID, "nodename", nodename)
+		a.nodeRegisterLog(c, ctx, log, "warning", "node %(node)s double registration attempt", nodeID,
+			map[string]any{"node": nodename})
 		return JSONProblem(c, http.StatusConflict, "node double registration attempt")
 	}
 }

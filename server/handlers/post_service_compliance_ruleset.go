@@ -93,5 +93,6 @@ func (a *Api) attachServiceRuleset(c echo.Context, svcId string, rsetId string, 
 		return compFailf(http.StatusInternalServerError, "cannot attach ruleset %s to service %s", rsetId, svc.SvcID)
 	}
 
+	a.compAttachLog(c, ctx, log, "ruleset", rsetId, "", svc.SvcID, true)
 	return compDone(fmt.Sprintf("ruleset %s attached to service %s", rsetId, svc.SvcID))
 }

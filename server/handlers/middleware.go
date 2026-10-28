@@ -2,6 +2,7 @@ package serverhandlers
 
 import (
 	"net/http"
+	"strings"
 
 	"github.com/labstack/echo/v4"
 	"github.com/shaj13/go-guardian/v2/auth"
@@ -40,6 +41,20 @@ func AuthMiddleware(strategies union.Union) echo.MiddlewareFunc {
 			}
 
 			if err != nil {
+				// Credentials refused leave a trace in the server log, not in the
+				// audit table: a flood of them must not fill the database. A
+				// request without credentials, before a sign-in, is no attempt.
+				// The name tried is that of Basic credentials; neither a password
+				// nor a token is written.
+				if authz := c.Request().Header.Get("Authorization"); authz != "" {
+					attrs := []any{"remote", c.RealIP(), "path", c.Request().URL.Path, logkey.Error, err}
+					if user, _, ok := c.Request().BasicAuth(); ok {
+						attrs = append(attrs, "scheme", "basic", "user", user)
+					} else if scheme, _, found := strings.Cut(authz, " "); found {
+						attrs = append(attrs, "scheme", strings.ToLower(scheme))
+					}
+					echolog.GetLog(c).Warn("authentication failed", attrs...)
+				}
 				code := http.StatusUnauthorized
 				return JSONProblem(c, code, err.Error())
 			}
