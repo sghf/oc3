@@ -3938,6 +3938,12 @@ type FormConnectorTestResult struct {
 	Url string `json:"url"`
 }
 
+// FormDiffResponse defines model for FormDiffResponse.
+type FormDiffResponse struct {
+	// Data The diff, as git prints it.
+	Data string `json:"data"`
+}
+
 // FormListResponse defines model for FormListResponse.
 type FormListResponse struct {
 	Data FormListResponse_Data `json:"data"`
@@ -3956,6 +3962,46 @@ type FormListResponseData1 map[string]map[string]int
 // FormListResponse_Data defines model for FormListResponse.Data.
 type FormListResponse_Data struct {
 	union json.RawMessage
+}
+
+// FormRevision A revision of a form definition, a commit of its git history.
+type FormRevision struct {
+	Cid string `json:"cid"`
+
+	// Content "Author: Name <email>", followed for a rollback by "<br>" and the
+	// line of the commit message naming the revision restored.
+	Content *string `json:"content,omitempty"`
+
+	// Group The form id.
+	Group string `json:"group"`
+
+	// Id The commit id, as cid.
+	Id string `json:"id"`
+
+	// Start When it was committed, "YYYY-MM-DDTHH:MM:SS".
+	Start string `json:"start"`
+
+	// Stat The files the revision changed.
+	Stat []string `json:"stat"`
+
+	// Summary The stat summary line, "1 file changed, ...".
+	Summary *string `json:"summary,omitempty"`
+}
+
+// FormRevisionListResponse defines model for FormRevisionListResponse.
+type FormRevisionListResponse struct {
+	Data []FormRevision `json:"data"`
+}
+
+// FormRevisionResponse defines model for FormRevisionResponse.
+type FormRevisionResponse struct {
+	Data struct {
+		// Content The form definition at the revision, in YAML.
+		Content string `json:"content"`
+
+		// Oid The git object id of the definition, empty when none.
+		Oid string `json:"oid"`
+	} `json:"data"`
 }
 
 // FormRow A form: its definition, form_yaml, drives the inputs a submission expects

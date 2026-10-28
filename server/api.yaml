@@ -3914,6 +3914,10 @@ paths:
             application/json:
               schema:
                 type: object
+                required: [data]
+                properties:
+                  data:
+                    type: boolean
         400:
           $ref: '#/components/responses/400'
         401:
@@ -3929,7 +3933,8 @@ paths:
       operationId: GetFormDiff
       description: |
         Show the change made by a revision, or the differences between cid and
-        other when set, as git prints them.
+        other when set, as git prints them: empty when the form is not published
+        to the caller.
       parameters:
         - in: path
           name: form_id
@@ -3957,7 +3962,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
+                $ref: '#/components/schemas/FormDiffResponse'
         400:
           $ref: '#/components/responses/400'
         401:
@@ -3997,7 +4002,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ListResponse'
+                $ref: '#/components/schemas/GroupListResponse'
         400:
           $ref: '#/components/responses/400'
         401:
@@ -4037,7 +4042,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
+                $ref: '#/components/schemas/InfoResponse'
         400:
           $ref: '#/components/responses/400'
         401:
@@ -4077,7 +4082,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
+                $ref: '#/components/schemas/InfoResponse'
         400:
           $ref: '#/components/responses/400'
         401:
@@ -4121,7 +4126,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ListResponse'
+                $ref: '#/components/schemas/GroupListResponse'
         400:
           $ref: '#/components/responses/400'
         401:
@@ -4161,7 +4166,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
+                $ref: '#/components/schemas/InfoResponse'
         400:
           $ref: '#/components/responses/400'
         401:
@@ -4201,7 +4206,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
+                $ref: '#/components/schemas/InfoResponse'
         400:
           $ref: '#/components/responses/400'
         401:
@@ -4220,8 +4225,9 @@ paths:
     get:
       operationId: GetFormRevisions
       description: |
-        List the revisions of the form definition, from its git history: an empty
-        list when the form is not published to the caller.
+        List the revisions of the form definition, from its git history, the
+        newest first, 300 at most: an empty list when the form is not published
+        to the caller.
       parameters:
         - in: path
           name: form_id
@@ -4237,7 +4243,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
+                $ref: '#/components/schemas/FormRevisionListResponse'
         400:
           $ref: '#/components/responses/400'
         401:
@@ -4252,7 +4258,8 @@ paths:
     get:
       operationId: GetFormRevision
       description: |
-        Show the form definition at a revision, as {"data": {"oid", "content"}}.
+        Show the form definition at a revision: empty when the revision holds
+        none, or when the form is not published to the caller.
       parameters:
         - in: path
           name: form_id
@@ -4274,7 +4281,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
+                $ref: '#/components/schemas/FormRevisionResponse'
         400:
           $ref: '#/components/responses/400'
         401:
@@ -4289,8 +4296,9 @@ paths:
     post:
       operationId: PostFormRollback
       description: |
-        Restore the form definition of a revision, recorded as a new revision.
-        Requires the FormsManager privilege and responsibility for the form.
+        Restore the form definition of a revision, recorded as a new revision
+        and logged (form.rollback). Requires the FormsManager privilege and
+        responsibility for the form.
       parameters:
         - in: path
           name: form_id
@@ -4312,7 +4320,7 @@ paths:
           content:
             application/json:
               schema:
-                type: object
+                $ref: '#/components/schemas/InfoResponse'
         400:
           $ref: '#/components/responses/400'
         401:
@@ -25573,6 +25581,69 @@ components:
           type: array
           items:
             type: string
+
+    FormRevision:
+      type: object
+      description: |
+        A revision of a form definition, a commit of its git history.
+      required: [id, cid, start, stat, group]
+      properties:
+        id:
+          type: string
+          description: The commit id, as cid.
+        cid:
+          type: string
+        start:
+          type: string
+          description: When it was committed, "YYYY-MM-DDTHH:MM:SS".
+        content:
+          type: string
+          description: |
+            "Author: Name <email>", followed for a rollback by "<br>" and the
+            line of the commit message naming the revision restored.
+        stat:
+          type: array
+          items:
+            type: string
+          description: The files the revision changed.
+        summary:
+          type: string
+          description: The stat summary line, "1 file changed, ...".
+        group:
+          type: string
+          description: The form id.
+
+    FormRevisionListResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: '#/components/schemas/FormRevision'
+
+    FormRevisionResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: object
+          required: [oid, content]
+          properties:
+            oid:
+              type: string
+              description: The git object id of the definition, empty when none.
+            content:
+              type: string
+              description: The form definition at the revision, in YAML.
+
+    FormDiffResponse:
+      type: object
+      required: [data]
+      properties:
+        data:
+          type: string
+          description: The diff, as git prints it.
 
     InfoResponse:
       type: object

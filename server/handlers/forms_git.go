@@ -2,6 +2,7 @@ package serverhandlers
 
 import (
 	"context"
+	"fmt"
 	"log/slog"
 	"net/http"
 	"strconv"
@@ -49,7 +50,7 @@ func (a *Api) GetFormRevisions(c echo.Context, formId int) error {
 		return httpProblem(c, err)
 	}
 	if !allowed {
-		return c.JSON(http.StatusOK, []any{})
+		return c.JSON(http.StatusOK, map[string]any{"data": []git.Revision{}})
 	}
 	revisions, err := formTrack().Timeline(strconv.Itoa(formId))
 	if err != nil {
@@ -70,14 +71,14 @@ func (a *Api) GetFormRevision(c echo.Context, formId int, cid string) error {
 		return httpProblem(c, err)
 	}
 	if !allowed {
-		return c.JSON(http.StatusOK, []any{})
+		return c.JSON(http.StatusOK, map[string]any{"data": git.Blob{}})
 	}
 	blob, err := formTrack().At(strconv.Itoa(formId), cid)
 	if err != nil {
 		return httpProblem(c, httpErrorf(http.StatusNotFound, "revision %s not found", cid))
 	}
 	if blob == nil {
-		return c.JSON(http.StatusOK, map[string]any{"data": ""})
+		return c.JSON(http.StatusOK, map[string]any{"data": git.Blob{}})
 	}
 	return c.JSON(http.StatusOK, map[string]any{"data": blob})
 }
@@ -95,7 +96,7 @@ func (a *Api) GetFormDiff(c echo.Context, formId int, cid string, params server.
 		return httpProblem(c, err)
 	}
 	if !allowed {
-		return c.JSON(http.StatusOK, []any{})
+		return c.JSON(http.StatusOK, map[string]any{"data": ""})
 	}
 	var out string
 	if params.Other != nil && *params.Other != "" {
@@ -110,8 +111,8 @@ func (a *Api) GetFormDiff(c echo.Context, formId int, cid string, params server.
 }
 
 // PostFormRollback handles POST /forms/{form_id}/rollback/{cid}: restore the
-// definition of a revision, recorded as a new revision, and store it as the
-// form yaml.
+// definition of a revision, recorded as a new revision, store it as the form
+// yaml, and log it.
 func (a *Api) PostFormRollback(c echo.Context, formId int, cid string) error {
 	log := echolog.GetLogHandler(c, "PostFormRollback")
 	ctx, cancel := context.WithTimeout(c.Request().Context(), a.SyncTimeout)
@@ -143,7 +144,11 @@ func (a *Api) PostFormRollback(c echo.Context, formId int, cid string) error {
 	if err := a.ODB.UpdateForm(ctx, formID, map[string]any{"form_yaml": content}); err != nil {
 		return httpProblem(c, httpInternal(log, "cannot store the restored form", err))
 	}
+	// The historical handler logs nothing; a rollback changes the definition as
+	// an edit does, which is logged.
+	a.formLog(ctx, c, log, "form.rollback", "Form %(form_id)s rolled back to revision %(cid)s",
+		map[string]any{"form_id": strconv.Itoa(formId), "cid": cid})
 	a.formNotify(ctx, log)
-	// The historical handler returns nothing.
-	return c.JSON(http.StatusOK, nil)
+	// The historical handler returns nothing: the info says what was done.
+	return c.JSON(http.StatusOK, map[string]string{"info": fmt.Sprintf("form %d rolled back to %s", formId, cid)})
 }
