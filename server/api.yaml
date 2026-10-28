@@ -1130,7 +1130,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ListResponse'
+                $ref: '#/components/schemas/QuotaListResponse'
         404:
           $ref: '#/components/responses/404'
         500:
@@ -1437,7 +1437,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ListResponse'
+                $ref: '#/components/schemas/ArrayListResponse'
         500:
           $ref: '#/components/responses/500'
       security:
@@ -1494,6 +1494,242 @@ paths:
         - basicAuth: [ ]
         - bearerAuth: [ ]
 
+  /quotas:
+    get:
+      operationId: GetQuotas
+      description: |
+        List the quotas of the application codes in the disk groups of the
+        storage arrays, in MB, with the sizes of the disk groups and the space
+        each application uses there, from the v_disk_quota view.
+        A Manager or a StorageManager sees every quota, another user those of the
+        application codes one of their groups is responsible for.
+      parameters:
+        - $ref: '#/components/parameters/inQueryProps'
+        - $ref: '#/components/parameters/inQueryLimit'
+        - $ref: '#/components/parameters/inQueryOffset'
+        - $ref: '#/components/parameters/inQueryMeta'
+        - $ref: '#/components/parameters/inQueryStats'
+        - $ref: '#/components/parameters/inQueryOrderby'
+        - $ref: '#/components/parameters/inQueryGroupby'
+        - $ref: '#/components/parameters/inQueryFilter'
+      tags:
+        - collector
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuotaListResponse'
+        401:
+          $ref: '#/components/responses/401'
+        500:
+          $ref: '#/components/responses/500'
+      security:
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
+
+  /arrays/{array_id}/diskgroups/{dg_id}/quotas:
+    get:
+      operationId: GetArrayDiskgroupQuotas
+      description: |
+        List the quotas of a disk group of a storage array.
+        A Manager or a StorageManager sees every quota, another user those of the
+        application codes one of their groups is responsible for.
+      parameters:
+        - in: path
+          name: array_id
+          required: true
+          description: Storage array id or name
+          schema:
+            type: string
+        - in: path
+          name: dg_id
+          required: true
+          description: Disk group id
+          schema:
+            type: integer
+            format: int64
+        - $ref: '#/components/parameters/inQueryProps'
+        - $ref: '#/components/parameters/inQueryLimit'
+        - $ref: '#/components/parameters/inQueryOffset'
+        - $ref: '#/components/parameters/inQueryMeta'
+        - $ref: '#/components/parameters/inQueryStats'
+        - $ref: '#/components/parameters/inQueryOrderby'
+        - $ref: '#/components/parameters/inQueryGroupby'
+        - $ref: '#/components/parameters/inQueryFilter'
+      tags:
+        - collector
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuotaListResponse'
+        401:
+          $ref: '#/components/responses/401'
+        500:
+          $ref: '#/components/responses/500'
+      security:
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
+    post:
+      operationId: PostArrayDiskgroupQuotas
+      description: |
+        Give an application code, by app_id or app, a quota in a disk group, or
+        change the one it has. Requires the StorageManager privilege. Logged
+        (quota.add, quota.change); the space reserved in the disk group becomes
+        the sum of its quotas.
+      parameters:
+        - in: path
+          name: array_id
+          required: true
+          description: Storage array id or name
+          schema:
+            type: string
+        - in: path
+          name: dg_id
+          required: true
+          description: Disk group id
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QuotaInput'
+      tags:
+        - collector
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuotaChangeResponse'
+        400:
+          $ref: '#/components/responses/400'
+        401:
+          $ref: '#/components/responses/401'
+        403:
+          $ref: '#/components/responses/403'
+        404:
+          $ref: '#/components/responses/404'
+        500:
+          $ref: '#/components/responses/500'
+      security:
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
+
+  /arrays/{array_id}/diskgroups/{dg_id}/quotas/{quota_id}:
+    post:
+      operationId: PostArrayDiskgroupQuota
+      description: |
+        Change a quota: its size, or the application code it is for. Requires
+        the StorageManager privilege. Logged (quota.change); the space reserved
+        in the disk group becomes the sum of its quotas.
+      parameters:
+        - in: path
+          name: array_id
+          required: true
+          description: Storage array id or name
+          schema:
+            type: string
+        - in: path
+          name: dg_id
+          required: true
+          description: Disk group id
+          schema:
+            type: integer
+            format: int64
+        - in: path
+          name: quota_id
+          required: true
+          description: Quota id
+          schema:
+            type: integer
+            format: int64
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/QuotaInput'
+      tags:
+        - collector
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuotaChangeResponse'
+        400:
+          $ref: '#/components/responses/400'
+        401:
+          $ref: '#/components/responses/401'
+        403:
+          $ref: '#/components/responses/403'
+        404:
+          $ref: '#/components/responses/404'
+        500:
+          $ref: '#/components/responses/500'
+      security:
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
+    delete:
+      operationId: DeleteArrayDiskgroupQuota
+      description: |
+        Delete a quota. Requires the StorageManager privilege. Logged
+        (quota.del); the space reserved in the disk group becomes the sum of its
+        quotas.
+      parameters:
+        - in: path
+          name: array_id
+          required: true
+          description: Storage array id or name
+          schema:
+            type: string
+        - in: path
+          name: dg_id
+          required: true
+          description: Disk group id
+          schema:
+            type: integer
+            format: int64
+        - in: path
+          name: quota_id
+          required: true
+          description: Quota id
+          schema:
+            type: integer
+            format: int64
+      tags:
+        - collector
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/QuotaChangeResponse'
+        400:
+          $ref: '#/components/responses/400'
+        401:
+          $ref: '#/components/responses/401'
+        403:
+          $ref: '#/components/responses/403'
+        404:
+          $ref: '#/components/responses/404'
+        500:
+          $ref: '#/components/responses/500'
+      security:
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
+
   /arrays/{array_id}/diskgroups:
     get:
       operationId: GetArrayDiskgroups
@@ -1526,7 +1762,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ListResponse'
+                $ref: '#/components/schemas/DiskGroupListResponse'
         400:
           $ref: '#/components/responses/400'
         401:
@@ -25650,6 +25886,176 @@ components:
         data:
           type: string
           description: The diff, as git prints it.
+
+    QuotaRow:
+      type: object
+      description: |
+        A quota of an application code in a disk group of a storage array, a
+        row of v_disk_quota. Sizes are in MB; dg_reservable is dg_size less
+        dg_reserved, the sum of the quotas of the disk group; quota_used the
+        space the disks of the application use there. Every property is
+        optional: the props query parameter selects them.
+      properties:
+        id:
+          type: integer
+        array_id:
+          type: integer
+        array_name:
+          type: string
+        array_model:
+          type: string
+        dg_id:
+          type: integer
+        dg_name:
+          type: string
+        dg_size:
+          type: integer
+        dg_used:
+          type: integer
+        dg_free:
+          type: integer
+        dg_reserved:
+          type: integer
+        dg_reservable:
+          type: integer
+        app_id:
+          type: integer
+        app:
+          type: string
+        quota:
+          type: integer
+        quota_used:
+          type: integer
+
+    QuotaListResponse:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          oneOf:
+            - type: array
+              items:
+                $ref: '#/components/schemas/QuotaRow'
+            - type: object
+              additionalProperties:
+                type: object
+                additionalProperties:
+                  type: integer
+        meta:
+          $ref: '#/components/schemas/ListMeta'
+
+    QuotaInput:
+      type: object
+      description: |
+        A quota to set: its size in MB, and the application code it is for, by
+        app_id or app. Creating one requires both; changing one, either.
+      properties:
+        quota:
+          type: integer
+          format: int64
+          minimum: 0
+          maximum: 2147483647
+        app_id:
+          type: integer
+          format: int64
+        app:
+          type: string
+
+    QuotaChangeResponse:
+      type: object
+      required: [info, id]
+      properties:
+        info:
+          type: string
+        id:
+          type: integer
+          format: int64
+          description: The quota written or deleted.
+
+    ArrayRow:
+      type: object
+      description: |
+        A storage array. Every property is optional: the props query parameter
+        selects them. array_cache is in MB.
+      properties:
+        id:
+          type: integer
+        array_name:
+          type: string
+        array_model:
+          type: string
+        array_comment:
+          type: string
+        array_firmware:
+          type: string
+        array_cache:
+          type: integer
+        array_level:
+          type: integer
+        array_updated:
+          type: string
+
+    ArrayListResponse:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          oneOf:
+            - type: array
+              items:
+                $ref: '#/components/schemas/ArrayRow'
+            - type: object
+              additionalProperties:
+                type: object
+                additionalProperties:
+                  type: integer
+        meta:
+          $ref: '#/components/schemas/ListMeta'
+
+    DiskGroupRow:
+      type: object
+      description: |
+        A disk group of a storage array, its sizes in MB: dg_reserved is the sum
+        of its quotas. Every property is optional: the props query parameter
+        selects them.
+      properties:
+        id:
+          type: integer
+        array_id:
+          type: string
+          description: The id of the array, as text.
+        dg_name:
+          type: string
+        dg_size:
+          type: integer
+        dg_used:
+          type: integer
+        dg_free:
+          type: integer
+        dg_reserved:
+          type: integer
+        dg_updated:
+          type: string
+
+    DiskGroupListResponse:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          oneOf:
+            - type: array
+              items:
+                $ref: '#/components/schemas/DiskGroupRow'
+            - type: object
+              additionalProperties:
+                type: object
+                additionalProperties:
+                  type: integer
+        meta:
+          $ref: '#/components/schemas/ListMeta'
 
     InfoResponse:
       type: object

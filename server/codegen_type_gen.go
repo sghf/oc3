@@ -1809,6 +1809,36 @@ type AppRow struct {
 	Updated     *string `json:"updated,omitempty"`
 }
 
+// ArrayListResponse defines model for ArrayListResponse.
+type ArrayListResponse struct {
+	Data ArrayListResponse_Data `json:"data"`
+	Meta *ListMeta              `json:"meta,omitempty"`
+}
+
+// ArrayListResponseData0 defines model for .
+type ArrayListResponseData0 = []ArrayRow
+
+// ArrayListResponseData1 defines model for .
+type ArrayListResponseData1 map[string]map[string]int
+
+// ArrayListResponse_Data defines model for ArrayListResponse.Data.
+type ArrayListResponse_Data struct {
+	union json.RawMessage
+}
+
+// ArrayRow A storage array. Every property is optional: the props query parameter
+// selects them. array_cache is in MB.
+type ArrayRow struct {
+	ArrayCache    *int    `json:"array_cache,omitempty"`
+	ArrayComment  *string `json:"array_comment,omitempty"`
+	ArrayFirmware *string `json:"array_firmware,omitempty"`
+	ArrayLevel    *int    `json:"array_level,omitempty"`
+	ArrayModel    *string `json:"array_model,omitempty"`
+	ArrayName     *string `json:"array_name,omitempty"`
+	ArrayUpdated  *string `json:"array_updated,omitempty"`
+	Id            *int    `json:"id,omitempty"`
+}
+
 // AssistantCapabilities The AG-UI AgentCapabilities of the agent.
 type AssistantCapabilities map[string]interface{}
 
@@ -3410,6 +3440,38 @@ type ComplianceVersionDetail struct {
 
 	// Version A version of the compliance export, a commit of its git repository.
 	Version ComplianceVersion `json:"version"`
+}
+
+// DiskGroupListResponse defines model for DiskGroupListResponse.
+type DiskGroupListResponse struct {
+	Data DiskGroupListResponse_Data `json:"data"`
+	Meta *ListMeta                  `json:"meta,omitempty"`
+}
+
+// DiskGroupListResponseData0 defines model for .
+type DiskGroupListResponseData0 = []DiskGroupRow
+
+// DiskGroupListResponseData1 defines model for .
+type DiskGroupListResponseData1 map[string]map[string]int
+
+// DiskGroupListResponse_Data defines model for DiskGroupListResponse.Data.
+type DiskGroupListResponse_Data struct {
+	union json.RawMessage
+}
+
+// DiskGroupRow A disk group of a storage array, its sizes in MB: dg_reserved is the sum
+// of its quotas. Every property is optional: the props query parameter
+// selects them.
+type DiskGroupRow struct {
+	// ArrayId The id of the array, as text.
+	ArrayId    *string `json:"array_id,omitempty"`
+	DgFree     *int    `json:"dg_free,omitempty"`
+	DgName     *string `json:"dg_name,omitempty"`
+	DgReserved *int    `json:"dg_reserved,omitempty"`
+	DgSize     *int    `json:"dg_size,omitempty"`
+	DgUpdated  *string `json:"dg_updated,omitempty"`
+	DgUsed     *int    `json:"dg_used,omitempty"`
+	Id         *int    `json:"id,omitempty"`
 }
 
 // DiskListResponse defines model for DiskListResponse.
@@ -5157,6 +5219,61 @@ type Problem struct {
 	// Text A human-readable explanation specific to this occurrence of the
 	// problem.
 	Text string `json:"text"`
+}
+
+// QuotaChangeResponse defines model for QuotaChangeResponse.
+type QuotaChangeResponse struct {
+	// Id The quota written or deleted.
+	Id   int64  `json:"id"`
+	Info string `json:"info"`
+}
+
+// QuotaInput A quota to set: its size in MB, and the application code it is for, by
+// app_id or app. Creating one requires both; changing one, either.
+type QuotaInput struct {
+	App   *string `json:"app,omitempty"`
+	AppId *int64  `json:"app_id,omitempty"`
+	Quota *int64  `json:"quota,omitempty"`
+}
+
+// QuotaListResponse defines model for QuotaListResponse.
+type QuotaListResponse struct {
+	Data QuotaListResponse_Data `json:"data"`
+	Meta *ListMeta              `json:"meta,omitempty"`
+}
+
+// QuotaListResponseData0 defines model for .
+type QuotaListResponseData0 = []QuotaRow
+
+// QuotaListResponseData1 defines model for .
+type QuotaListResponseData1 map[string]map[string]int
+
+// QuotaListResponse_Data defines model for QuotaListResponse.Data.
+type QuotaListResponse_Data struct {
+	union json.RawMessage
+}
+
+// QuotaRow A quota of an application code in a disk group of a storage array, a
+// row of v_disk_quota. Sizes are in MB; dg_reservable is dg_size less
+// dg_reserved, the sum of the quotas of the disk group; quota_used the
+// space the disks of the application use there. Every property is
+// optional: the props query parameter selects them.
+type QuotaRow struct {
+	App          *string `json:"app,omitempty"`
+	AppId        *int    `json:"app_id,omitempty"`
+	ArrayId      *int    `json:"array_id,omitempty"`
+	ArrayModel   *string `json:"array_model,omitempty"`
+	ArrayName    *string `json:"array_name,omitempty"`
+	DgFree       *int    `json:"dg_free,omitempty"`
+	DgId         *int    `json:"dg_id,omitempty"`
+	DgName       *string `json:"dg_name,omitempty"`
+	DgReservable *int    `json:"dg_reservable,omitempty"`
+	DgReserved   *int    `json:"dg_reserved,omitempty"`
+	DgSize       *int    `json:"dg_size,omitempty"`
+	DgUsed       *int    `json:"dg_used,omitempty"`
+	Id           *int    `json:"id,omitempty"`
+	Quota        *int    `json:"quota,omitempty"`
+	QuotaUsed    *int    `json:"quota_used,omitempty"`
 }
 
 // ReportListResponse defines model for ReportListResponse.
@@ -6969,6 +7086,62 @@ type GetArraysParams struct {
 
 // GetArrayDiskgroupsParams defines parameters for GetArrayDiskgroups.
 type GetArrayDiskgroupsParams struct {
+	// Props A list of properties to include in each data dictionnary.
+	Props *InQueryProps `form:"props,omitempty" json:"props,omitempty"`
+
+	// Limit The maximum number of entries to return. 0 means no limit.
+	Limit *InQueryLimit `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// Offset Skip the first entries of the data cursor.
+	Offset *InQueryOffset `form:"offset,omitempty" json:"offset,omitempty"`
+
+	// Meta Include metadata in the response. Enabled by default. Use false or 0 to omit
+	// the meta field. The metadata of a list carries its total number of rows
+	// without pagination (total), as well as the rows returned (count), the offset
+	// and the limit.
+	Meta *InQueryMeta `form:"meta,omitempty" json:"meta,omitempty"`
+
+	// Stats With "1" or "true", the response counts the distinct values of each
+	// selected property instead of listing the rows: `data` maps each property
+	// to an object of value → number of rows ("empty" for a null or blank
+	// value), over the whole selection (access control, filters and session
+	// filterset applied, `offset` ignored). `limit`, when given, caps the
+	// number of values returned per property, the most frequent first; without
+	// it every value is returned. `meta.total` is the number of rows,
+	// `meta.distinct` the number of distinct values of each property, and
+	// `meta.other` the number of rows whose value was left out by the limit.
+	// A count taking longer than 5 seconds is refused with a 400, asking to
+	// narrow the selection.
+	Stats *InQueryStats `form:"stats,omitempty" json:"stats,omitempty"`
+
+	// Orderby Comma-separated list of properties to sort by. Prefix a property with - for descending order (e.g. orderby=nodename,-app).
+	Orderby *InQueryOrderby `form:"orderby,omitempty" json:"orderby,omitempty"`
+
+	// Groupby Comma-separated list of properties to group the result by (e.g. groupby=app,svcname).
+	Groupby *InQueryGroupby `form:"groupby,omitempty" json:"groupby,omitempty"`
+
+	// Filter Column filter, repeatable; several filters combine with AND. Each value is
+	// `prop:expr`, `prop` being a property of the list (joined ones included, as
+	// for orderby) and `expr` one of:
+	//   - text: case-insensitive match anywhere in the value;
+	//   - `~regex`: regular expression (RE2 syntax), case-insensitive;
+	//   - `in:a,b,c`: one of the listed values;
+	//   - `eq:v`, `ne:v`: equal, not equal;
+	//   - `gt:v`, `gte:v`, `lt:v`, `lte:v`: comparisons, for numbers and dates;
+	//     a date may be relative to now, `-` then a duration in weeks, days,
+	//     hours, minutes and seconds: `lt:-15m` keeps the dates older than 15
+	//     minutes, `gte:-1d12h` those of the last day and a half;
+	//   - `empty`: no value;
+	//   - `!expr`: the inverse of any of the above, that is the rows `expr` leaves
+	//     out, those without a value included: `!dev`, `!~^dev`, `!in:a,b`,
+	//     `!empty` (any value).
+	// An unknown property, a property without a column, or an invalid regular
+	// expression is answered with 400.
+	Filter *InQueryFilter `form:"filter,omitempty" json:"filter,omitempty"`
+}
+
+// GetArrayDiskgroupQuotasParams defines parameters for GetArrayDiskgroupQuotas.
+type GetArrayDiskgroupQuotasParams struct {
 	// Props A list of properties to include in each data dictionnary.
 	Props *InQueryProps `form:"props,omitempty" json:"props,omitempty"`
 
@@ -12805,6 +12978,62 @@ type GetPackageParams struct {
 	Props *InQueryProps `form:"props,omitempty" json:"props,omitempty"`
 }
 
+// GetQuotasParams defines parameters for GetQuotas.
+type GetQuotasParams struct {
+	// Props A list of properties to include in each data dictionnary.
+	Props *InQueryProps `form:"props,omitempty" json:"props,omitempty"`
+
+	// Limit The maximum number of entries to return. 0 means no limit.
+	Limit *InQueryLimit `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// Offset Skip the first entries of the data cursor.
+	Offset *InQueryOffset `form:"offset,omitempty" json:"offset,omitempty"`
+
+	// Meta Include metadata in the response. Enabled by default. Use false or 0 to omit
+	// the meta field. The metadata of a list carries its total number of rows
+	// without pagination (total), as well as the rows returned (count), the offset
+	// and the limit.
+	Meta *InQueryMeta `form:"meta,omitempty" json:"meta,omitempty"`
+
+	// Stats With "1" or "true", the response counts the distinct values of each
+	// selected property instead of listing the rows: `data` maps each property
+	// to an object of value → number of rows ("empty" for a null or blank
+	// value), over the whole selection (access control, filters and session
+	// filterset applied, `offset` ignored). `limit`, when given, caps the
+	// number of values returned per property, the most frequent first; without
+	// it every value is returned. `meta.total` is the number of rows,
+	// `meta.distinct` the number of distinct values of each property, and
+	// `meta.other` the number of rows whose value was left out by the limit.
+	// A count taking longer than 5 seconds is refused with a 400, asking to
+	// narrow the selection.
+	Stats *InQueryStats `form:"stats,omitempty" json:"stats,omitempty"`
+
+	// Orderby Comma-separated list of properties to sort by. Prefix a property with - for descending order (e.g. orderby=nodename,-app).
+	Orderby *InQueryOrderby `form:"orderby,omitempty" json:"orderby,omitempty"`
+
+	// Groupby Comma-separated list of properties to group the result by (e.g. groupby=app,svcname).
+	Groupby *InQueryGroupby `form:"groupby,omitempty" json:"groupby,omitempty"`
+
+	// Filter Column filter, repeatable; several filters combine with AND. Each value is
+	// `prop:expr`, `prop` being a property of the list (joined ones included, as
+	// for orderby) and `expr` one of:
+	//   - text: case-insensitive match anywhere in the value;
+	//   - `~regex`: regular expression (RE2 syntax), case-insensitive;
+	//   - `in:a,b,c`: one of the listed values;
+	//   - `eq:v`, `ne:v`: equal, not equal;
+	//   - `gt:v`, `gte:v`, `lt:v`, `lte:v`: comparisons, for numbers and dates;
+	//     a date may be relative to now, `-` then a duration in weeks, days,
+	//     hours, minutes and seconds: `lt:-15m` keeps the dates older than 15
+	//     minutes, `gte:-1d12h` those of the last day and a half;
+	//   - `empty`: no value;
+	//   - `!expr`: the inverse of any of the above, that is the rows `expr` leaves
+	//     out, those without a value included: `!dev`, `!~^dev`, `!in:a,b`,
+	//     `!empty` (any value).
+	// An unknown property, a property without a column, or an invalid regular
+	// expression is answered with 400.
+	Filter *InQueryFilter `form:"filter,omitempty" json:"filter,omitempty"`
+}
+
 // GetReportsParams defines parameters for GetReports.
 type GetReportsParams struct {
 	// Props A list of properties to include in each data dictionnary.
@@ -15272,6 +15501,12 @@ type DeleteAppsResponsiblesJSONRequestBody DeleteAppsResponsiblesJSONBody
 // PostAppsResponsiblesJSONRequestBody defines body for PostAppsResponsibles for application/json ContentType.
 type PostAppsResponsiblesJSONRequestBody PostAppsResponsiblesJSONBody
 
+// PostArrayDiskgroupQuotasJSONRequestBody defines body for PostArrayDiskgroupQuotas for application/json ContentType.
+type PostArrayDiskgroupQuotasJSONRequestBody = QuotaInput
+
+// PostArrayDiskgroupQuotaJSONRequestBody defines body for PostArrayDiskgroupQuota for application/json ContentType.
+type PostArrayDiskgroupQuotaJSONRequestBody = QuotaInput
+
 // PatchAssistantConversationJSONRequestBody defines body for PatchAssistantConversation for application/json ContentType.
 type PatchAssistantConversationJSONRequestBody = AssistantTitleRequest
 
@@ -15957,6 +16192,68 @@ func (t AppListResponse_Data) MarshalJSON() ([]byte, error) {
 }
 
 func (t *AppListResponse_Data) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsArrayListResponseData0 returns the union data inside the ArrayListResponse_Data as a ArrayListResponseData0
+func (t ArrayListResponse_Data) AsArrayListResponseData0() (ArrayListResponseData0, error) {
+	var body ArrayListResponseData0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromArrayListResponseData0 overwrites any union data inside the ArrayListResponse_Data as the provided ArrayListResponseData0
+func (t *ArrayListResponse_Data) FromArrayListResponseData0(v ArrayListResponseData0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeArrayListResponseData0 performs a merge with any union data inside the ArrayListResponse_Data, using the provided ArrayListResponseData0
+func (t *ArrayListResponse_Data) MergeArrayListResponseData0(v ArrayListResponseData0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsArrayListResponseData1 returns the union data inside the ArrayListResponse_Data as a ArrayListResponseData1
+func (t ArrayListResponse_Data) AsArrayListResponseData1() (ArrayListResponseData1, error) {
+	var body ArrayListResponseData1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromArrayListResponseData1 overwrites any union data inside the ArrayListResponse_Data as the provided ArrayListResponseData1
+func (t *ArrayListResponse_Data) FromArrayListResponseData1(v ArrayListResponseData1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeArrayListResponseData1 performs a merge with any union data inside the ArrayListResponse_Data, using the provided ArrayListResponseData1
+func (t *ArrayListResponse_Data) MergeArrayListResponseData1(v ArrayListResponseData1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t ArrayListResponse_Data) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *ArrayListResponse_Data) UnmarshalJSON(b []byte) error {
 	err := t.union.UnmarshalJSON(b)
 	return err
 }
@@ -16701,6 +16998,68 @@ func (t ComplianceStatusListResponse_Data) MarshalJSON() ([]byte, error) {
 }
 
 func (t *ComplianceStatusListResponse_Data) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsDiskGroupListResponseData0 returns the union data inside the DiskGroupListResponse_Data as a DiskGroupListResponseData0
+func (t DiskGroupListResponse_Data) AsDiskGroupListResponseData0() (DiskGroupListResponseData0, error) {
+	var body DiskGroupListResponseData0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromDiskGroupListResponseData0 overwrites any union data inside the DiskGroupListResponse_Data as the provided DiskGroupListResponseData0
+func (t *DiskGroupListResponse_Data) FromDiskGroupListResponseData0(v DiskGroupListResponseData0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeDiskGroupListResponseData0 performs a merge with any union data inside the DiskGroupListResponse_Data, using the provided DiskGroupListResponseData0
+func (t *DiskGroupListResponse_Data) MergeDiskGroupListResponseData0(v DiskGroupListResponseData0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsDiskGroupListResponseData1 returns the union data inside the DiskGroupListResponse_Data as a DiskGroupListResponseData1
+func (t DiskGroupListResponse_Data) AsDiskGroupListResponseData1() (DiskGroupListResponseData1, error) {
+	var body DiskGroupListResponseData1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromDiskGroupListResponseData1 overwrites any union data inside the DiskGroupListResponse_Data as the provided DiskGroupListResponseData1
+func (t *DiskGroupListResponse_Data) FromDiskGroupListResponseData1(v DiskGroupListResponseData1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeDiskGroupListResponseData1 performs a merge with any union data inside the DiskGroupListResponse_Data, using the provided DiskGroupListResponseData1
+func (t *DiskGroupListResponse_Data) MergeDiskGroupListResponseData1(v DiskGroupListResponseData1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t DiskGroupListResponse_Data) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *DiskGroupListResponse_Data) UnmarshalJSON(b []byte) error {
 	err := t.union.UnmarshalJSON(b)
 	return err
 }
@@ -18127,6 +18486,68 @@ func (t PackageListResponse_Data) MarshalJSON() ([]byte, error) {
 }
 
 func (t *PackageListResponse_Data) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsQuotaListResponseData0 returns the union data inside the QuotaListResponse_Data as a QuotaListResponseData0
+func (t QuotaListResponse_Data) AsQuotaListResponseData0() (QuotaListResponseData0, error) {
+	var body QuotaListResponseData0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromQuotaListResponseData0 overwrites any union data inside the QuotaListResponse_Data as the provided QuotaListResponseData0
+func (t *QuotaListResponse_Data) FromQuotaListResponseData0(v QuotaListResponseData0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeQuotaListResponseData0 performs a merge with any union data inside the QuotaListResponse_Data, using the provided QuotaListResponseData0
+func (t *QuotaListResponse_Data) MergeQuotaListResponseData0(v QuotaListResponseData0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsQuotaListResponseData1 returns the union data inside the QuotaListResponse_Data as a QuotaListResponseData1
+func (t QuotaListResponse_Data) AsQuotaListResponseData1() (QuotaListResponseData1, error) {
+	var body QuotaListResponseData1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromQuotaListResponseData1 overwrites any union data inside the QuotaListResponse_Data as the provided QuotaListResponseData1
+func (t *QuotaListResponse_Data) FromQuotaListResponseData1(v QuotaListResponseData1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeQuotaListResponseData1 performs a merge with any union data inside the QuotaListResponse_Data, using the provided QuotaListResponseData1
+func (t *QuotaListResponse_Data) MergeQuotaListResponseData1(v QuotaListResponseData1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t QuotaListResponse_Data) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *QuotaListResponse_Data) UnmarshalJSON(b []byte) error {
 	err := t.union.UnmarshalJSON(b)
 	return err
 }
