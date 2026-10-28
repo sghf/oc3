@@ -182,18 +182,21 @@ func (oDb *DB) Log(ctx context.Context, entries ...LogEntry) error {
 }
 
 type LogMessage struct {
-	User   string
-	Fmt    string
-	Dict   string // JSON-encoded log_dict
-	Level  string
-	SvcID  *string
-	NodeID *string
+	User string
+	// Impersonator is the user who really signed in when User is impersonated;
+	// InsertLogMessage reads it from the context when empty, as Log does.
+	Impersonator string
+	Fmt          string
+	Dict         string // JSON-encoded log_dict
+	Level        string
+	SvcID        *string
+	NodeID       *string
 }
 
 // InsertLogMessage inserts a single 'message' log event and returns its id.
 func (oDb *DB) InsertLogMessage(ctx context.Context, m LogMessage) (int64, error) {
-	const query = "INSERT INTO log (log_action, log_user, log_fmt, log_dict, log_level, svc_id, node_id, log_date)" +
-		" VALUES ('message', ?, ?, ?, ?, ?, ?, NOW())"
+	const query = "INSERT INTO log (log_action, log_user, log_impersonator, log_fmt, log_dict, log_level, svc_id, node_id, log_date)" +
+		" VALUES ('message', ?, ?, ?, ?, ?, ?, ?, NOW())"
 	var svcID, nodeID sql.NullString
 	if m.SvcID != nil {
 		svcID = sql.NullString{String: *m.SvcID, Valid: true}
@@ -205,7 +208,15 @@ func (oDb *DB) InsertLogMessage(ctx context.Context, m LogMessage) (int64, error
 	if dict == "" {
 		dict = "{}"
 	}
-	res, err := oDb.ExecContext(ctx, query, m.User, m.Fmt, dict, m.Level, svcID, nodeID)
+	impersonator := m.Impersonator
+	if impersonator == "" {
+		impersonator = ImpersonatorFrom(ctx)
+	}
+	var impersonatorArg sql.NullString
+	if impersonator != "" {
+		impersonatorArg = sql.NullString{String: impersonator, Valid: true}
+	}
+	res, err := oDb.ExecContext(ctx, query, m.User, impersonatorArg, m.Fmt, dict, m.Level, svcID, nodeID)
 	if err != nil {
 		return 0, fmt.Errorf("InsertLogMessage: %w", err)
 	}

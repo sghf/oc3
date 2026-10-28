@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"unicode/utf8"
 
 	"github.com/labstack/echo/v4"
 
@@ -709,10 +710,8 @@ func (w *compWriter) createOrUpdateVariable(rid int64, fields map[string]any) (i
 	if err != nil {
 		return 0, err
 	}
-	logged := map[string]any{"ruleset_id": rid}
-	for k, v := range fields {
-		logged[k] = v
-	}
+	logged := loggedVariableFields(fields)
+	logged["ruleset_id"] = rid
 	w.log("compliance.ruleset.variable.create", "properties %(data)s", map[string]any{"data": compJSON(logged)})
 	return vid, nil
 }
@@ -741,9 +740,25 @@ func (w *compWriter) updateVariable(rid, vid int64, fields map[string]any) error
 		return err
 	}
 	w.log("compliance.ruleset.variable.change", "changed properties %(data)s", map[string]any{
-		"data": compJSON(map[string]any{"ruleset": before.RulesetName, "variable": before.Name, "changes": fields}),
+		"data": compJSON(map[string]any{"ruleset": before.RulesetName, "variable": before.Name, "changes": loggedVariableFields(fields)}),
 	})
 	return nil
+}
+
+// loggedVariableFields are the properties of a variable as the audit log
+// records them: its value, a password or a key as often as not, by its length
+// only. The historical collector logged it whole; the log is readable more
+// widely than the ruleset. Not even a digest: a weak secret could be found
+// from it by trying candidates.
+func loggedVariableFields(fields map[string]any) map[string]any {
+	logged := make(map[string]any, len(fields))
+	for k, v := range fields {
+		logged[k] = v
+	}
+	if v, ok := fields["var_value"]; ok {
+		logged["var_value"] = fmt.Sprintf("(hidden, %d characters)", utf8.RuneCountInString(fmt.Sprint(v)))
+	}
+	return logged
 }
 
 // deleteVariable deletes a variable of a ruleset.

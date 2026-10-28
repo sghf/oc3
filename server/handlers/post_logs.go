@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+	"unicode/utf8"
 
 	"github.com/labstack/echo/v4"
 
@@ -13,6 +14,16 @@ import (
 	"github.com/opensvc/oc3/util/echolog"
 	"github.com/opensvc/oc3/util/logkey"
 )
+
+const (
+	// maxLogFmt is the size of log.log_fmt, varchar(200).
+	maxLogFmt = 200
+	// maxLogDict is the size of log.log_dict, a text column.
+	maxLogDict = 65535
+)
+
+// logLevels are the values of log.log_level, an enum.
+var logLevels = map[string]bool{"debug": true, "info": true, "warning": true, "error": true, "critical": true}
 
 // PostLogs handles POST /logs: create a 'message' log event.
 func (a *Api) PostLogs(c echo.Context) error {
@@ -27,14 +38,22 @@ func (a *Api) PostLogs(c echo.Context) error {
 		return JSONProblem(c, http.StatusBadRequest, err.Error())
 	}
 
-	// log_fmt is mandatory and must not be empty.
+	// log_fmt is mandatory and must not be empty. The limits are those of the
+	// log columns: a value past them would fail in the database, a 500,
+	// rather than be refused.
 	if body.LogFmt == "" {
 		return JSONProblemf(c, http.StatusBadRequest, "empty log event discarded")
+	}
+	if n := utf8.RuneCountInString(body.LogFmt); n > maxLogFmt {
+		return JSONProblemf(c, http.StatusBadRequest, "log_fmt: %d characters, %d at most", n, maxLogFmt)
 	}
 
 	level := "info"
 	if body.LogLevel != nil && *body.LogLevel != "" {
-		level = *body.LogLevel
+		level = string(*body.LogLevel)
+		if !logLevels[level] {
+			return JSONProblemf(c, http.StatusBadRequest, "log_level: %q is not one of debug, info, warning, error, critical", level)
+		}
 	}
 
 	dict := "{}"
@@ -42,6 +61,9 @@ func (a *Api) PostLogs(c echo.Context) error {
 		b, err := json.Marshal(*body.LogDict)
 		if err != nil {
 			return JSONProblem(c, http.StatusBadRequest, err.Error())
+		}
+		if len(b) > maxLogDict {
+			return JSONProblemf(c, http.StatusBadRequest, "log_dict: %d bytes, %d at most", len(b), maxLogDict)
 		}
 		dict = string(b)
 	}

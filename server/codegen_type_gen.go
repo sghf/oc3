@@ -1484,6 +1484,33 @@ func (e PostFiltersetsFiltersetsJSONBodyFLogOp) Valid() bool {
 	}
 }
 
+// Defines values for PostLogsJSONBodyLogLevel.
+const (
+	Critical PostLogsJSONBodyLogLevel = "critical"
+	Debug    PostLogsJSONBodyLogLevel = "debug"
+	Error    PostLogsJSONBodyLogLevel = "error"
+	Info     PostLogsJSONBodyLogLevel = "info"
+	Warning  PostLogsJSONBodyLogLevel = "warning"
+)
+
+// Valid indicates whether the value is a known member of the PostLogsJSONBodyLogLevel enum.
+func (e PostLogsJSONBodyLogLevel) Valid() bool {
+	switch e {
+	case Critical:
+		return true
+	case Debug:
+		return true
+	case Error:
+		return true
+	case Info:
+		return true
+	case Warning:
+		return true
+	default:
+		return false
+	}
+}
+
 // Defines values for PostMetricsJSONBodyMetricHistorize.
 const (
 	PostMetricsJSONBodyMetricHistorizeF PostMetricsJSONBodyMetricHistorize = "F"
@@ -11048,12 +11075,17 @@ type GetLogsParams struct {
 
 // PostLogsJSONBody defines parameters for PostLogs.
 type PostLogsJSONBody struct {
-	LogDict  *map[string]interface{} `json:"log_dict,omitempty"`
-	LogFmt   string                  `json:"log_fmt"`
-	LogLevel *string                 `json:"log_level,omitempty"`
-	NodeId   *string                 `json:"node_id,omitempty"`
-	SvcId    *string                 `json:"svc_id,omitempty"`
+	LogDict *map[string]interface{} `json:"log_dict,omitempty"`
+
+	// LogFmt The message, its %(key)s placeholders taking the values of log_dict.
+	LogFmt   string                    `json:"log_fmt"`
+	LogLevel *PostLogsJSONBodyLogLevel `json:"log_level,omitempty"`
+	NodeId   *string                   `json:"node_id,omitempty"`
+	SvcId    *string                   `json:"svc_id,omitempty"`
 }
+
+// PostLogsJSONBodyLogLevel defines parameters for PostLogs.
+type PostLogsJSONBodyLogLevel string
 
 // GetLogParams defines parameters for GetLog.
 type GetLogParams struct {

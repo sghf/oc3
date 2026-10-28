@@ -6902,7 +6902,10 @@ paths:
       operationId: PostLogs
       description: |
         Create a log event. The entry type is forced to 'message', the default
-        level is 'info', and empty log events are discarded.
+        level is 'info', and empty log events are discarded. A user writes it in
+        their name, the user who really signed in kept when impersonating; a node
+        as "agent". A format over 200 characters, an unknown level or a log_dict
+        over 64 KiB is refused with 400.
       requestBody:
         required: true
         content:
@@ -6914,8 +6917,11 @@ paths:
               properties:
                 log_fmt:
                   type: string
+                  maxLength: 200
+                  description: The message, its %(key)s placeholders taking the values of log_dict.
                 log_level:
                   type: string
+                  enum: [debug, info, warning, error, critical]
                 log_dict:
                   type: object
                 node_id:
