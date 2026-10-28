@@ -168,52 +168,20 @@ func (s *formSubmission) outputScript(ctx context.Context, output map[string]any
 	return nil
 }
 
-// mangle runs the mangler of a rest output, a javascript function of the form
-// definition, in the vm2 sandbox of nodejs, as the historical collector does:
-// its printed JSON result replaces the data sent.
+// mangle runs the mangler of a rest output (runMangler): its result replaces
+// the data sent.
 func (s *formSubmission) mangle(ctx context.Context, mangler string) (any, error) {
 	s.mu.Lock()
-	outputs, _ := json.Marshal(s.results["outputs"])
+	outputs, err := json.Marshal(s.results["outputs"])
 	s.mu.Unlock()
+	if err != nil {
+		return nil, err
+	}
 	data, err := json.Marshal(s.data)
 	if err != nil {
 		return nil, err
 	}
-	script := fmt.Sprintf("var mangle = %s; var out = mangle(%s, %s, %d); console.log(JSON.stringify(out));",
-		mangler, data, outputs, s.resultsID)
-	f, err := os.CreateTemp("", "oc3-form-mangle-*.js")
-	if err != nil {
-		return nil, err
-	}
-	defer func() { _ = os.Remove(f.Name()) }()
-	if _, err := f.WriteString(script); err != nil {
-		_ = f.Close()
-		return nil, err
-	}
-	_ = f.Close()
-	nodejs := viper.GetString("server.forms.nodejs")
-	vm2 := viper.GetString("server.forms.vm2")
-	var stdout, stderr bytes.Buffer
-	cmd := exec.CommandContext(ctx, nodejs, vm2, f.Name())
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-	_ = cmd.Run()
-	var lines []string
-	for _, line := range strings.Split(stdout.String(), "\n") {
-		if line != "" && !strings.Contains(line, "[vm] ") {
-			lines = append(lines, line)
-		}
-	}
-	if len(lines) == 0 {
-		return nil, fmt.Errorf("mangling produced no data:\nmangler: %s\noutput: %s\nerror: %s", script, stdout.String(), stderr.String())
-	}
-	var out any
-	decoder := json.NewDecoder(strings.NewReader(strings.Join(lines, "\n")))
-	decoder.UseNumber()
-	if err := decoder.Decode(&out); err != nil {
-		return nil, err
-	}
-	return out, nil
+	return runMangler(ctx, mangler, data, outputs, s.resultsID, viper.GetDuration("server.forms.mangle_timeout"))
 }
 
 // outputRest calls the collector API as the submitter, or an external url, as

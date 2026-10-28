@@ -79,9 +79,9 @@ func setDefaultServerConfig() {
 	// The bare git repository of the compliance modules, archived for the agents
 	// (om node updatecomp).
 	viper.SetDefault(s+".directories.compliance_modules", "/oc3/uploads/compliance_modules.git")
-	// The javascript sandbox running the manglers of the form rest outputs.
-	viper.SetDefault(s+".forms.nodejs", "/usr/bin/nodejs")
-	viper.SetDefault(s+".forms.vm2", "/usr/local/bin/vm2")
+	// How long the mangler of a form rest output may run, in the javascript
+	// interpreter of oc3 (server/handlers/forms_mangle.go).
+	viper.SetDefault(s+".forms.mangle_timeout", "5s")
 	// The external hosts a rest output may call by its absolute url, "host" or
 	// "host:port"; none by default: an external API is called through a connector.
 	viper.SetDefault(s+".forms.external_hosts", []string{})
