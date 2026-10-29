@@ -13,6 +13,7 @@
 !Makefile
 !migrate/sql/*.sql
 !tools/seed-testdata/*
+!tools/bench-collector/*
 .idea
 core/version/version.go
 .trash
