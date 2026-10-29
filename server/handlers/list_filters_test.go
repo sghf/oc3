@@ -122,7 +122,9 @@ func TestOrderByEndsWithPrimaryKey(t *testing.T) {
 		want             string
 	}{
 		{"instance", "mon_availstatus", false, "svcmon.mon_availstatus,svcmon.ID"},
-		{"node", "-nodename", false, "nodes.nodename DESC,nodes.id"},
+		// The key in the direction of the last column: one direction, read by an index.
+		{"node", "-nodename", false, "nodes.nodename DESC,nodes.id DESC"},
+		{"alert", "-dash_severity,dash_type", false, "dashboard.dash_severity DESC,dashboard.dash_type,dashboard.id"},
 		{"disk", "disk_size", false, "diskinfo.disk_size,diskinfo.id,svcdisks.id"},
 		{"filterset_filter", "f_table", false, "gen_filters.f_table,gen_filtersets_filters.id"},
 		// The key requested already, in either direction: not repeated.

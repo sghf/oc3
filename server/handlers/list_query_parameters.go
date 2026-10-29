@@ -109,12 +109,19 @@ func buildOrderBy(orderby *server.InQueryOrderby, mapping propMapping, grouped b
 	if len(exprs) == 0 || grouped {
 		return exprs, nil
 	}
+	// The key in the direction of the last requested column: a sort all in one
+	// direction can be read from an index, backwards when descending, and a
+	// page stop after its rows; mixed, the database sorts every row first.
+	suffix := ""
+	if strings.HasSuffix(exprs[len(exprs)-1], " DESC") {
+		suffix = " DESC"
+	}
 	for _, col := range mapping.primaryKey() {
 		key := col.Qualified()
 		if !slices.ContainsFunc(exprs, func(e string) bool {
 			return strings.EqualFold(strings.TrimSuffix(e, " DESC"), key)
 		}) {
-			exprs = append(exprs, key)
+			exprs = append(exprs, key+suffix)
 		}
 	}
 	return exprs, nil
