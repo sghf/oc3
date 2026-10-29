@@ -52,12 +52,15 @@ type joinStep struct {
 	left     *schema.Col   // left side of the ON condition
 	right    *schema.Col   // right side of the ON condition
 	leftJoin bool          // true → LEFT OUTER JOIN, false → INNER JOIN
+	straight bool          // an inner join as STRAIGHT_JOIN, see Query.StraightJoin
 }
 
 func (j joinStep) sql() string {
 	keyword := "JOIN"
 	if j.leftJoin {
 		keyword = "LEFT JOIN"
+	} else if j.straight {
+		keyword = "STRAIGHT_JOIN"
 	}
 	return fmt.Sprintf("%s %s ON %s = %s", keyword, j.newTable.Name, j.left.Qualified(), j.right.Qualified())
 }
@@ -86,6 +89,7 @@ type Query struct {
 	rawJoins   []rawJoin       // LEFT JOINs on a condition of their own, see LeftJoinOn
 	wheres     []condition
 	distinct   bool
+	straight   bool
 }
 
 // From starts a new query against the given table.
@@ -96,6 +100,15 @@ func From(t *schema.Table) *Query {
 // Distinct adds the DISTINCT keyword to the SELECT clause.
 func (q *Query) Distinct() *Query {
 	q.distinct = true
+	return q
+}
+
+// StraightJoin writes the inner joins as STRAIGHT_JOIN: the database then reads
+// the FROM table first. For a list sorted on a column of the FROM table and
+// read a page at a time, where the optimizer, blind to the LIMIT, would rather
+// start from a smaller joined table and sort the whole join.
+func (q *Query) StraightJoin() *Query {
+	q.straight = true
 	return q
 }
 
@@ -245,6 +258,7 @@ func (q *Query) Build() (string, []any, error) {
 	fmt.Fprintf(sb, "%s %s\nFROM %s", keyword, strings.Join(fields, ", "), q.from.Name)
 
 	for _, j := range joins {
+		j.straight = q.straight
 		fmt.Fprintf(sb, "\n%s", j.sql())
 	}
 	for _, j := range q.rawJoins {

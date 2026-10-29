@@ -499,6 +499,9 @@ func (oDb *DB) queryServiceActions(ctx context.Context, svcID, id string, p List
 		Via(schema.TServices).
 		LeftJoin(schema.TNodes).
 		RawSelect(p.SelectExprs...)
+	if actionsFirst(p) {
+		q = q.StraightJoin()
+	}
 	if svcID != "" {
 		q = q.Where(schema.SvcactionsSvcID, "=", svcID)
 	}
@@ -540,6 +543,31 @@ func (oDb *DB) queryServiceActions(ctx context.Context, svcID, id string, p List
 	}
 	defer func() { _ = rows.Close() }()
 	return scanRowsToMaps(rows, p.Props, p.TypeHints)
+}
+
+// actionsFirst tells whether the actions are best read first, in their sort
+// order, the services they join after: the sort and the filters are on their
+// own columns, so that a page stops after its rows, by the date index for the
+// default sort. The optimizer, blind to the LIMIT, would rather read the
+// services first, then join and sort all their actions. A filter or a sort on
+// a joined column (services.svcname...) leaves it the choice: reading the
+// actions first would then go through all of them to fill a page. So does a
+// count, in no order: the visible services first reach their actions by index.
+func actionsFirst(p ListParams) bool {
+	if p.CountOnly {
+		return false
+	}
+	for _, f := range p.Filters {
+		if f.Col == nil || f.Col.T != schema.TSvcactions {
+			return false
+		}
+	}
+	for _, o := range p.OrderBy {
+		if !strings.HasPrefix(o, schema.TSvcactions.Name+".") {
+			return false
+		}
+	}
+	return true
 }
 
 // GetServiceActions returns the actions the agents ran on a service.
