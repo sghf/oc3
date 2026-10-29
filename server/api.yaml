@@ -17652,7 +17652,9 @@ paths:
         The compliance modules as the agents install them: a gzipped tarball of the
         repository, rooted at compliance/, its files owned by root. Set node.repocomp
         to the URL of /compliance/modules_repo for om node updatecomp to fetch it.
-        For an authenticated node, or user. 404 before the first module.
+        For an authenticated node, or user; for anyone when the server setting
+        server.compliance_modules.anonymous_download is true, for the v2 agents
+        fetching it without credentials. 404 before the first module.
       tags:
         - collector
       responses:
@@ -17677,6 +17679,7 @@ paths:
       security:
         - basicAuth: [ ]
         - bearerAuth: [ ]
+        - { }
   /compliance/modulesets:
     get:
       operationId: GetComplianceModulesets

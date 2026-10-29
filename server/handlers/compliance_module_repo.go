@@ -458,11 +458,14 @@ func (a *Api) PutComplianceModuleArchive(c echo.Context, name string) error {
 }
 
 // GetComplianceModulesArchive handles GET /compliance/modules_repo/current:
-// the archive om node updatecomp installs.
+// the archive om node updatecomp installs. For an authenticated node or user,
+// or anyone when server.compliance_modules.anonymous_download is set, for the
+// v2 agents fetching it without credentials.
 func (a *Api) GetComplianceModulesArchive(c echo.Context) error {
 	log := echolog.GetLogHandler(c, "GetComplianceModulesArchive")
-	if err := requireUserOrNode(c); err != nil {
-		return httpProblem(c, err)
+	anonymous := !IsAuthByUser(c) && !IsAuthByNode(c)
+	if anonymous && !viper.GetBool("server.compliance_modules.anonymous_download") {
+		return httpProblem(c, httpErrorf(http.StatusUnauthorized, "user or node authentication required"))
 	}
 	m := compModules()
 	head, err := m.Head()
@@ -481,6 +484,10 @@ func (a *Api) GetComplianceModulesArchive(c echo.Context) error {
 	short := head
 	if len(short) > 12 {
 		short = short[:12]
+	}
+	if anonymous {
+		// No audit entry, no user to name: the server log keeps who fetched it.
+		log.Info("compliance modules archive served without authentication", "remote", c.RealIP(), "commit", head)
 	}
 	h := c.Response().Header()
 	h.Set("X-Compliance-Modules-Commit", head)

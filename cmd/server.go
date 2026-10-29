@@ -115,6 +115,15 @@ func (t *server) authenticateMiddleware(publicPath, publicPrefix []string) echo.
 	publicPath = append(publicPath,
 		pathApi+"/auth/info", pathApi+"/auth/logout", pathApi+"/auth/backchannel-logout")
 	publicPrefix = append(publicPrefix, pathApi+"/auth/login", pathApi+"/auth/callback")
+	// The archive of the compliance modules for the v2 agents, which fetch it
+	// without credentials, when the configuration allows it; the handler checks
+	// the same setting. With and without a query string: the strategy compares
+	// the whole request URI.
+	if viper.GetBool("server.compliance_modules.anonymous_download") {
+		archive := pathApi + "/compliance/modules_repo/current"
+		publicPath = append(publicPath, archive)
+		publicPrefix = append(publicPrefix, archive+"?")
+	}
 
 	strategies := []auth.Strategy{
 		xauth.NewPublicStrategy(publicPath, publicPrefix),

@@ -79,6 +79,12 @@ func setDefaultServerConfig() {
 	// The bare git repository of the compliance modules, archived for the agents
 	// (om node updatecomp).
 	viper.SetDefault(s+".directories.compliance_modules", "/oc3/uploads/compliance_modules.git")
+	// Serve the archive of the compliance modules (GET
+	// /compliance/modules_repo/current) to unauthenticated callers too: the v2
+	// agents' om node updatecomp fetches it without credentials. Off by default:
+	// the modules, and what they reveal of the hosts, are then for authenticated
+	// nodes and users only. Read at start.
+	viper.SetDefault(s+".compliance_modules.anonymous_download", false)
 	// How long the mangler of a form rest output may run, in the javascript
 	// interpreter of oc3 (server/handlers/forms_mangle.go).
 	viper.SetDefault(s+".forms.mangle_timeout", "5s")
