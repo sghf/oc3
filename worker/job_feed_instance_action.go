@@ -3,11 +3,13 @@ package worker
 import (
 	"context"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log/slog"
 	"strings"
 	"time"
 
+	"github.com/go-redis/redis/v8"
 	"github.com/google/uuid"
 
 	"github.com/opensvc/oc3/cachekeys"
@@ -65,6 +67,7 @@ func (d *jobFeedInstanceAction) Operations() []operation {
 		{name: "findObjectFromDb", do: d.findObjectFromDb},
 		{name: "processAction", do: d.updateDB},
 		{name: "pushFromTableChanges", do: d.pushFromTableChanges},
+		{name: "dropData", do: d.dropData, condition: func() bool { return d.rawData != nil }},
 	}
 }
 
@@ -72,14 +75,16 @@ func (d *jobFeedInstanceAction) getData(ctx context.Context) error {
 	var (
 		data feeder.PostInstanceActionJSONRequestBody
 	)
-	if b, err := d.redis.HGet(ctx, cachekeys.FeedInstanceActionH, d.idX).Bytes(); err != nil {
+	b, err := d.redis.HGet(ctx, cachekeys.FeedInstanceActionH, d.idX).Bytes()
+	if err != nil {
 		return fmt.Errorf("getData: HGET %s %s: %w", cachekeys.FeedInstanceActionH, d.idX, err)
-	} else if err = json.Unmarshal(b, &data); err != nil {
-		return fmt.Errorf("getData: unexpected data from %s %s: %w", cachekeys.FeedInstanceActionH, d.idX, err)
-	} else {
-		d.rawData = b
-		d.data = &data
 	}
+	// Kept even when it does not decode, for dropData to remove it.
+	d.rawData = b
+	if err := json.Unmarshal(b, &data); err != nil {
+		return fmt.Errorf("getData: unexpected data from %s %s: %w", cachekeys.FeedInstanceActionH, d.idX, err)
+	}
+	d.data = &data
 
 	slog.Debug(fmt.Sprintf("got action begin data for node %s:%#v", d.nodeID, d.data))
 	return nil
@@ -228,4 +233,23 @@ func (d *jobFeedInstanceAction) updateDB(ctx context.Context) error {
 // pushFromTableChanges announces the changes as concerning the instance of the action: its object and the node.
 func (d *jobFeedInstanceAction) pushFromTableChanges(ctx context.Context) error {
 	return d.pushScopedTableChanges(ctx, []string{d.objectID}, []string{d.nodeID})
+}
+
+// dropDataScript deletes the field KEYS[1] ARGV[1] while it still holds
+// ARGV[2]: a payload posted since it was read, the end of the action after its
+// begin, is left for the job its post queued.
+var dropDataScript = redis.NewScript(`
+if redis.call("HGET", KEYS[1], ARGV[1]) == ARGV[2] then
+	return redis.call("HDEL", KEYS[1], ARGV[1])
+end
+return 0
+`)
+
+// dropData removes the payload the job has processed, or failed to: nothing
+// reads it again, and the action begins and ends would pile up in the hash.
+func (d *jobFeedInstanceAction) dropData(ctx context.Context) error {
+	if err := dropDataScript.Run(ctx, d.redis, []string{cachekeys.FeedInstanceActionH}, d.idX, d.rawData).Err(); err != nil && !errors.Is(err, redis.Nil) {
+		return fmt.Errorf("dropData: HDEL %s %s: %w", cachekeys.FeedInstanceActionH, d.idX, err)
+	}
+	return nil
 }
