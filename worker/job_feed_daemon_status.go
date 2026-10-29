@@ -670,11 +670,13 @@ func (d *jobFeedDaemonStatus) dbUpdateInstances(ctx context.Context) error {
 
 	dashboardUpdateObjectFlexStartedL := make([]*cdb.DashboardUpdateObjectFlexStartedParams, 0)
 
-	objectIDL := make([]string, 0, len(d.byInstanceID))
-	for i := range d.byInstanceID {
-		objectIDL = append(objectIDL, i)
+	// The objects of the report in an acknowledged unavailability period: their
+	// unavailable, placement and degraded alerts are not raised.
+	objectIDL := make([]string, 0, len(d.byObjectName))
+	for _, obj := range d.byObjectName {
+		objectIDL = append(objectIDL, obj.SvcID)
 	}
-	if inAckPeriodL, err := d.oDb.ObjectInAckUnavailabilityPeriod(ctx, d.nodeID); err != nil {
+	if inAckPeriodL, err := d.oDb.ObjectInAckUnavailabilityPeriod(ctx, objectIDL...); err != nil {
 		return fmt.Errorf("dbUpdateInstances ObjectInAckUnavailabilityPeriod: %w", err)
 	} else {
 		for _, i := range inAckPeriodL {
