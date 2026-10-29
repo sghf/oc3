@@ -46,10 +46,10 @@ func taskMetrics(ctx context.Context, task *Task) error {
 	if err != nil {
 		return err
 	}
-	doMetricFilterset := func(metric cdb.Metric, fsetID int) error {
-		rows, err := rodb.DB.QueryContext(ctx, *metric.SQL)
+	doMetricFilterset := func(metric cdb.Metric, query string, fsetID int) error {
+		rows, err := rodb.DB.QueryContext(ctx, query)
 		if err != nil {
-			return fmt.Errorf("%s: %w", *metric.SQL, err)
+			return fmt.Errorf("%s: %w", query, err)
 		}
 		defer func() { _ = rows.Close() }()
 		names, err := rows.Columns()
@@ -127,20 +127,9 @@ func taskMetrics(ctx context.Context, task *Task) error {
 	}
 	doMetricByFilterset := func(metric cdb.Metric) error {
 		for fsetID, fsetCache := range cache {
-			sql := *metric.SQL
-			if fsetCache.SvcIDs != "" {
-				sql = strings.ReplaceAll(sql, "%%fset_svc_ids%%", fsetCache.SvcIDs)
-			} else {
-				sql = strings.ReplaceAll(sql, "%%fset_svc_ids%%", "\"magic1234567890\"")
-			}
-			if fsetCache.NodeIDs != "" {
-				sql = strings.ReplaceAll(sql, "%%fset_node_ids%%", fsetCache.NodeIDs)
-			} else {
-				sql = strings.ReplaceAll(sql, "%%fset_node_ids%%", "\"magic1234567890\"")
-			}
-			*metric.SQL = sql
-			task.Debugf("%d/%d: %s", metric.ID, fsetID, sql)
-			if err := doMetricFilterset(metric, fsetID); err != nil {
+			query := metricFiltersetSQL(*metric.SQL, fsetCache)
+			task.Debugf("%d/%d: %s", metric.ID, fsetID, query)
+			if err := doMetricFilterset(metric, query, fsetID); err != nil {
 				return err
 			}
 		}
@@ -155,7 +144,7 @@ func taskMetrics(ctx context.Context, task *Task) error {
 				return err
 			}
 		} else {
-			if err := doMetricFilterset(metric, 0); err != nil {
+			if err := doMetricFilterset(metric, *metric.SQL, 0); err != nil {
 				return err
 			}
 		}
@@ -170,4 +159,21 @@ func taskMetrics(ctx context.Context, task *Task) error {
 		}
 	}
 	return errs
+}
+
+// metricFiltersetSQL is the query of a metric for a filterset: the
+// %%fset_svc_ids%% and %%fset_node_ids%% placeholders of the metric's template
+// replaced by the ids the filterset resolves to, or by an id matching nothing
+// when it resolves to none. The template itself is left as is, for the next
+// filterset.
+func metricFiltersetSQL(template string, ids cdb.FiltersetIDs) string {
+	const none = "\"magic1234567890\""
+	svcIDs, nodeIDs := ids.SvcIDs, ids.NodeIDs
+	if svcIDs == "" {
+		svcIDs = none
+	}
+	if nodeIDs == "" {
+		nodeIDs = none
+	}
+	return strings.NewReplacer("%%fset_svc_ids%%", svcIDs, "%%fset_node_ids%%", nodeIDs).Replace(template)
 }
