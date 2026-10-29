@@ -91,6 +91,10 @@ func setDefaultServerConfig() {
 	// The longest a statement of the API runs in the database, see newServer.
 	// 0: no limit.
 	viper.SetDefault(s+".db.max_statement_time", "60s")
+	// meta.total of a list is counted up to this many rows, and left out above:
+	// counting millions of rows for the page count costs more than the page.
+	// 0: always counted.
+	viper.SetDefault(s+".list.total_max", 10000)
 	// The external hosts a rest output may call by its absolute url, "host" or
 	// "host:port"; none by default: an external API is called through a connector.
 	viper.SetDefault(s+".forms.external_hosts", []string{})

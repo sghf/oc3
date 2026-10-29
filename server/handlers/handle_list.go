@@ -8,6 +8,7 @@ import (
 	"slices"
 
 	"github.com/labstack/echo/v4"
+	"github.com/spf13/viper"
 
 	"github.com/opensvc/oc3/cdb"
 	"github.com/opensvc/oc3/server"
@@ -221,16 +222,36 @@ func totalFromPage(limit, offset, pageLen int) (int, bool) {
 
 // listTotal counts the rows of a list without pagination, for meta.total. The
 // fetcher runs again with the same access control, filters and grouping, but
-// selects a window count instead of the columns, without sort and for one row:
-// COUNT(*) OVER () counts the rows of the final result, so a grouped list counts
-// its groups, as the historical collector did. A failed count is logged and the
-// total left out, rather than failing a list whose rows were read.
+// without sort, and selects one column of up to server.list.total_max + 1 rows,
+// counted here: a list longer than that has no total. With total_max 0, it
+// selects a window count, for one row: COUNT(*) OVER () counts the rows of the
+// final result. Either way a grouped list counts its groups, as the historical
+// collector did. A failed count is logged and the total left out, rather than
+// failing a list whose rows were read.
 func listTotal(ctx context.Context, log *slog.Logger, fetch listFetcher, p cdb.ListParams, pageLen int) *int {
 	if total, known := totalFromPage(p.Limit, p.Offset, pageLen); known {
 		return &total
 	}
 	count := p
 	count.CountOnly = true
+	if max := viper.GetInt("server.list.total_max"); max > 0 {
+		// Up to max+1 rows of one column, unsorted, counted here: a list of more
+		// than max rows has no total, the client pages without it.
+		count.SelectExprs = []string{"1"}
+		count.Props = []string{"one"}
+		count.TypeHints = map[string]string{"one": "int64"}
+		count.Limit = max + 1
+		count.Offset = 0
+		rows, err := fetch(ctx, count)
+		if err != nil {
+			log.Error("cannot count the list rows", logkey.Error, err)
+			return nil
+		}
+		if len(rows) > max {
+			return nil
+		}
+		return intPtr(len(rows))
+	}
 	count.SelectExprs = []string{"COUNT(*) OVER ()"}
 	count.Props = []string{"total"}
 	count.TypeHints = map[string]string{"total": "int64"}
