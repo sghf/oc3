@@ -311,6 +311,33 @@ var propsMapping = map[string]propMapping{
 			"updated":      colStr(schema.DiskinfoDiskUpdated),
 		},
 	},
+	// The backups the backup servers index (saves), with the node and the service
+	// each is of, as the historical Saves view lists them. save_size is in bytes.
+	"save": {
+		PrimaryKey: []*schema.Col{schema.SavesID},
+		Available: []string{
+			"id", "save_server", "save_id", "save_app", "node_id", "nodename", "svc_id", "svcname",
+			"save_name", "save_group", "save_level", "save_size", "save_volume",
+			"save_date", "save_retention",
+		},
+		Props: map[string]propDef{
+			"id":             col(schema.SavesID),
+			"save_server":    colStr(schema.SavesSaveServer),
+			"save_id":        colStr(schema.SavesSaveID),
+			"save_app":       colStr(schema.SavesSaveApp),
+			"node_id":        colStr(schema.SavesNodeID),
+			"nodename":       colStr(schema.NodesNodename),
+			"svc_id":         colStr(schema.SavesSvcID),
+			"svcname":        colStr(schema.ServicesSvcname),
+			"save_name":      colStr(schema.SavesSaveName),
+			"save_group":     colStr(schema.SavesSaveGroup),
+			"save_level":     colStr(schema.SavesSaveLevel),
+			"save_size":      colInt(schema.SavesSaveSize),
+			"save_volume":    colStr(schema.SavesSaveVolume),
+			"save_date":      colStr(schema.SavesSaveDate),
+			"save_retention": colStr(schema.SavesSaveRetention),
+		},
+	},
 	// The disk groups and the quota of an application code on each, read from the
 	// v_disk_quota view: each prop names the view column it reads, for sorting
 	// and filtering.

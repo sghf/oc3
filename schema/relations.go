@@ -10,6 +10,9 @@ func init() {
 	SvcdisksNodeID.Ref = NodesNodeID
 	SvcdisksSvcID.Ref = ServicesSvcID
 
+	SavesNodeID.Ref = NodesNodeID
+	SavesSvcID.Ref = ServicesSvcID
+
 	ServicesSvcApp.Ref = AppsApp
 
 	NodeIPNodeID.Ref = NodesNodeID

@@ -1730,6 +1730,119 @@ paths:
         - basicAuth: [ ]
         - bearerAuth: [ ]
 
+  /saves:
+    get:
+      operationId: GetSaves
+      description: |
+        List the backups the backup servers index, with the node and the service
+        each is of, the latest first, as the historical Saves view does.
+        save_size is in bytes.
+        A Manager sees every backup, another user those of the application
+        codes one of their groups is responsible for; the session filterset
+        applies.
+      parameters:
+        - $ref: '#/components/parameters/inQueryProps'
+        - $ref: '#/components/parameters/inQueryLimit'
+        - $ref: '#/components/parameters/inQueryOffset'
+        - $ref: '#/components/parameters/inQueryMeta'
+        - $ref: '#/components/parameters/inQueryStats'
+        - $ref: '#/components/parameters/inQueryOrderby'
+        - $ref: '#/components/parameters/inQueryGroupby'
+        - $ref: '#/components/parameters/inQueryFilter'
+      tags:
+        - collector
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SaveListResponse'
+        400:
+          $ref: '#/components/responses/400'
+        401:
+          $ref: '#/components/responses/401'
+        500:
+          $ref: '#/components/responses/500'
+      security:
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
+
+  /saves/summary:
+    get:
+      operationId: GetSavesSummary
+      description: |
+        The size of the backups and their number, summed by application code,
+        backup server, backup group, or object (the service of a backup, else
+        its node), the filters of the request applied: the charts of the
+        historical Saves view. The largest first.
+        A Manager sees every backup, another user those of the application
+        codes one of their groups is responsible for; the session filterset
+        applies.
+      parameters:
+        - in: query
+          name: by
+          required: true
+          description: |
+            What the backups are summed by: app, server, group or object. Not an
+            enum in this spec: its values would collide with those of
+            SanTopologyNode.kind in the generated Go constants.
+          schema:
+            type: string
+        - $ref: '#/components/parameters/inQueryFilter'
+      tags:
+        - collector
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SavesSummaryResponse'
+        400:
+          $ref: '#/components/responses/400'
+        401:
+          $ref: '#/components/responses/401'
+        500:
+          $ref: '#/components/responses/500'
+      security:
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
+
+  /saves/{save_id}:
+    get:
+      operationId: GetSave
+      description: |
+        Show a backup, an empty list when it does not exist or is out of reach.
+        A Manager sees every backup, another user those of the application
+        codes one of their groups is responsible for; the session filterset
+        applies.
+      parameters:
+        - in: path
+          name: save_id
+          required: true
+          description: Backup id
+          schema:
+            type: integer
+            format: int64
+        - $ref: '#/components/parameters/inQueryProps'
+      tags:
+        - collector
+      responses:
+        200:
+          description: OK
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SaveListResponse'
+        401:
+          $ref: '#/components/responses/401'
+        500:
+          $ref: '#/components/responses/500'
+      security:
+        - basicAuth: [ ]
+        - bearerAuth: [ ]
+
   /arrays/{array_id}/diskgroups:
     get:
       operationId: GetArrayDiskgroups
@@ -26059,6 +26172,98 @@ components:
                   type: integer
         meta:
           $ref: '#/components/schemas/ListMeta'
+
+    SaveRow:
+      type: object
+      description: |
+        A backup a backup server indexes: what was saved (save_name, a path or a
+        database), from which node and service, by which server, in which group,
+        at which level, on which volume, when, and until when it is kept.
+        save_size is in bytes. Every property is optional: the props query
+        parameter selects them.
+      properties:
+        id:
+          type: integer
+        save_server:
+          type: string
+        save_id:
+          type: string
+        save_app:
+          type: string
+        node_id:
+          type: string
+        nodename:
+          type: string
+        svc_id:
+          type: string
+        svcname:
+          type: string
+        save_name:
+          type: string
+        save_group:
+          type: string
+        save_level:
+          type: string
+        save_size:
+          type: integer
+          format: int64
+        save_volume:
+          type: string
+        save_date:
+          type: string
+        save_retention:
+          type: string
+
+    SaveListResponse:
+      type: object
+      required:
+        - data
+      properties:
+        data:
+          oneOf:
+            - type: array
+              items:
+                $ref: '#/components/schemas/SaveRow'
+            - type: object
+              additionalProperties:
+                type: object
+                additionalProperties:
+                  type: integer
+        meta:
+          $ref: '#/components/schemas/ListMeta'
+
+    SavesSummaryResponse:
+      type: object
+      required: [data, total_size, total_count]
+      properties:
+        total_size:
+          type: integer
+          format: int64
+          description: The size of all the backups summed, in bytes.
+        total_count:
+          type: integer
+          format: int64
+        data:
+          type: array
+          items:
+            type: object
+            required: [key, label, size, count]
+            properties:
+              key:
+                type: string
+                description: |
+                  The app, server or group; for an object, the column and the id
+                  it is summed by, "svc_id:<id>" or "node_id:<id>".
+              label:
+                type: string
+                description: The key as it reads; the service or node name of an object.
+              size:
+                type: integer
+                format: int64
+                description: In bytes.
+              count:
+                type: integer
+                format: int64
 
     InfoResponse:
       type: object

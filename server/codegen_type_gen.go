@@ -5643,6 +5643,67 @@ type SanTopologyResponse struct {
 	Data SanTopology `json:"data"`
 }
 
+// SaveListResponse defines model for SaveListResponse.
+type SaveListResponse struct {
+	Data SaveListResponse_Data `json:"data"`
+	Meta *ListMeta             `json:"meta,omitempty"`
+}
+
+// SaveListResponseData0 defines model for .
+type SaveListResponseData0 = []SaveRow
+
+// SaveListResponseData1 defines model for .
+type SaveListResponseData1 map[string]map[string]int
+
+// SaveListResponse_Data defines model for SaveListResponse.Data.
+type SaveListResponse_Data struct {
+	union json.RawMessage
+}
+
+// SaveRow A backup a backup server indexes: what was saved (save_name, a path or a
+// database), from which node and service, by which server, in which group,
+// at which level, on which volume, when, and until when it is kept.
+// save_size is in bytes. Every property is optional: the props query
+// parameter selects them.
+type SaveRow struct {
+	Id            *int    `json:"id,omitempty"`
+	NodeId        *string `json:"node_id,omitempty"`
+	Nodename      *string `json:"nodename,omitempty"`
+	SaveApp       *string `json:"save_app,omitempty"`
+	SaveDate      *string `json:"save_date,omitempty"`
+	SaveGroup     *string `json:"save_group,omitempty"`
+	SaveId        *string `json:"save_id,omitempty"`
+	SaveLevel     *string `json:"save_level,omitempty"`
+	SaveName      *string `json:"save_name,omitempty"`
+	SaveRetention *string `json:"save_retention,omitempty"`
+	SaveServer    *string `json:"save_server,omitempty"`
+	SaveSize      *int64  `json:"save_size,omitempty"`
+	SaveVolume    *string `json:"save_volume,omitempty"`
+	SvcId         *string `json:"svc_id,omitempty"`
+	Svcname       *string `json:"svcname,omitempty"`
+}
+
+// SavesSummaryResponse defines model for SavesSummaryResponse.
+type SavesSummaryResponse struct {
+	Data []struct {
+		Count int64 `json:"count"`
+
+		// Key The app, server or group; for an object, the column and the id
+		// it is summed by, "svc_id:<id>" or "node_id:<id>".
+		Key string `json:"key"`
+
+		// Label The key as it reads; the service or node name of an object.
+		Label string `json:"label"`
+
+		// Size In bytes.
+		Size int64 `json:"size"`
+	} `json:"data"`
+	TotalCount int64 `json:"total_count"`
+
+	// TotalSize The size of all the backups summed, in bytes.
+	TotalSize int64 `json:"total_size"`
+}
+
 // SearchGroup The objects of one kind matching a search.
 type SearchGroup struct {
 	// Error Set when the kind could not be searched.
@@ -13431,6 +13492,95 @@ type GetSanSwitchPortParams struct {
 	Props *InQueryProps `form:"props,omitempty" json:"props,omitempty"`
 }
 
+// GetSavesParams defines parameters for GetSaves.
+type GetSavesParams struct {
+	// Props A list of properties to include in each data dictionnary.
+	Props *InQueryProps `form:"props,omitempty" json:"props,omitempty"`
+
+	// Limit The maximum number of entries to return. 0 means no limit.
+	Limit *InQueryLimit `form:"limit,omitempty" json:"limit,omitempty"`
+
+	// Offset Skip the first entries of the data cursor.
+	Offset *InQueryOffset `form:"offset,omitempty" json:"offset,omitempty"`
+
+	// Meta Include metadata in the response. Enabled by default. Use false or 0 to omit
+	// the meta field. The metadata of a list carries its total number of rows
+	// without pagination (total), as well as the rows returned (count), the offset
+	// and the limit.
+	Meta *InQueryMeta `form:"meta,omitempty" json:"meta,omitempty"`
+
+	// Stats With "1" or "true", the response counts the distinct values of each
+	// selected property instead of listing the rows: `data` maps each property
+	// to an object of value → number of rows ("empty" for a null or blank
+	// value), over the whole selection (access control, filters and session
+	// filterset applied, `offset` ignored). `limit`, when given, caps the
+	// number of values returned per property, the most frequent first; without
+	// it every value is returned. `meta.total` is the number of rows,
+	// `meta.distinct` the number of distinct values of each property, and
+	// `meta.other` the number of rows whose value was left out by the limit.
+	// A count taking longer than 5 seconds is refused with a 400, asking to
+	// narrow the selection.
+	Stats *InQueryStats `form:"stats,omitempty" json:"stats,omitempty"`
+
+	// Orderby Comma-separated list of properties to sort by. Prefix a property with - for descending order (e.g. orderby=nodename,-app).
+	Orderby *InQueryOrderby `form:"orderby,omitempty" json:"orderby,omitempty"`
+
+	// Groupby Comma-separated list of properties to group the result by (e.g. groupby=app,svcname).
+	Groupby *InQueryGroupby `form:"groupby,omitempty" json:"groupby,omitempty"`
+
+	// Filter Column filter, repeatable; several filters combine with AND. Each value is
+	// `prop:expr`, `prop` being a property of the list (joined ones included, as
+	// for orderby) and `expr` one of:
+	//   - text: case-insensitive match anywhere in the value;
+	//   - `~regex`: regular expression (RE2 syntax), case-insensitive;
+	//   - `in:a,b,c`: one of the listed values;
+	//   - `eq:v`, `ne:v`: equal, not equal;
+	//   - `gt:v`, `gte:v`, `lt:v`, `lte:v`: comparisons, for numbers and dates;
+	//     a date may be relative to now, `-` then a duration in weeks, days,
+	//     hours, minutes and seconds: `lt:-15m` keeps the dates older than 15
+	//     minutes, `gte:-1d12h` those of the last day and a half;
+	//   - `empty`: no value;
+	//   - `!expr`: the inverse of any of the above, that is the rows `expr` leaves
+	//     out, those without a value included: `!dev`, `!~^dev`, `!in:a,b`,
+	//     `!empty` (any value).
+	// An unknown property, a property without a column, or an invalid regular
+	// expression is answered with 400.
+	Filter *InQueryFilter `form:"filter,omitempty" json:"filter,omitempty"`
+}
+
+// GetSavesSummaryParams defines parameters for GetSavesSummary.
+type GetSavesSummaryParams struct {
+	// By What the backups are summed by: app, server, group or object. Not an
+	// enum in this spec: its values would collide with those of
+	// SanTopologyNode.kind in the generated Go constants.
+	By string `form:"by" json:"by"`
+
+	// Filter Column filter, repeatable; several filters combine with AND. Each value is
+	// `prop:expr`, `prop` being a property of the list (joined ones included, as
+	// for orderby) and `expr` one of:
+	//   - text: case-insensitive match anywhere in the value;
+	//   - `~regex`: regular expression (RE2 syntax), case-insensitive;
+	//   - `in:a,b,c`: one of the listed values;
+	//   - `eq:v`, `ne:v`: equal, not equal;
+	//   - `gt:v`, `gte:v`, `lt:v`, `lte:v`: comparisons, for numbers and dates;
+	//     a date may be relative to now, `-` then a duration in weeks, days,
+	//     hours, minutes and seconds: `lt:-15m` keeps the dates older than 15
+	//     minutes, `gte:-1d12h` those of the last day and a half;
+	//   - `empty`: no value;
+	//   - `!expr`: the inverse of any of the above, that is the rows `expr` leaves
+	//     out, those without a value included: `!dev`, `!~^dev`, `!in:a,b`,
+	//     `!empty` (any value).
+	// An unknown property, a property without a column, or an invalid regular
+	// expression is answered with 400.
+	Filter *InQueryFilter `form:"filter,omitempty" json:"filter,omitempty"`
+}
+
+// GetSaveParams defines parameters for GetSave.
+type GetSaveParams struct {
+	// Props A list of properties to include in each data dictionnary.
+	Props *InQueryProps `form:"props,omitempty" json:"props,omitempty"`
+}
+
 // GetSearchParams defines parameters for GetSearch.
 type GetSearchParams struct {
 	// Q The text to search for.
@@ -18982,6 +19132,68 @@ func (t SafeFileListResponse_Data) MarshalJSON() ([]byte, error) {
 }
 
 func (t *SafeFileListResponse_Data) UnmarshalJSON(b []byte) error {
+	err := t.union.UnmarshalJSON(b)
+	return err
+}
+
+// AsSaveListResponseData0 returns the union data inside the SaveListResponse_Data as a SaveListResponseData0
+func (t SaveListResponse_Data) AsSaveListResponseData0() (SaveListResponseData0, error) {
+	var body SaveListResponseData0
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromSaveListResponseData0 overwrites any union data inside the SaveListResponse_Data as the provided SaveListResponseData0
+func (t *SaveListResponse_Data) FromSaveListResponseData0(v SaveListResponseData0) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeSaveListResponseData0 performs a merge with any union data inside the SaveListResponse_Data, using the provided SaveListResponseData0
+func (t *SaveListResponse_Data) MergeSaveListResponseData0(v SaveListResponseData0) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+// AsSaveListResponseData1 returns the union data inside the SaveListResponse_Data as a SaveListResponseData1
+func (t SaveListResponse_Data) AsSaveListResponseData1() (SaveListResponseData1, error) {
+	var body SaveListResponseData1
+	err := json.Unmarshal(t.union, &body)
+	return body, err
+}
+
+// FromSaveListResponseData1 overwrites any union data inside the SaveListResponse_Data as the provided SaveListResponseData1
+func (t *SaveListResponse_Data) FromSaveListResponseData1(v SaveListResponseData1) error {
+	b, err := json.Marshal(v)
+	t.union = b
+	return err
+}
+
+// MergeSaveListResponseData1 performs a merge with any union data inside the SaveListResponse_Data, using the provided SaveListResponseData1
+func (t *SaveListResponse_Data) MergeSaveListResponseData1(v SaveListResponseData1) error {
+	b, err := json.Marshal(v)
+	if err != nil {
+		return err
+	}
+
+	merged, err := runtime.JSONMerge(t.union, b)
+	t.union = merged
+	return err
+}
+
+func (t SaveListResponse_Data) MarshalJSON() ([]byte, error) {
+	b, err := t.union.MarshalJSON()
+	return b, err
+}
+
+func (t *SaveListResponse_Data) UnmarshalJSON(b []byte) error {
 	err := t.union.UnmarshalJSON(b)
 	return err
 }
