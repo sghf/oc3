@@ -88,6 +88,9 @@ func setDefaultServerConfig() {
 	// How long the mangler of a form rest output may run, in the javascript
 	// interpreter of oc3 (server/handlers/forms_mangle.go).
 	viper.SetDefault(s+".forms.mangle_timeout", "5s")
+	// The longest a statement of the API runs in the database, see newServer.
+	// 0: no limit.
+	viper.SetDefault(s+".db.max_statement_time", "60s")
 	// The external hosts a rest output may call by its absolute url, "host" or
 	// "host:port"; none by default: an external API is called through a connector.
 	viper.SetDefault(s+".forms.external_hosts", []string{})

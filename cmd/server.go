@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"fmt"
+	"strconv"
 
 	"github.com/go-redis/redis/v8"
 	"github.com/labstack/echo/v4"
@@ -32,7 +33,14 @@ type (
 )
 
 func newServer() (*server, error) {
-	db, err := newDatabase()
+	// A statement of the API stops after server.db.max_statement_time: the
+	// database goes on running a query whose request was given up, the client
+	// gone, until it ends.
+	var vars map[string]string
+	if d := viper.GetDuration(sectionServer + ".db.max_statement_time"); d > 0 {
+		vars = map[string]string{"max_statement_time": strconv.FormatFloat(d.Seconds(), 'f', -1, 64)}
+	}
+	db, err := newDatabaseWith(vars)
 	if err != nil {
 		return nil, err
 	}

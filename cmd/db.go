@@ -26,8 +26,9 @@ import (
 
 const sectionDB = "db"
 
-// openDatabase setup database handler.
-func openDatabase() (*sql.DB, error) {
+// openDatabase setup database handler. vars are session variables of its
+// connections, max_statement_time for instance.
+func openDatabase(vars map[string]string) (*sql.DB, error) {
 	cdb.InitMetrics()
 
 	cfg := mysql.Config{
@@ -39,6 +40,7 @@ func openDatabase() (*sql.DB, error) {
 		AllowNativePasswords: true,
 		ParseTime:            true,
 		Loc:                  time.Local,
+		Params:               vars,
 	}
 	slog.Info(fmt.Sprintf("db addr=%s", cfg.Addr))
 	db, err := sql.Open("mysql", cfg.FormatDSN())
@@ -59,7 +61,12 @@ func openDatabase() (*sql.DB, error) {
 // newDatabase opens the database once its schema is the one this oc3 needs,
 // see checkSchema.
 func newDatabase() (*sql.DB, error) {
-	db, err := openDatabase()
+	return newDatabaseWith(nil)
+}
+
+// newDatabaseWith is newDatabase, its connections with the session variables vars.
+func newDatabaseWith(vars map[string]string) (*sql.DB, error) {
+	db, err := openDatabase(vars)
 	if err != nil {
 		return nil, err
 	}
@@ -153,7 +160,7 @@ func cmdDBStatus() *cobra.Command {
 			if err := setup(sectionDB); err != nil {
 				return err
 			}
-			db, err := openDatabase()
+			db, err := openDatabase(nil)
 			if err != nil {
 				return err
 			}
@@ -207,7 +214,7 @@ same way as a new one. Back the database up before.`,
 			if err := setup(sectionDB); err != nil {
 				return err
 			}
-			db, err := openDatabase()
+			db, err := openDatabase(nil)
 			if err != nil {
 				return err
 			}
